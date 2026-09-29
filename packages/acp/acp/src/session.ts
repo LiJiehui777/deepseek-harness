@@ -10,14 +10,14 @@ import {
   type SessionNotification,
   type StopReason,
 } from '@agentclientprotocol/sdk'
-import type { Agent, AgentHandle, AgentOptions, ModelSelection } from '@deepseek-ai/dsh-agent'
+import type { Agent, AgentHandle, AgentOptions, AssistantStreamFrame, ModelSelection } from '@deepseek-ai/dsh-agent'
 import { createUserMessage, errorChain, type UserMessage } from '@deepseek-ai/dsh-llm'
 import { type Session, type SessionEvent, type SessionId, type TurnEndReason } from '@deepseek-ai/dsh-session'
 import { AcpContentError, admitAcpPrompt } from './content.ts'
 import { turnEndToStopReason } from './codec.ts'
 import { mountAcpMcpServers } from './mcp.ts'
 import { AcpModelControl } from './model-control.ts'
-import { assistantUpdates, toolCallUpdate, toolResultUpdate } from './updates.ts'
+import { assistantUpdates, liveAssistantUpdate, toolCallUpdate, toolResultUpdate } from './updates.ts'
 
 /** The continuable-subagent teardown used without depending on the subagent package. */
 interface ContinuableDrain {
@@ -31,6 +31,7 @@ interface AcpSessionBuildOptions {
   mcpServers: readonly McpServer[]
   agentOptions: AgentOptions
   fallbackSelection: ModelSelection | undefined
+  liveAssistantUpdates: boolean
   signal: AbortSignal
   notify: (notification: SessionNotification) => Promise<void>
 }
@@ -103,11 +104,14 @@ export class AcpSession {
   private inflight: InflightPrompt | undefined
   private closing: Promise<void> | undefined
   private readonly pendingSelections = new Map<string, ModelSelection>()
+  private readonly liveAttempts = new Map<string, { turn: number; step: number }>()
+  private readonly liveSteps = new Map<string, { text: boolean; reasoning: boolean }>()
 
   private constructor(
     private readonly ctx: Context,
     handle: AgentHandle,
     modelControl: AcpModelControl,
+    private readonly liveAssistantUpdates: boolean,
     private readonly notify: (notification: SessionNotification) => Promise<void>,
   ) {
     this.agent = handle.agent
@@ -135,7 +139,7 @@ export class AcpSession {
         await mountAcpMcpServers(agentCtx, options.mcpServers, options.cwd)
       },
     })
-    return new AcpSession(ctx, handle, modelControl, options.notify)
+    return new AcpSession(ctx, handle, modelControl, options.liveAssistantUpdates, options.notify)
   }
 
   /**
@@ -165,7 +169,7 @@ export class AcpSession {
       throw internalError('session/resume did not compose model selection')
     }
     /* v8 ignore stop */
-    return new AcpSession(ctx, handle, modelControl, options.notify)
+    return new AcpSession(ctx, handle, modelControl, options.liveAssistantUpdates, options.notify)
   }
 
   /**
@@ -346,9 +350,14 @@ export class AcpSession {
     try {
       if (event.type === 'assistant/message') {
         const inflight = this.inflight?.turn === event.data.turn ? this.inflight : undefined
+        const live = this.liveSteps.get(stepKey(event.data.turn, event.data.step))
+        this.liveSteps.delete(stepKey(event.data.turn, event.data.step))
         const previous = this.outputTail
         const delivery = previous.then(async () => {
-          for (const update of await assistantUpdates(this.ctx, session, event)) {
+          for (const update of await assistantUpdates(this.ctx, session, event, {
+            includeText: live?.text !== true,
+            includeReasoning: live?.reasoning !== true,
+          })) {
             await this.notify({ sessionId: this.agent.session.id, update })
           }
         })
@@ -357,6 +366,8 @@ export class AcpSession {
           if (inflight !== undefined) inflight.outputError ??= failure
           this.ctx.logger.warn(`acp: assistant output conversion failed: ${errorChain(error)}`)
         })
+      } else if (event.type === 'assistant/attempt') {
+        this.liveSteps.delete(stepKey(event.data.turn, event.data.step))
       } else if (event.type === 'tool/call') {
         const previous = this.outputTail
         this.outputTail = previous
@@ -386,6 +397,44 @@ export class AcpSession {
       }
       if (event.type === 'turn/end') this.modelControl.releaseTurn(event.data.turn)
     }
+  }
+
+  /**
+   * Publish transient text and reasoning deltas when the deployment opts in.
+   * @param frame - one live frame from this session's owned Agent.
+   */
+  onAssistantStream(frame: AssistantStreamFrame): void {
+    if (!this.liveAssistantUpdates) return
+    const attemptId = String(frame.attemptId)
+    if (frame.type === 'start') {
+      this.liveAttempts.set(attemptId, { turn: frame.turn, step: frame.step })
+      return
+    }
+    const attempt = this.liveAttempts.get(attemptId)
+    if (frame.type === 'end') {
+      this.liveAttempts.delete(attemptId)
+      if (attempt !== undefined && frame.outcome.kind === 'abandoned') {
+        this.liveSteps.delete(stepKey(attempt.turn, attempt.step))
+      }
+      return
+    }
+    if (attempt === undefined) return
+    const update = liveAssistantUpdate(frame)
+    if (update === undefined) return
+    const key = stepKey(attempt.turn, attempt.step)
+    const live = this.liveSteps.get(key) ?? { text: false, reasoning: false }
+    if (update.sessionUpdate === 'agent_message_chunk') live.text = true
+    if (update.sessionUpdate === 'agent_thought_chunk') live.reasoning = true
+    this.liveSteps.set(key, live)
+    const previous = this.outputTail
+    this.outputTail = previous
+      .then(() => this.notify({ sessionId: this.agent.session.id, update }))
+      .catch((error: unknown) => {
+        const failure = error as Error
+        const inflight = this.inflight
+        if (inflight !== undefined && inflight.turn === attempt.turn) inflight.outputError ??= failure
+        this.ctx.logger.warn(`acp: live assistant update delivery failed: ${errorChain(error)}`)
+      })
   }
 
   /**
@@ -457,6 +506,8 @@ export class AcpSession {
         failures.push(error)
       }
       this.pendingSelections.clear()
+      this.liveAttempts.clear()
+      this.liveSteps.clear()
       if (failures.length === 1) throw failures[0]
       /* v8 ignore start -- independent teardown failures can aggregate only under multiple simultaneous provider faults. */
       if (failures.length > 1) {
@@ -521,4 +572,8 @@ export class AcpSession {
       })
     /* v8 ignore stop */
   }
+}
+
+function stepKey(turn: number, step: number): string {
+  return `${turn}:${step}`
 }

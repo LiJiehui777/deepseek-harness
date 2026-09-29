@@ -4,6 +4,7 @@ import type { GlobalStandardProps, RenderOpts } from '@deepseek-ai/dsh-client-ui
 import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-test-runtime'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, render } from '@testing-library/react'
+import type { ReactNode } from 'react'
 import { AppFrame } from '../src/client/AppFrame.tsx'
 import type { AppFrameProps } from '../src/client/AppFrame.tsx'
 import type { MainPanelId, RightbarOwnerProps, SidebarOwnerProps } from '../src/client/index.ts'
@@ -64,10 +65,12 @@ function mountFrame(windowWidth = frameWidth) {
   vi.stubGlobal('innerWidth', windowWidth)
   const instance = createLayoutStore().create()
   const slotCalls: { key: string; props: object; options: RenderOpts | undefined }[] = []
-  const renderSlot: AppFrameProps['renderSlot'] = (key, owner, options) => {
+  const renderSlotImpl = (key: string, owner: object, options?: RenderOpts): ReactNode => {
     slotCalls.push({ key, props: owner, options })
+    if (key === 'shell.document-title') return options?.fallback ?? null
     return <div data-testid={`${key}-content`} data-entry-key={options?.entryKey} />
   }
+  const renderSlot = renderSlotImpl as AppFrameProps['renderSlot']
   const useSessions: AppFrameProps['useSessions'] = sel => sel({
     ids: selectedSession === undefined ? [] : [selectedSession],
     byId: selectedSession === undefined ? {} : {

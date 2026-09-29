@@ -79,6 +79,12 @@ export interface AcpConfig {
   model?: string
   /** Maximum summaries returned by one session/list page. */
   sessionListPageSize?: number
+  /**
+   * Emit text and reasoning deltas while the model attempt is active. Standard
+   * ACP cannot retract a prefix from an abandoned attempt; the default stays
+   * false for automation clients that require committed output only.
+   */
+  liveAssistantUpdates?: boolean
   /** Runtime-only transport override; production uses stdio. */
   stream?: Stream
 }
@@ -87,6 +93,7 @@ export const Config: Schema<AcpConfig> = Schema.object({
   provider: Schema.string(),
   model: Schema.string(),
   sessionListPageSize: Schema.natural().min(1).default(DEFAULT_SESSION_LIST_PAGE_SIZE),
+  liveAssistantUpdates: Schema.boolean().default(false),
 })
 
 /**
@@ -143,6 +150,10 @@ export function apply(ctx: Context, config: AcpConfig): void {
 
   ctx.on('agent/error', ({ agent, turn, error }) => {
     ownedRecord(agent)?.onAgentError(turn, error)
+  })
+
+  ctx.on('agent/assistant-stream', ({ agent, frame }) => {
+    ownedRecord(agent)?.onAssistantStream(frame)
   })
 
   ctx.on('llm/adapters-updated', () => {
@@ -209,6 +220,7 @@ export function apply(ctx: Context, config: AcpConfig): void {
           mcpServers: params.mcpServers,
           agentOptions: agentOptions(config),
           fallbackSelection: initialSelection(config),
+          liveAssistantUpdates: config.liveAssistantUpdates === true,
           signal,
           notify,
         })
@@ -260,6 +272,7 @@ export function apply(ctx: Context, config: AcpConfig): void {
             mcpServers: params.mcpServers ?? [],
             agentOptions: agentOptions(config),
             fallbackSelection: initialSelection(config),
+            liveAssistantUpdates: config.liveAssistantUpdates === true,
             signal,
             notify,
           })

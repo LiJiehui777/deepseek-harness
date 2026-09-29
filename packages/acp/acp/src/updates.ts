@@ -2,6 +2,7 @@
 
 import type { Context } from '@deepseek-ai/cordis'
 import type { SessionUpdate, ToolCallContent } from '@agentclientprotocol/sdk'
+import type { AssistantStreamFrame } from '@deepseek-ai/dsh-agent'
 import type { Session, SessionEvent } from '@deepseek-ai/dsh-session'
 import type {} from '@deepseek-ai/dsh-token-meter'
 import { assistantBlockToAcp } from './content.ts'
@@ -11,17 +12,19 @@ import { assistantBlockToAcp } from './content.ts'
  * @param ctx - bridge context carrying attachment and token-meter services.
  * @param session - durable session used for context pressure.
  * @param event - committed assistant message event.
+ * @param options - committed text and reasoning blocks still owed on the wire.
  * @returns ordered standard thought, message, and optional usage updates.
  */
 export async function assistantUpdates(
   ctx: Context,
   session: Session,
   event: SessionEvent<'assistant/message'>,
+  options: { includeText?: boolean; includeReasoning?: boolean } = {},
 ): Promise<SessionUpdate[]> {
   const updates: SessionUpdate[] = []
   for (const block of event.data.message.content) {
     if (block.type === 'reasoning') {
-      if (block.text.length > 0) {
+      if (options.includeReasoning !== false && block.text.length > 0) {
         updates.push({
           sessionUpdate: 'agent_thought_chunk',
           messageId: event.data.message.id,
@@ -30,6 +33,7 @@ export async function assistantUpdates(
       }
       continue
     }
+    if (block.type === 'text' && options.includeText === false) continue
     const content = await assistantBlockToAcp(ctx, block)
     if (content !== undefined) {
       updates.push({
@@ -42,6 +46,32 @@ export async function assistantUpdates(
   const usage = usageUpdate(ctx, session, event)
   if (usage !== undefined) updates.push(usage)
   return updates
+}
+
+/**
+ * Convert one transient model delta into a standard ACP update.
+ * @param frame - live chunk frame from the owned Agent attempt.
+ * @returns one text or reasoning update, or undefined for non-text chunks.
+ */
+export function liveAssistantUpdate(
+  frame: Extract<AssistantStreamFrame, { type: 'chunk' }>,
+): SessionUpdate | undefined {
+  const messageId = String(frame.attemptId)
+  if (frame.chunk.type === 'text-delta' && frame.chunk.text !== '') {
+    return {
+      sessionUpdate: 'agent_message_chunk',
+      messageId,
+      content: { type: 'text', text: frame.chunk.text },
+    }
+  }
+  if (frame.chunk.type === 'reasoning-delta' && frame.chunk.text !== '') {
+    return {
+      sessionUpdate: 'agent_thought_chunk',
+      messageId,
+      content: { type: 'text', text: frame.chunk.text },
+    }
+  }
+  return undefined
 }
 
 /**

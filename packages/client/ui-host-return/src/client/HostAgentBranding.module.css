@@ -1,0 +1,108 @@
+.mark {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  border-radius: 28%;
+  background: var(--dsw-alias-state-business-primary);
+  color: var(--dsw-alias-label-primary-inverted);
+  font-weight: 650;
+  line-height: 1;
+}
+
+.sidebarIdentity {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.sidebarAgentName {
+  max-width: 150px;
+  overflow: hidden;
+  color: var(--dsw-alias-label-primary);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 17px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebarWorkspaceName {
+  max-width: 150px;
+  overflow: hidden;
+  color: var(--dsw-alias-label-caption);
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.heroIdentity {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+}
+
+.heroGreeting {
+  max-width: min(600px, 80vw);
+  overflow: hidden;
+  font-size: 26px;
+  line-height: 32px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.heroHelp {
+  color: var(--dsw-alias-label-secondary);
+  font-size: 15px;
+  line-height: 22px;
+  font-weight: 400;
+}
+
+.heroMeta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 14px;
+  margin-top: 4px;
+}
+
+.knowledgeRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px;
+  font-size: 12px;
+  line-height: 20px;
+}
+
+.knowledgeLabel {
+  color: var(--dsw-alias-label-caption);
+}
+
+.datasetChip,
+.emptyKnowledge,
+.moreDatasets {
+  max-width: 160px;
+  padding: 1px 9px;
+  overflow: hidden;
+  border-radius: 12px;
+  background: var(--dsw-alias-state-business-tertiary);
+  color: var(--dsw-alias-label-primary-bluish);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.emptyKnowledge,
+.moreDatasets {
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-caption);
+}

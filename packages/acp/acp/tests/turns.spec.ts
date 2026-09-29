@@ -39,6 +39,24 @@ describe('ACP prompt lifecycle', () => {
     await vi.waitFor(() => { expect(messageText(harness!)).toBe('cut off') })
   })
 
+  it('emits model text as live ACP deltas when the deployment opts in', async () => {
+    harness = await makeBridgeHarness({
+      config: { liveAssistantUpdates: true },
+      script: [textResponse('live')],
+    })
+    const sessionId = await newSession(harness)
+
+    await expect(harness.client.prompt({ sessionId, prompt: [{ type: 'text', text: 'go' }] }))
+      .resolves.toEqual({ stopReason: 'end_turn' })
+    const chunks = harness.updates.flatMap(update => (
+      update.sessionUpdate === 'agent_message_chunk' && update.content.type === 'text'
+        ? [update.content.text]
+        : []
+    ))
+
+    expect(chunks).toEqual(['l', 'i', 'v', 'e'])
+  })
+
   it('delivers a committed assistant image as verified ACP base64', async () => {
     const script: StreamChunk[][] = []
     harness = await makeBridgeHarness({ script })

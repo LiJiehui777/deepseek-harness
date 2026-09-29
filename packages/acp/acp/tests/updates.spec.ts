@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { Context } from '@deepseek-ai/cordis'
-import { ToolCallId, MessageId } from '@deepseek-ai/dsh-llm'
+import { LlmAttemptId, ToolCallId, MessageId } from '@deepseek-ai/dsh-llm'
 import { SessionSeq, type Session, type SessionEvent } from '@deepseek-ai/dsh-session'
-import { assistantUpdates, toolCallUpdate, toolResultUpdate } from '../src/updates.ts'
+import { assistantUpdates, liveAssistantUpdate, toolCallUpdate, toolResultUpdate } from '../src/updates.ts'
 
 /** Minimal committed assistant event for pure update projection tests. */
 function assistantEvent(
@@ -30,6 +30,23 @@ function assistantEvent(
 }
 
 describe('standard ACP update projection', () => {
+  it('projects live text and reasoning deltas without exposing control chunks', () => {
+    const frame = {
+      type: 'chunk' as const,
+      attemptId: LlmAttemptId('session:1'),
+      revision: 2,
+      index: 0,
+      time: 1,
+    }
+
+    expect(liveAssistantUpdate({ ...frame, chunk: { type: 'text-delta', index: 0, text: 'a' } }))
+      .toMatchObject({ sessionUpdate: 'agent_message_chunk', content: { type: 'text', text: 'a' } })
+    expect(liveAssistantUpdate({ ...frame, chunk: { type: 'reasoning-delta', index: 0, text: 'b' } }))
+      .toMatchObject({ sessionUpdate: 'agent_thought_chunk', content: { type: 'text', text: 'b' } })
+    expect(liveAssistantUpdate({ ...frame, chunk: { type: 'finish', reason: { kind: 'stop' } } }))
+      .toBeUndefined()
+  })
+
   it('omits empty reasoning, unsupported assistant blocks, and absent usage', async () => {
     const ctx = { get: () => undefined } as unknown as Context
     const session = { requestContext: () => undefined } as unknown as Session
@@ -54,6 +71,20 @@ describe('standard ACP update projection', () => {
     expect((await assistantUpdates(withoutMeter, withCapacity, event)).map(update => update.sessionUpdate))
       .toEqual(['agent_message_chunk'])
     expect(meter.measure).not.toHaveBeenCalled()
+  })
+
+  it('can omit committed text and reasoning after their live deltas were delivered', async () => {
+    const ctx = { get: () => undefined } as unknown as Context
+    const session = { requestContext: () => undefined } as unknown as Session
+    const event = assistantEvent([
+      { type: 'reasoning', text: 'thought' },
+      { type: 'text', text: 'answer' },
+    ])
+
+    await expect(assistantUpdates(ctx, session, event, {
+      includeText: false,
+      includeReasoning: false,
+    })).resolves.toEqual([])
   })
 
   it('preserves malformed tool input and projects a failed result without hidden content', async () => {

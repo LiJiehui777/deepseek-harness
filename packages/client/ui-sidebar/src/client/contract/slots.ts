@@ -26,6 +26,11 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
      */
     'sidebar.brand.name': { kind: 'single'; scope: 'root'; owner: SidebarBrandNameOwnerProps }
     /**
+     * Optional leading action in the expanded brand row. Embedding plugins
+     * use this seat for navigation that applies to the complete Web surface.
+     */
+    'sidebar.brand.action': { kind: 'single'; scope: 'root'; owner: SidebarBrandActionOwnerProps }
+    /**
      * Global panel icons. Each list id addresses the matching main panel;
      * the sidebar owns the button and resolves its label from list metadata.
      */
@@ -60,6 +65,12 @@ export interface SidebarBrandMarkOwnerProps {
 /** Empty owner share for the sidebar brand-name occupant. */
 export interface SidebarBrandNameOwnerProps {
   /** Marker field: the occupant owns its own content and width. */
+  children?: never
+}
+
+/** Empty owner share for an expanded-row brand action. */
+export interface SidebarBrandActionOwnerProps {
+  /** Marker field: the occupant owns its action and accessible name. */
   children?: never
 }
 
@@ -136,6 +147,7 @@ export type SidebarRootComponentProps =
   & PropsRenderSlots<
     | 'sidebar.brand.mark'
     | 'sidebar.brand.name'
+    | 'sidebar.brand.action'
     | 'sidebar.panellist'
     | 'sidebar.workspaces'
     | 'sidebar.settings'

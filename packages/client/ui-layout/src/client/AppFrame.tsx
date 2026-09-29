@@ -28,6 +28,7 @@ import css from './AppFrame.module.css'
 export type AppFrameProps =
   & PropsRuntime<'root'>
   & PropsRenderSlots<'sidebar' | 'main' | 'rightbar' | 'shell.overlay'>
+  & PropsRenderSlots<'shell.document-title'>
   & PropsStore<ReturnType<typeof createLayoutStore>>
   & PropsLocale<'common'>
 
@@ -213,11 +214,15 @@ export function AppFrame({
       data-rightbar-instant={layoutInfo.rightbarInstant || undefined}
       data-dragging={dragging || undefined}
     >
-      <DocumentTitle
-        productTitle={productTitle}
-        useSessions={useSessions}
-        usePanelInfo={usePanelInfo}
-      />
+      {renderSlot('shell.document-title', {}, {
+        fallback: (
+          <DocumentTitle
+            productTitle={productTitle}
+            useSessions={useSessions}
+            usePanelInfo={usePanelInfo}
+          />
+        ),
+      })}
       <div className={css.sidebarCol}>
         {sidebar}
       </div>

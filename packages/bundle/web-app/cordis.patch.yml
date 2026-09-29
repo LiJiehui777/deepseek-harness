@@ -220,6 +220,11 @@
     - id: ui-sidebar
       name: '@deepseek-ai/dsh-client-ui-sidebar'
 
+    # Optional host-application exit in the sidebar brand row. It renders nothing
+    # until a deployment overlay supplies its returnUrl configuration.
+    - id: ui-host-return
+      name: '@deepseek-ai/dsh-client-ui-host-return'
+
     # The right Sidebar: one docking surface per session over ui-dockkit.
     - id: ui-sidebar-right
       name: '@deepseek-ai/dsh-client-ui-sidebar-right'

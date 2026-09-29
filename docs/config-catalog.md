@@ -24,6 +24,12 @@ export interface AcpConfig {
   model?: string
   /** Maximum summaries returned by one session/list page. */
   sessionListPageSize?: number
+  /**
+   * Emit text and reasoning deltas while the model attempt is active. Standard
+   * ACP cannot retract a prefix from an abandoned attempt; the default stays
+   * false for automation clients that require committed output only.
+   */
+  liveAssistantUpdates?: boolean
   /** Runtime-only transport override; production uses stdio. */
   stream?: Stream
 }

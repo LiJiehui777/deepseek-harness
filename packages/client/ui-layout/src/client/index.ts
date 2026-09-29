@@ -89,6 +89,11 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
      * `id` is added beside the shipped entries instead of replacing them.
      */
     'shell.overlay': { kind: 'list'; scope: 'root' }
+    /**
+     * Browser-title projection. A host deployment may replace the default
+     * Session-title formatter with its own product identity.
+     */
+    'shell.document-title': { kind: 'single'; scope: 'root' }
   }
 }
 
@@ -153,6 +158,7 @@ export function apply(ctx: ClientContext): void {
         'main': { kind: 'keyed', scope: 'root' },
         'rightbar': { kind: 'single', scope: 'root' },
         'shell.overlay': { kind: 'list', scope: 'root' },
+        'shell.document-title': { kind: 'single', scope: 'root' },
       },
       store,
     }, AppFrame)
