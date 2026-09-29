@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-This dual-face Web plugin lets an embedding application make one Agent—not the underlying runtime—the primary product identity. It adds a compact host-return action to the sidebar brand row, replaces the sidebar mark and name, personalizes the blank-session welcome identity and browser title, and shows the selected knowledge-source names. The Node half validates Loader-row configuration and projects it through the structured Web boot table, while the browser half revalidates it before registering UI contributions. Without a complete valid configuration the plugin renders nothing.
+This dual-face Web plugin lets an embedding application make one Agent—not the underlying runtime—the primary product identity. It adds a compact host-return action to the sidebar brand row, replaces the sidebar mark and name, personalizes the blank-session welcome identity and browser title, and shows the selected knowledge-source names. Clicking the sidebar Agent name opens a compact read-only list of all bound knowledge bases; it does not expose settings or editing actions. The Node half validates Loader-row configuration and projects it through the structured Web boot table, while the browser half revalidates it before registering UI contributions. Without a complete valid configuration the plugin renders nothing.
 
 ## Configuration
 
@@ -29,7 +29,7 @@ Static client entries are composed by package name rather than by copying Host L
 
 ## Extension points
 
-The plugin occupies `sidebar.brand.action`, `sidebar.brand.mark`, `sidebar.brand.name`, `conversation.hero.brand.mark`, `conversation.hero.identity`, and `shell.document-title`. The return action appears before the Agent identity in the expanded brand row and navigates the top-level browser context, so it works when Web is embedded in an iframe. It declares no child slots and owns no persistent state.
+The plugin occupies `sidebar.brand.action`, `sidebar.brand.mark`, `sidebar.brand.name`, `conversation.hero.brand.mark`, `conversation.hero.identity`, and `shell.document-title`. The return action appears before the Agent identity in the expanded brand row and navigates the top-level browser context, so it works when Web is embedded in an iframe. The Agent-name popover is presentation-only, closes on Escape or an outside pointer action, and never changes the host-owned binding. It declares no child slots and owns no persistent state.
 
 ## Model Experience
 

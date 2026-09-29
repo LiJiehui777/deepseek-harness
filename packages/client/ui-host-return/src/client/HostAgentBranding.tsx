@@ -1,5 +1,5 @@
 /** RAGFlow-owned visual identity for one embedded Agent workspace. */
-import { useEffect } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
@@ -34,13 +34,69 @@ export function HostAgentMark({ size, className, agentName }: {
   )
 }
 
-/** Agent name is primary; the generic workspace label remains secondary. */
-export function HostAgentName({ agentName, workspaceName }: BrandingFace) {
+/** Agent identity opens a compact, read-only view of its bound knowledge. */
+export function HostAgentName({
+  agentName,
+  workspaceName,
+  datasetNames,
+  t,
+}: PropsLocale<typeof NS> & BrandingFace) {
+  const [open, setOpen] = useState(false)
+  const root = useRef<HTMLDivElement>(null)
+  const dialogId = useId()
+
+  useEffect(() => {
+    if (!open) return
+    const closeOutside = (event: PointerEvent) => {
+      if (event.target instanceof Node && !root.current?.contains(event.target)) setOpen(false)
+    }
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpen(false)
+    }
+    document.addEventListener('pointerdown', closeOutside)
+    document.addEventListener('keydown', closeOnEscape)
+    return () => {
+      document.removeEventListener('pointerdown', closeOutside)
+      document.removeEventListener('keydown', closeOnEscape)
+    }
+  }, [open])
+
   return (
-    <span className={css.sidebarIdentity}>
-      <span className={css.sidebarAgentName}>{agentName}</span>
-      <span className={css.sidebarWorkspaceName}>{workspaceName}</span>
-    </span>
+    <div ref={root} className={css.sidebarIdentity}>
+      <button
+        type="button"
+        className={css.identityTrigger}
+        aria-expanded={open}
+        aria-controls={open ? dialogId : undefined}
+        aria-haspopup="dialog"
+        aria-label={t('knowledgeView')}
+        title={t('knowledgeView')}
+        onClick={() => { setOpen(value => !value) }}
+      >
+        <span className={css.sidebarAgentName}>{agentName}</span>
+        <span className={css.sidebarWorkspaceName}>{workspaceName}</span>
+      </button>
+      {open && (
+        <div
+          id={dialogId}
+          className={css.knowledgePopover}
+          role="dialog"
+          aria-label={t('knowledgeDialogTitle')}
+        >
+          <span className={css.knowledgePopoverTitle}>{t('knowledgeDialogTitle')}</span>
+          <span className={css.knowledgePopoverHint}>{t('knowledgeDialogHint')}</span>
+          {datasetNames.length === 0
+            ? <span className={css.knowledgeEmpty}>{t('knowledgeNone')}</span>
+            : (
+              <ul className={css.knowledgeList}>
+                {datasetNames.map((name, index) => (
+                  <li className={css.knowledgeItem} key={`${name}-${index}`}>{name}</li>
+                ))}
+              </ul>
+            )}
+        </div>
+      )}
+    </div>
   )
 }
 

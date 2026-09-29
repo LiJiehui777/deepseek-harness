@@ -179,33 +179,34 @@ export function SidebarRoot({
     >
       <div className={css.logoRow}>
         {wide && renderSlot('sidebar.brand.action', {})}
-        {/* Expanded, the brand doubles as a New Session shortcut; the
-            collapsed rail's logo is the expand toggle below instead. */}
+        {/* Expanded, only the mark is the New Session shortcut. The name seat
+            stays interaction-capable for deployment-owned identity details;
+            the collapsed rail's mark is the expand toggle below instead. */}
         {wide && (
-          <button
-            type="button"
-            className={clsx(css.brand, css.wide)}
-            aria-label={t('session.new.label')}
-            onClick={() => { startSession() }}
-          >
-            <span className={css.brandIdentity} aria-hidden="true">
-              <span className={css.brandMark}>
+          <div className={clsx(css.brand, css.wide)}>
+            <button
+              type="button"
+              className={css.brandMarkButton}
+              aria-label={t('session.new.label')}
+              onClick={() => { startSession() }}
+            >
+              <span className={css.brandMark} aria-hidden="true">
                 {renderSlot('sidebar.brand.mark', { size: 24 }, { fallback: <FishLogo size={24} /> })}
               </span>
-              <span className={css.brandName}>
-                {renderSlot('sidebar.brand.name', {}, {
-                  fallback: buildVersion === undefined
-                    ? <span className={css.fallbackBrandName}>{t('brand.localBuild')}</span>
-                    : (
-                      <span className={css.localBuildBrand}>
-                        <span className={css.localBuildTitle}>{t('brand.localBuild')}</span>
-                        <span className={css.buildVersion}>{buildVersion}</span>
-                      </span>
-                    ),
-                })}
-              </span>
-            </span>
-          </button>
+            </button>
+            <div className={css.brandName}>
+              {renderSlot('sidebar.brand.name', {}, {
+                fallback: buildVersion === undefined
+                  ? <span className={css.fallbackBrandName}>{t('brand.localBuild')}</span>
+                  : (
+                    <span className={css.localBuildBrand}>
+                      <span className={css.localBuildTitle}>{t('brand.localBuild')}</span>
+                      <span className={css.buildVersion}>{buildVersion}</span>
+                    </span>
+                  ),
+              })}
+            </div>
+          </div>
         )}
         {/* Rail resting state is the whale mark; hovering swaps in the panel
             icon (the expand affordance, figma sidebar-hover flow). */}

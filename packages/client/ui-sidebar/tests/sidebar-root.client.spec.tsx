@@ -105,14 +105,14 @@ function mountShell({ collapsed = false, width = 300 }: { collapsed?: boolean; w
 }
 
 describe('SidebarRoot shell', () => {
-  it('routes New Session (capsule + wordmark) and the column toggle', () => {
+  it('routes New Session (capsule + brand mark) and the column toggle', () => {
     const b = mountShell()
     expect(screen.getByTestId('custom-brand-mark')).toBeTruthy()
     expect(screen.getByTestId('custom-brand-name')).toBeTruthy()
     expect(screen.getByRole('link', { name: 'Back' }).getAttribute('href'))
       .toBe('https://host.test/agents')
     expect(b.brandActionOwner()).toEqual({})
-    // Expanded, both the wordmark and the capsule start a session.
+    // Expanded, both the brand mark and the capsule start a session.
     const starters = screen.getAllByRole('button', { name: 'New session' })
     expect(starters).toHaveLength(2)
     for (const button of starters) fireEvent.click(button)

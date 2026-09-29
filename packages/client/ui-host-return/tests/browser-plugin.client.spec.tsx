@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { Context } from '@deepseek-ai/cordis'
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
 import type { IndexInjection } from '@deepseek-ai/dsh-host-webserver'
 import type { GlobalStandardProps } from '@deepseek-ai/dsh-client-ui-slots'
@@ -172,20 +172,39 @@ describe('host-return browser half', () => {
       hostName: 'RAGFlow',
       datasetNames: ['产品手册', '常见问题'],
     }
-    const name = render(<HostAgentName {...branding} />)
-    expect(name.getByText('产品知识助手')).toBeTruthy()
-    expect(name.getByText('智能体工作台')).toBeTruthy()
-    name.unmount()
-
-    const mark = render(<HostAgentMark {...branding} size={24} />)
-    expect(mark.getByText('产')).toBeTruthy()
-    mark.unmount()
-
     const t = (key: keyof typeof zh, values: Record<string, string> = {}) => {
       let text: string = zh[key]
       for (const [name, value] of Object.entries(values)) text = text.replace(`{${name}}`, value)
       return text
     }
+    const name = render(<HostAgentName {...branding} t={t as never} />)
+    expect(name.getByText('产品知识助手')).toBeTruthy()
+    expect(name.getByText('智能体工作台')).toBeTruthy()
+    const trigger = name.getByRole('button', { name: '查看已绑定知识库' })
+    expect(name.queryByRole('dialog')).toBeNull()
+    fireEvent.click(trigger)
+    const dialog = name.getByRole('dialog', { name: '已绑定知识库' })
+    expect(name.getByText('当前智能体可检索以下知识库')).toBeTruthy()
+    expect(name.getByText('产品手册')).toBeTruthy()
+    expect(name.getByText('常见问题')).toBeTruthy()
+    fireEvent.pointerDown(dialog)
+    expect(name.queryByRole('dialog')).not.toBeNull()
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(name.queryByRole('dialog')).toBeNull()
+    fireEvent.click(trigger)
+    fireEvent.pointerDown(document.body)
+    expect(name.queryByRole('dialog')).toBeNull()
+    name.unmount()
+
+    const emptyName = render(<HostAgentName {...branding} datasetNames={[]} t={t as never} />)
+    fireEvent.click(emptyName.getByRole('button', { name: '查看已绑定知识库' }))
+    expect(emptyName.getByText('未绑定知识库')).toBeTruthy()
+    emptyName.unmount()
+
+    const mark = render(<HostAgentMark {...branding} size={24} />)
+    expect(mark.getByText('产')).toBeTruthy()
+    mark.unmount()
+
     render(<HostAgentHero {...standardProps} {...branding} t={t as never} />)
     expect(screen.getByText('你好，我是「产品知识助手」')).toBeTruthy()
     expect(screen.getByText('有什么可以帮你？')).toBeTruthy()

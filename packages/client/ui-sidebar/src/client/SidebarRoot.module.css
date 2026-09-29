@@ -89,6 +89,8 @@
    right edge; the rail gives every control the same base left anchor before
    the shared entry translation is applied. */
 .logoRow {
+  position: relative;
+  z-index: 2;
   flex: none;
   display: flex;
   align-items: center;
@@ -98,7 +100,7 @@
   padding: 8px 0 8px 4px;
   margin-bottom: 8px;
   box-sizing: border-box;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .collapsed .logoRow {
@@ -108,31 +110,34 @@
   justify-content: flex-start;
 }
 
-/* Brand group (figma I133:7632): the full wordmark rides the text ink
+/* Brand group (figma I133:7632): the full identity rides the text ink
    (figma flows: the main-screen instance is black; blue is brand
-   emphasis only). A button only in behavior (New Session shortcut): the
-   pointer cursor is the sole affordance — no hover chrome on the mark. */
+   emphasis only). The mark remains a quiet New Session shortcut, while the
+   name seat may supply its own deployment-specific interaction. */
 .brand {
   flex: 1;
   min-width: 0;
   display: inline-flex;
   align-items: center;
-  overflow: hidden;
+  gap: 8px;
+  min-height: 24px;
+  overflow: visible;
+  color: inherit;
+}
+
+/* Only the mark starts a new session. Keeping the name outside this button
+   lets a slot occupant expose an accessible details popover without nesting
+   interactive controls. */
+.brandMarkButton {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   padding: 0;
   border: none;
   background: transparent;
   color: inherit;
   cursor: pointer;
-}
-
-/* Mark and name are independent slots; the shell owns their shared baseline,
-   spacing, and height so either occupant can vary in width. */
-.brandIdentity {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 24px;
-  min-width: 0;
 }
 
 .brandMark {
@@ -143,7 +148,9 @@
 }
 
 .brandName {
+  position: relative;
   display: inline-flex;
+  flex: 1;
   align-items: center;
   gap: 6px;
   min-width: 0;

@@ -12,11 +12,39 @@
 }
 
 .sidebarIdentity {
+  position: relative;
   display: flex;
+  flex: 1;
   min-width: 0;
   flex-direction: column;
   align-items: flex-start;
+}
+
+.identityTrigger {
+  display: flex;
+  min-width: 0;
+  max-width: 100%;
+  padding: 3px 5px;
+  margin: -3px -5px;
+  flex-direction: column;
+  align-items: flex-start;
   gap: 2px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.identityTrigger:hover,
+.identityTrigger[aria-expanded='true'] {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.identityTrigger:focus-visible {
+  outline: 2px solid var(--dsw-alias-state-business-primary);
+  outline-offset: 1px;
 }
 
 .sidebarAgentName {
@@ -39,6 +67,65 @@
   line-height: 14px;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.knowledgePopover {
+  position: absolute;
+  top: calc(100% + 12px);
+  left: -40px;
+  z-index: 100;
+  display: flex;
+  width: min(232px, calc(100vw - 32px));
+  padding: 12px;
+  box-sizing: border-box;
+  flex-direction: column;
+  border: none;
+  border-radius: 14px;
+  background: var(--dsw-specific-menu);
+  color: var(--dsw-alias-label-primary);
+  --dsw-elevation-stroke-color: var(--dsw-alias-border-l1);
+  box-shadow: var(--dsw-elevation-prominent);
+}
+
+.knowledgePopoverTitle {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+}
+
+.knowledgePopoverHint {
+  margin-top: 2px;
+  color: var(--dsw-alias-label-caption);
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.knowledgeList {
+  display: flex;
+  max-height: 220px;
+  padding: 0;
+  margin: 10px 0 0;
+  flex-direction: column;
+  gap: 4px;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.knowledgeItem,
+.knowledgeEmpty {
+  padding: 7px 9px;
+  border-radius: 8px;
+  background: var(--dsw-alias-state-business-tertiary);
+  color: var(--dsw-alias-label-primary-bluish);
+  font-size: 12px;
+  line-height: 18px;
+  overflow-wrap: anywhere;
+}
+
+.knowledgeEmpty {
+  margin-top: 10px;
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-caption);
 }
 
 .heroIdentity {

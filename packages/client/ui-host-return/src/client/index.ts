@@ -53,6 +53,7 @@ export function apply(ctx: ClientContext): void {
   }, HostAgentMark))
   ctx.slots.inject('sidebar.brand.name', () => ctx.slots.register({
     name: 'sidebar.brand.name',
+    locale: NS,
     inject: branding,
   }, HostAgentName))
   ctx.slots.inject('conversation.hero.brand.mark', () => ctx.slots.register({
