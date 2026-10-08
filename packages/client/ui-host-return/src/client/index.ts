@@ -5,6 +5,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar/client'
+import type {} from '@deepseek-ai/dsh-client-ui-workspace/client'
 import {
   HostAgentDocumentTitle,
   HostAgentHero,
@@ -33,7 +34,17 @@ export const inject = ['slots', 'locale']
 export function apply(ctx: ClientContext): void {
   const bootstrap = readHostReturnBootstrap(globalThis)
   if (bootstrap === undefined) return
-  const { hostName, agentName, workspaceName, datasetNames } = bootstrap
+  const { hostName, agentName, workspaceName, datasetNames, newConversationUrl } = bootstrap
+  if (newConversationUrl !== undefined) {
+    ctx.on('ui-workspace/before-start-session', () => {
+      if (window.parent !== window) {
+        window.parent.postMessage({ type: 'ragflow.workbench.new-conversation' }, new URL(bootstrap.returnUrl).origin)
+      } else {
+        window.location.assign(newConversationUrl)
+      }
+      return true
+    })
+  }
   const branding = (): HostAgentBrandingInjected => ({
     agentName,
     workspaceName,

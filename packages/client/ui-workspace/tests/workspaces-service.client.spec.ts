@@ -186,6 +186,7 @@ class FakeDirectoryPicker {
 }
 
 interface BenchOptions {
+  readonly resumeRecentSession?: boolean
   readonly workspaces?: WorkspaceSnapshot
   readonly sessions?: SessionListState
 }
@@ -208,6 +209,7 @@ function bench(options: BenchOptions = {}) {
     directoryPicker.remote,
     workspaces,
     sessions as unknown as ISessions,
+    options.resumeRecentSession,
   )
   return { ctx, directoryPicker, sessions, uiWorkspace, workspaces, layout, selectPanel }
 }
@@ -218,6 +220,80 @@ async function flush(): Promise<void> {
 }
 
 describe('UiWorkspaceService', () => {
+  it('restores the latest ordinary Workspace conversation only after both baselines arrive when opted in', () => {
+    const b = bench({ resumeRecentSession: true })
+    const rows = [summary('old', { updatedAt: 1 }), summary('latest', { updatedAt: 3 }),
+      summary('tie', { updatedAt: 3 }), summary('blank', { blank: true, updatedAt: 8 }),
+      summary('archived', { updatedAt: 9 }), summary('child', { origin: 'subagent', updatedAt: 10 }),
+      summary('unregistered', { updatedAt: 11 })]
+    const listed = sessionState(rows)
+    b.sessions.list.set({ ...listed, ids: [sid('missing'), ...listed.ids] })
+    expect(b.sessions.open).not.toHaveBeenCalled()
+    b.workspaces.list.set(workspaceState([
+      workspace('alpha', rows.filter(row => row.id !== sid('unregistered')).map(row => row.id)),
+    ], [sid('archived')]))
+    expect(b.sessions.open).toHaveBeenCalledExactlyOnceWith(sid('latest'))
+    expect(b.sessions.create).not.toHaveBeenCalled()
+    expect(b.selectPanel).toHaveBeenCalledWith(null)
+    b.sessions.list.set(sessionState(rows))
+    expect(b.sessions.open).toHaveBeenCalledOnce()
+  })
+
+  it('continues blank Workspace startup when restoration is enabled but no conversation is available', async () => {
+    const b = bench({ resumeRecentSession: true,
+      sessions: sessionState([summary('blank', { blank: true, cwd: '/w/alpha' })]),
+      workspaces: workspaceState([workspace('alpha', [sid('blank')])]),
+    })
+    await flush()
+    expect(b.sessions.open).toHaveBeenCalledWith(sid('blank'))
+    expect(b.sessions.create).not.toHaveBeenCalled()
+  })
+
+  it('preserves default blank startup and an explicit current selection under the optional restore policy', async () => {
+    const options = { sessions: sessionState([summary('history')]),
+      workspaces: workspaceState([workspace('alpha', [sid('history')])]) }
+    const native = bench(options)
+    await flush()
+    expect(native.sessions.create).toHaveBeenCalledWith({ workspaceId: wid('alpha') })
+    await vi.waitFor(() => { expect(native.sessions.open).toHaveBeenCalledWith(sid('created-alpha')) })
+    const retained = bench({ ...options, resumeRecentSession: true,
+      sessions: sessionState([summary('history')], sid('history')) })
+    expect(retained.sessions.open).not.toHaveBeenCalled()
+    expect(retained.sessions.create).not.toHaveBeenCalled()
+  })
+
+  it('finishes initial navigation without inventing a Workspace when both lists are empty', async () => {
+    const b = bench({ sessions: sessionState([]), workspaces: workspaceState([]) })
+    await flush()
+    expect(b.sessions.create).not.toHaveBeenCalled()
+    expect(b.sessions.open).not.toHaveBeenCalled()
+  })
+
+  it('lets a host claim New Session before clearing or creating a local Session and restores default navigation on disposal', async () => {
+    const b = bench()
+    const claim = vi.fn(() => true as const)
+    const fiber = b.ctx.plugin({ apply: (ctx: Context) => { ctx.on('ui-workspace/before-start-session', claim) } })
+    await fiber.await()
+    b.uiWorkspace.startSession(wid('alpha'))
+    expect(claim).toHaveBeenCalledWith(wid('alpha'))
+    expect(b.sessions.create).not.toHaveBeenCalled()
+    expect(b.sessions.clear).not.toHaveBeenCalled()
+    expect(b.selectPanel).not.toHaveBeenCalled()
+    await fiber.dispose()
+    b.uiWorkspace.startSession()
+    expect(b.sessions.clear).toHaveBeenCalledOnce()
+    expect(b.selectPanel).toHaveBeenCalledWith(null)
+  })
+
+  it('continues native New Session when a host declines the flow', async () => {
+    const b = bench()
+    const fiber = b.ctx.plugin({ apply: (ctx: Context) => { ctx.on('ui-workspace/before-start-session', () => undefined) } })
+    await fiber.await()
+    b.uiWorkspace.startSession()
+    expect(b.sessions.clear).toHaveBeenCalledOnce()
+    await fiber.dispose()
+  })
+
   it('selects a Session before revealing its Conversation, including the current Session', () => {
     const current = sid('current')
     const b = bench({ sessions: sessionState([summary('current')], current) })

@@ -70,6 +70,15 @@ export interface UiWorkspace {
 }
 
 declare module '@deepseek-ai/cordis' {
+  interface Events {
+    /**
+     * Allow an embedding host to own the New Session flow before local navigation.
+     * @param workspaceId - explicit target, or undefined when inherited.
+     * @returns true when the host claims the flow; undefined continues local creation.
+     * @mode bail
+     */
+    'ui-workspace/before-start-session'(workspaceId: WorkspaceId | undefined): true | undefined
+  }
   interface Context {
     /** Cross-Controller Workspace navigation and directory UI capability. */
     uiWorkspace: UiWorkspace
@@ -96,12 +105,14 @@ class UiWorkspaceService extends Service implements UiWorkspace {
    * @param directoryPicker - the directory-picking Remote namespace.
    * @param workspaces - pure Workspace Controller.
    * @param sessions - pure Session Controller.
+   * @param resumeRecentSession - opt in to restoring a non-blank Session on initial connection.
    */
   constructor(
     ctx: Context,
     private readonly directoryPicker: ClientRemote['directoryPicker'],
     private readonly workspaces: IWorkspaces,
     private readonly sessions: ISessions,
+    private readonly resumeRecentSession = false,
   ) {
     super(ctx, 'uiWorkspace')
     ctx.effect(() => this.watchNavigation(), 'ui-workspace: Workspace navigation policy')
@@ -152,6 +163,7 @@ class UiWorkspaceService extends Service implements UiWorkspace {
   }
 
   startSession(workspaceId?: WorkspaceId): void {
+    if (this.ctx.bail(this.ctx, 'ui-workspace/before-start-session', workspaceId) === true) return
     const workspace = this.workspaces.list.getSnapshot()
     const sessions = this.sessions.list.getSnapshot()
     const current = sessions.current
@@ -206,6 +218,21 @@ class UiWorkspaceService extends Service implements UiWorkspace {
       if (sessions.current !== undefined) {
         initial = 'done'
         return
+      }
+      if (this.resumeRecentSession) {
+        const members = new Set(workspace.items.flatMap(item => item.sessionIds))
+        let recent: SessionListState['byId'][SessionId] | undefined
+        for (const id of sessions.ids) {
+          const item = sessions.byId[id]
+          if (item === undefined || item.blank || item.origin === 'subagent'
+            || !members.has(id) || workspace.archivedSessionIds.includes(id)) continue
+          if (recent === undefined || item.updatedAt > recent.updatedAt) recent = item
+        }
+        if (recent !== undefined) {
+          initial = 'done'
+          this.openSession(recent.id)
+          return
+        }
       }
       const target = recentWorkspace(workspace.items, sessions.byId)
       if (target === undefined) {

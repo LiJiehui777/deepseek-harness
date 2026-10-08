@@ -87,7 +87,7 @@ function declare(slots: SlotRegistry, ...names: HoleName[]): () => void {
 
 describe('ui-workspace apply', () => {
   it('keeps the host Loader entry inert', () => {
-    expect(hostApply).not.toThrow()
+    expect(() => { hostApply(new Context()) }).not.toThrow()
   })
 
   it('declares the services it drives', () => {

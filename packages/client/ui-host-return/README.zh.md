@@ -34,6 +34,8 @@ kind: "package-reference"
 
 `returnUrl` 只接受不含内嵌凭据、长度不超过 2048 字符的绝对 HTTP(S) 地址。嵌入方仍负责选择有权限的目标地址。`agentName` 必填并成为主要身份；`hostName`、`workspaceName` 和 `datasetNames` 仅用于显示。知识来源最多 100 个，每个名称最多 128 个字符。
 
+可选的 `newConversationUrl` 会在清空或创建本地 Session 前，将新会话流程交给嵌入方。它必须是与 `returnUrl` 同源的绝对 HTTP(S) 地址。iframe 会向该源发送 `{ type: 'ragflow.workbench.new-conversation' }`；父页面必须验证发送窗口和来源，再打开资源选择窗口。独立页面则跳转到配置的地址。不提供此值时保留原生新会话行为；通知不携带知识库 ID、凭据或权限。
+
 静态客户端条目只按包名组装，并不会把 Host Loader 配置复制进浏览器 Loader。因此本包通过 `webserver/index-inject` 的全局数据行传递校验后的值，并在认证页面启动时读取。
 
 <a id="extension-points"></a>

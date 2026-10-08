@@ -53,6 +53,10 @@ Session 行渲染运行时的实时 `pendingInteraction` 分类：审批显示**
 
 `ctx.uiWorkspace.openSession(id)` 会选中会话，并让主区域返回会话界面；这两项构成一次 UI 导航操作，即使目标会话已经是当前会话也同样执行。`openWorkspace(id, beforeOpen?)` 和 `forkSession(id)` 仅在请求未被后续导航替代时打开结果；新会话使用 `openWorkspace`。可选的同步准备回调仅对仍有效的工作区请求执行，因此过期请求不会搬移 composer 草稿。后续导航或所有者释放会阻止晚到的 UI 提交，但不取消底层会话创建。选中失败时保留当前全局面板。会话行读取 `usePanelInfo`，在全局面板活跃时不显示会话选中样式；仅把焦点移到搜索框或目录选择器不会离开该面板。
 
+嵌入方可通过 `ui-workspace/before-start-session` 返回 `true` 接管新会话；此时 `startSession` 不创建、清空或导航本地 Session。返回 `undefined`、没有监听器或释放监听器所属 owner 时，继续原生行为。此钩子针对用户的新会话操作，初次连接 Workspace 仍独立进行。
+
+在 Host Loader 配置行中设置 `resumeRecentSession: true`，两个列表的初始数据就绪后，会恢复已注册 Workspace 中最近更新、未归档的普通非空 Session。显式的当前选择会保留。没有符合条件的 Session 或未配置此选项时，初始导航连接最近的 Workspace 并打开空 Session。
+
 <a id="understand-the-implementation"></a>
 ## 理解实现
 
@@ -120,4 +124,4 @@ Workspace 与 Session 悬浮卡片会复制对应行被截断的值：激活 Wor
 
 </details>
 
-**运行时不变式：** 不发布伴生入口。这是一个纯消费方插件，只向两个由宿主声明的 slot 注册展示组件，并注册自身的 locale dictionaries；inject face 由无状态 RPC 包装层和一次 create-and-open 调用组成；本插件不发出 Cordis 事件，也不持有跨插件可变状态。
+**运行时不变式：** 不发布伴生入口。这是一个纯消费方插件，只向两个由宿主声明的 slot 注册展示组件，并注册自身的 locale dictionaries；inject face 由无状态 RPC 包装层和一次 create-and-open 调用组成；可选的新会话 bail 钩子与不可变启动策略不持有独立的跨插件可变状态。

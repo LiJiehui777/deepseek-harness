@@ -34,6 +34,8 @@ Show the configured Agent identity in an embedded Web workspace. It adds a compa
 
 `returnUrl` accepts only an absolute HTTP(S) URL without embedded credentials and is limited to 2048 characters. The embedding application remains responsible for choosing an authorized destination. `agentName` is required and becomes the primary identity. `hostName`, `workspaceName`, and `datasetNames` are display-only values; knowledge-source names are capped at 100 entries and 128 characters each.
 
+An optional `newConversationUrl` delegates the New Session flow to the embedding host before any local Session is cleared or created. It must be an absolute HTTP(S) URL on the same origin as `returnUrl`. An iframe posts `{ type: 'ragflow.workbench.new-conversation' }` to that origin; the parent must validate the sender window and origin before opening its resource-selection dialog. A standalone page navigates to the configured destination instead. Omitting the value preserves native New Session behavior. No knowledge IDs, credentials or permissions travel in this notification.
+
 Static client entries are composed by package name rather than by copying Host Loader configuration into the browser Loader. This package therefore carries the validated value in a `webserver/index-inject` global row and samples it when the authenticated page boots.
 
 <a id="extension-points"></a>

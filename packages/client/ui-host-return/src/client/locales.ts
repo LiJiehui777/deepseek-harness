@@ -11,7 +11,7 @@ export const zh = {
   knowledge: '知识来源',
   knowledgeView: '查看已绑定知识库',
   knowledgeDialogTitle: '已绑定知识库',
-  knowledgeDialogHint: '当前智能体可检索以下知识库',
+  knowledgeDialogHint: '当前对话可参考以下知识库',
   knowledgeNone: '未绑定知识库',
   knowledgeMore: '另有 {count} 个',
 } as const
@@ -24,7 +24,7 @@ export const en: Record<HostReturnKey, string> = {
   knowledge: 'Knowledge sources',
   knowledgeView: 'View bound knowledge bases',
   knowledgeDialogTitle: 'Bound knowledge bases',
-  knowledgeDialogHint: 'This Agent can search the following knowledge bases',
+  knowledgeDialogHint: 'This conversation can refer to the following knowledge bases',
   knowledgeNone: 'No knowledge base selected',
   knowledgeMore: '{count} more',
 }

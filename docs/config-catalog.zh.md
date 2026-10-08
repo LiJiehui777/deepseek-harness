@@ -418,6 +418,8 @@ export interface Config {
 export interface HostReturnConfig {
   /** Absolute HTTP(S) URL opened in the current tab. Omit to hide the action. */
   returnUrl?: string
+  /** Same-origin host destination for creating a conversation with new resource bindings. */
+  newConversationUrl?: string
   /** Human-readable host application name interpolated into localized copy. */
   hostName?: string
   /** RAGFlow Agent name shown as the primary product identity. */
@@ -430,6 +432,20 @@ export interface HostReturnConfig {
 ```
 
 Source: [`packages/client/ui-host-return/src/config.ts:6`](../packages/client/ui-host-return/src/config.ts)
+
+<a id="deepseek-aidsh-client-ui-workspace"></a>
+
+## `@deepseek-ai/dsh-client-ui-workspace`
+
+```ts config-catalog
+/** Loader-row configuration for initial Workspace navigation. */
+export interface WorkspaceConfig {
+  /** Restore the most recently updated non-blank, unarchived Workspace Session. Defaults to false. */
+  resumeRecentSession?: boolean
+}
+```
+
+来源： [`packages/client/ui-workspace/src/config.ts:7`](../packages/client/ui-workspace/src/config.ts)
 
 <a id="deepseek-aidsh-code-runtime-worker-thread"></a>
 
@@ -3540,7 +3556,6 @@ export interface Config {
 - `@deepseek-ai/dsh-client-ui-trajectory`（[`packages/client/ui-trajectory/src/index.ts`](../packages/client/ui-trajectory/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-user-questions`（[`packages/client/ui-user-questions/src/index.ts`](../packages/client/ui-user-questions/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-workflow-run`（[`packages/client/ui-workflow-run/src/index.ts`](../packages/client/ui-workflow-run/src/index.ts)）
-- `@deepseek-ai/dsh-client-ui-workspace`（[`packages/client/ui-workspace/src/index.ts`](../packages/client/ui-workspace/src/index.ts)）
 - `@deepseek-ai/dsh-command-compact` — 需要 `commands` · `compact`（[`packages/compaction/command-compact/src/index.ts`](../packages/compaction/command-compact/src/index.ts)）
 - `@deepseek-ai/dsh-command-feedback` — 需要 `commands`（[`packages/feedback/command-feedback/src/index.ts`](../packages/feedback/command-feedback/src/index.ts)）
 - `@deepseek-ai/dsh-command-goal` — 需要 `commands` · `goals`（[`packages/goal/command-goal/src/index.ts`](../packages/goal/command-goal/src/index.ts)）

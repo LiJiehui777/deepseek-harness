@@ -6,6 +6,8 @@ export const HOST_RETURN_BOOTSTRAP_GLOBAL = '__DSH_HOST_RETURN__'
 export interface HostReturnConfig {
   /** Absolute HTTP(S) URL opened in the current tab. Omit to hide the action. */
   returnUrl?: string
+  /** Same-origin host destination for creating a conversation with new resource bindings. */
+  newConversationUrl?: string
   /** Human-readable host application name interpolated into localized copy. */
   hostName?: string
   /** RAGFlow Agent name shown as the primary product identity. */
@@ -19,6 +21,8 @@ export interface HostReturnConfig {
 /** Validated value injected into the authenticated Web boot document. */
 export interface HostReturnBootstrap {
   returnUrl: string
+  /** Optional host-owned New Session destination, validated against returnUrl. */
+  newConversationUrl?: string
   hostName: string
   agentName: string
   workspaceName: string
@@ -51,6 +55,12 @@ export function resolveHostReturnBootstrap(value: unknown): HostReturnBootstrap 
   const config = value as HostReturnConfig
   const returnUrl = normalizeHostReturnUrl(config.returnUrl)
   if (returnUrl === undefined) return undefined
+  const newConversationUrl = config.newConversationUrl === undefined
+    ? undefined : normalizeHostReturnUrl(config.newConversationUrl)
+  if (config.newConversationUrl !== undefined
+    && (newConversationUrl === undefined || new URL(newConversationUrl).origin !== new URL(returnUrl).origin)) {
+    return undefined
+  }
   const configuredName = typeof config.hostName === 'string' ? config.hostName.trim() : ''
   const agentName = typeof config.agentName === 'string' ? config.agentName.trim() : ''
   const workspaceName = typeof config.workspaceName === 'string' ? config.workspaceName.trim() : ''
@@ -60,6 +70,7 @@ export function resolveHostReturnBootstrap(value: unknown): HostReturnBootstrap 
   }
   return {
     returnUrl,
+    ...(newConversationUrl === undefined ? {} : { newConversationUrl }),
     hostName: configuredName === '' ? 'RAGFlow' : configuredName.slice(0, 80),
     agentName,
     workspaceName: workspaceName === '' ? 'Agent Workspace' : workspaceName,
