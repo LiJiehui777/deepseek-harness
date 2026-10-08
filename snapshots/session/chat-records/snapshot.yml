@@ -1,0 +1,9 @@
+version: 1
+scenario: chat-records
+profile: headless
+composition: chat-records
+recording: authored
+permission: workspace-write
+header:
+  class: chat-records
+  pin: true

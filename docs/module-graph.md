@@ -154,6 +154,7 @@ flowchart TD
     pkg_client_ui_directory_picker_native["client-ui-directory-picker-native"]
     pkg_client_ui_dockkit["client-ui-dockkit"]
     pkg_client_ui_goal["client-ui-goal"]
+    pkg_client_ui_host_return["client-ui-host-return"]
     pkg_client_ui_input_trigger["client-ui-input-trigger"]
     pkg_client_ui_jobs["client-ui-jobs"]
     pkg_client_ui_layout["client-ui-layout"]
@@ -163,6 +164,7 @@ flowchart TD
     pkg_client_ui_permission_presets["client-ui-permission-presets"]
     pkg_client_ui_plan["client-ui-plan"]
     pkg_client_ui_primitives["client-ui-primitives"]
+    pkg_client_ui_quality_report["client-ui-quality-report"]
     pkg_client_ui_reference["client-ui-reference"]
     pkg_client_ui_renderer["client-ui-renderer"]
     pkg_client_ui_schedule["client-ui-schedule"]
@@ -257,6 +259,8 @@ flowchart TD
     pkg_commands["commands"]
     pkg_permission_presets["permission-presets"]
     pkg_tool_ask_user["tool-ask-user"]
+    pkg_tool_chat_records["tool-chat-records"]
+    pkg_tool_quality_report["tool-quality-report"]
     pkg_user_approval["user-approval"]
     pkg_user_questions["user-questions"]
   end
@@ -814,6 +818,8 @@ flowchart TD
   pkg_tool_ask_user --> pkg_agent
   pkg_tool_ask_user --> pkg_tools
   pkg_tool_ask_user --> pkg_user_questions
+  pkg_tool_chat_records --> pkg_tools
+  pkg_tool_quality_report --> pkg_tools
   pkg_tool_jobs --> pkg_agent
   pkg_tool_jobs --> pkg_jobs
   pkg_tool_jobs --> pkg_llm
@@ -1228,6 +1234,7 @@ flowchart TD
 | [`client-ui-directory-picker-native`](../packages/client/ui-directory-picker-native) | `client` | — |
 | [`client-ui-dockkit`](../packages/client/ui-dockkit) | `client` | — |
 | [`client-ui-goal`](../packages/client/ui-goal) | `client` | — |
+| [`client-ui-host-return`](../packages/client/ui-host-return) | `client` | — |
 | [`client-ui-input-trigger`](../packages/client/ui-input-trigger) | `client` | — |
 | [`client-ui-jobs`](../packages/client/ui-jobs) | `client` | — |
 | [`client-ui-layout`](../packages/client/ui-layout) | `client` | — |
@@ -1237,6 +1244,7 @@ flowchart TD
 | [`client-ui-permission-presets`](../packages/client/ui-permission-presets) | `client` | — |
 | [`client-ui-plan`](../packages/client/ui-plan) | `client` | — |
 | [`client-ui-primitives`](../packages/client/ui-primitives) | `client` | — |
+| [`client-ui-quality-report`](../packages/client/ui-quality-report) | `client` | — |
 | [`client-ui-reference`](../packages/client/ui-reference) | `client` | — |
 | [`client-ui-renderer`](../packages/client/ui-renderer) | `client` | — |
 | [`client-ui-schedule`](../packages/client/ui-schedule) | `client` | — |
@@ -1401,6 +1409,8 @@ flowchart TD
 | [`repeat-tool-reminder`](../packages/guard/repeat-tool-reminder) | `guard` | [`agent`](../packages/core/agent), [`tools`](../packages/core/tools) |
 | [`tool-call-timeout-policy`](../packages/guard/timeout-policy) | `guard` | [`llm`](../packages/llm/llm), [`timeout`](../packages/util/timeout), [`tools`](../packages/core/tools) |
 | [`tool-ask-user`](../packages/interaction/tool-ask-user) | `interaction` | [`agent`](../packages/core/agent), [`tools`](../packages/core/tools), [`user-questions`](../packages/interaction/user-questions) |
+| [`tool-chat-records`](../packages/interaction/tool-chat-records) | `interaction` | [`tools`](../packages/core/tools) |
+| [`tool-quality-report`](../packages/interaction/tool-quality-report) | `interaction` | [`tools`](../packages/core/tools) |
 | [`tool-jobs`](../packages/jobs/tool-jobs) | `jobs` | [`agent`](../packages/core/agent), [`jobs`](../packages/jobs/jobs), [`llm`](../packages/llm/llm), [`output-retention`](../packages/util/output-retention), [`system-prompt`](../packages/core/system-prompt), [`tools`](../packages/core/tools) |
 | [`tool-lsp`](../packages/lsp/tool-lsp) | `lsp` | [`llm`](../packages/llm/llm), [`lsp`](../packages/lsp/lsp), [`system-prompt`](../packages/core/system-prompt), [`timeout`](../packages/util/timeout), [`tools`](../packages/core/tools) |
 | [`mcp-client`](../packages/mcp/mcp-client) | `mcp` | [`attachment`](../packages/attachment/attachment), [`llm`](../packages/llm/llm), [`scope`](../packages/core/scope), [`subprocess`](../packages/subprocess/subprocess), [`timeout`](../packages/util/timeout), [`tools`](../packages/core/tools) |

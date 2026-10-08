@@ -37,6 +37,9 @@
     },
     {
       "path": "../../host/webserver"
+    },
+    {
+      "path": "../ui-settings"
     }
   ]
 }

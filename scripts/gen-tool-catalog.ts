@@ -68,6 +68,7 @@ import * as ToolWeb from '@deepseek-ai/dsh-tool-web'
 import VmWorkflowEngine from '@deepseek-ai/dsh-workflow-worker-thread'
 import * as ToolRalph from '@deepseek-ai/dsh-tool-ralph'
 import * as ToolWorkflow from '@deepseek-ai/dsh-tool-workflow'
+import * as ToolChatRecords from '@deepseek-ai/dsh-tool-chat-records'
 import * as ToolQualityReport from '@deepseek-ai/dsh-tool-quality-report'
 import { githubSlug } from './verify-md-links.ts'
 
@@ -189,6 +190,14 @@ export interface ToolPackage {
  * guard proves it is exhaustive against the on-disk glob.
  */
 const TOOL_PACKAGES: ToolPackage[] = [
+  {
+    pkg: '@deepseek-ai/dsh-tool-chat-records', dir: 'tool-chat-records', source: 'packages/interaction/tool-chat-records/src/index.ts',
+    requires: ['ctx.tools', 'conversation-scoped read bridge'], writes: ['tool/call', 'tool/result'],
+    async mount(ctx) {
+      for (const channel of ['feishu', 'wecom'] as const) await ctx.plugin(ToolChatRecords, { channel, endpoint: 'http://bridge.invalid/read', token: 'catalog-only', maxResultBytes: 262144, maxPageSize: 50, timeoutMs: 30000 })
+    },
+    note: 'Required channel configuration is shown for both Feishu and enterprise WeChat instances. Host authority and account bindings are absent from model arguments. The tools read records only; enterprise WeChat exposes captured incoming texts, not company-wide conversation archives.',
+  },
   {
     pkg: '@deepseek-ai/dsh-tool-quality-report', dir: 'tool-quality-report', source: 'packages/interaction/tool-quality-report/src/index.ts',
     requires: ['ctx.tools'], writes: ['tool/call', 'tool/result'],

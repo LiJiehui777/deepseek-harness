@@ -30,6 +30,7 @@ const hostReturnGlobal = globalThis as typeof globalThis & HostReturnGlobal
 
 afterEach(() => {
   cleanup()
+  vi.restoreAllMocks()
   vi.unstubAllGlobals()
   delete hostReturnGlobal.__DSH_HOST_RETURN__
 })
@@ -69,6 +70,7 @@ function declareFooter(ctx: Context): () => void {
   return ctx.slots.register({
     name: 'root',
     children: {
+      'settings.plugins.tab': { kind: 'list', scope: 'root' },
       'sidebar.brand.mark': { kind: 'single', scope: 'root' },
       'sidebar.brand.name': { kind: 'single', scope: 'root' },
       'sidebar.brand.action': { kind: 'single', scope: 'root' },
@@ -88,6 +90,36 @@ describe('host-return browser half', () => {
     for (const newConversationUrl of ['/workbench', 'https://other.test/workbench', 'javascript:alert(1)']) {
       expect(resolveHostReturnBootstrap({ ...branding, newConversationUrl })).toBeUndefined()
     }
+  })
+
+  it('validates account management on the host origin and removes its native tab on disposal', async () => {
+    const base = { returnUrl: 'https://ragflow.test/workbench', agentName: 'Task' }
+    for (const channelManagementUrl of ['/settings', 'https://other.test/settings', 'javascript:alert(1)']) {
+      expect(resolveHostReturnBootstrap({ ...base, channelManagementUrl })).toBeUndefined()
+    }
+    const config = { ...base, channelManagementUrl: 'https://ragflow.test/user-setting/chat-channel' }
+    expect(resolveHostReturnBootstrap(config)).toMatchObject(config)
+    const host = new Context()
+    const hostFiber = host.plugin({ apply: hostApply }, config)
+    await hostFiber.await()
+    const rows: IndexInjection[] = []
+    host.emit('webserver/index-inject', rows)
+    expect(rows[0]).toMatchObject({ value: config })
+    await host.fiber.dispose()
+    const ctx = await baseContext()
+    hostReturnGlobal.__DSH_HOST_RETURN__ = config
+    const fiber = ctx.plugin({ inject: [...inject], apply })
+    await fiber.await()
+    declareFooter(ctx)
+    await Promise.resolve()
+    const entry = ctx.slots.entries('settings.plugins.tab')[0]!
+    expect(entry.options.id).toBe('chat-services')
+    expect(entry.options.order).toBe(5)
+    expect((entry.options.label as () => string)()).toBe(en.channelsTab)
+    expect(entry.inject!()).toEqual({ managementUrl: config.channelManagementUrl, hostOrigin: 'https://ragflow.test' })
+    await fiber.dispose()
+    expect(ctx.slots.entries('settings.plugins.tab')).toHaveLength(0)
+    await ctx.fiber.dispose()
   })
 
   it.each([true, false])('claims New Session for the host and releases the listener on disposal (embedded=%s)', async (embedded) => {

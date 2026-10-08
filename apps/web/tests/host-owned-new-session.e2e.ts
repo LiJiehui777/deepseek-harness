@@ -3,11 +3,15 @@ import { createServer } from 'node:http'
 import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import type { Browser, Page } from 'playwright'
 import { chromium } from 'playwright'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { launchWebScaffold, type WebScaffold } from './scaffold.ts'
+import { compareOrRefreshGolden, webSnapshotMode, launchWebScaffold, type WebScaffold } from './scaffold.ts'
 import { connectFreshWorkspace, newEnglishPage } from './support.ts'
+
+const EXPECTED = fileURLToPath(new URL('./expected/host-channel-plugins/panel.expected.md', import.meta.url))
+const MODE = webSnapshotMode()
 
 describe('web e2e: host-owned New Session', () => {
   let scaffold: WebScaffold
@@ -21,10 +25,21 @@ describe('web e2e: host-owned New Session', () => {
       <iframe title="Harness conversation" src="${scaffold.authenticatedUrl}" style="width:1500px;height:900px"></iframe>
       <dialog aria-label="Reference knowledge bases"><p>Choose reference knowledge bases for the new conversation</p>
       <button onclick="this.closest('dialog').close()">Cancel</button></dialog>
+      <dialog aria-label="Channel accounts"><p id="channel-name"></p>
+      <button onclick="this.closest('dialog').close()">Cancel</button></dialog>
       <script>window.requests=0;window.addEventListener('message',event=>{
         const frame=document.querySelector('iframe');
-        if(event.source!==frame.contentWindow||event.origin!==${JSON.stringify(nativeOrigin)}||event.data?.type!=='ragflow.workbench.new-conversation')return;
-        window.requests++;document.querySelector('dialog').showModal();
+        if(event.source!==frame.contentWindow||event.origin!==${JSON.stringify(nativeOrigin)} )return;
+        if(event.data?.type==='ragflow.workbench.channel-status-request') {
+          frame.contentWindow.postMessage({type:'ragflow.workbench.channel-status',channels:[
+            {channel:'feishu',configuredAccounts:1,enabled:true,boundAccountName:'Research bot'},
+            {channel:'wecom',configuredAccounts:0,enabled:false}]},event.origin);
+        } else if(event.data?.type==='ragflow.workbench.manage-channel'&&['feishu','wecom'].includes(event.data.channel)) {
+          document.querySelector('#channel-name').textContent=event.data.channel;
+          document.querySelector('[aria-label="Channel accounts"]').showModal();
+        } else if(event.data?.type==='ragflow.workbench.new-conversation') {
+          window.requests++;document.querySelector('[aria-label="Reference knowledge bases"]').showModal();
+        }
       });</script>`)
   })
 
@@ -35,7 +50,7 @@ describe('web e2e: host-owned New Session', () => {
     const hostUrl = `http://127.0.0.1:${address.port}`
     root = await mkdtemp(join(tmpdir(), 'host-new-session-'))
     const overlay = join(root, 'host.patch.yml')
-    await writeFile(overlay, `- id: ui-brand-official\n  disabled: true\n- id: ui-host-return\n  config:\n    returnUrl: ${hostUrl}/workbench\n    newConversationUrl: ${hostUrl}/workbench/conversation?new=1\n    hostName: RAGFlow\n    agentName: Conversation A\n    workspaceName: Workbench\n    datasetNames: [Knowledge A]\n`)
+    await writeFile(overlay, `- id: ui-brand-official\n  disabled: true\n- id: ui-host-return\n  config:\n    returnUrl: ${hostUrl}/workbench\n    newConversationUrl: ${hostUrl}/workbench/conversation?new=1\n    channelManagementUrl: ${hostUrl}/user-setting/chat-channel\n    hostName: RAGFlow\n    agentName: Conversation A\n    workspaceName: Workbench\n    datasetNames: [Knowledge A]\n`)
     scaffold = await launchWebScaffold({ extraOverlayPath: overlay })
     nativeOrigin = new URL(scaffold.authenticatedUrl).origin
     browser = await chromium.launch()
@@ -70,4 +85,28 @@ describe('web e2e: host-owned New Session', () => {
     await dialog.getByRole('button', { name: 'Cancel' }).click()
     expect(await composer.innerText()).toBe('Keep this unsent conversation draft')
   })
+  it('manages both read-only channel plugins from native Settings without losing the draft', async () => {
+    const frame = page.frameLocator('iframe')
+    const composer = frame.locator('[data-composer-input]')
+    await composer.fill('Keep this unsent conversation draft')
+    await frame.getByRole('button', { name: 'Settings', exact: true }).click()
+    const settings = frame.getByRole('dialog', { name: 'Settings' })
+    await settings.getByRole('button', { name: 'Plugins', exact: true }).click()
+    await settings.getByRole('tab', { name: 'Chat services', exact: true }).click()
+    await settings.getByText('Bound account: Research bot', { exact: true }).waitFor()
+    const panel = settings.getByRole('tabpanel', { name: 'Chat services' })
+    await compareOrRefreshGolden(EXPECTED, await panel.ariaSnapshot(), MODE)
+    const managers = panel.getByRole('button', { name: 'Manage accounts', exact: true })
+    for (const [index, channel] of ['feishu', 'wecom'].entries()) {
+      await managers.nth(index).click()
+      const dialog = page.getByRole('dialog', { name: 'Channel accounts' })
+      await dialog.waitFor()
+      expect(await dialog.locator('p').innerText()).toBe(channel)
+      await dialog.getByRole('button', { name: 'Cancel' }).click()
+      expect(await settings.isVisible()).toBe(true)
+    }
+    await settings.getByRole('button', { name: 'Close', exact: true }).click()
+    expect(await composer.innerText()).toBe('Keep this unsent conversation draft')
+  })
+
 })

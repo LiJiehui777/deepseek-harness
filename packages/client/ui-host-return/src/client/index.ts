@@ -6,6 +6,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar/client'
 import type {} from '@deepseek-ai/dsh-client-ui-workspace/client'
+import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
 import {
   HostAgentDocumentTitle,
   HostAgentHero,
@@ -15,6 +16,7 @@ import {
 } from './HostAgentBranding.tsx'
 import { HostReturnAction, type HostReturnActionInjected } from './HostReturnAction.tsx'
 import { en, NS, zh, type HostReturnKey } from './locales.ts'
+import { ChannelPluginsPanel } from './ChannelPluginsPanel.tsx'
 import { readHostReturnBootstrap } from '../config.ts'
 
 export type { HostAgentBrandingInjected } from './HostAgentBranding.tsx'
@@ -53,6 +55,15 @@ export function apply(ctx: ClientContext): void {
   })
   const returnAction = (): HostReturnActionInjected => ({ returnUrl: bootstrap.returnUrl, hostName })
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'ui-host-return: dictionaries')
+  const managementUrl = bootstrap.channelManagementUrl
+  if (managementUrl !== undefined) {
+    const t = ctx.locale.bind(NS)
+    ctx.slots.inject('settings.plugins.tab', () => ctx.slots.register({
+      name: 'settings.plugins.tab', id: 'chat-services', order: 5,
+      label: () => t('channelsTab'), locale: NS,
+      inject: () => ({ managementUrl, hostOrigin: new URL(bootstrap.returnUrl).origin }),
+    }, ChannelPluginsPanel))
+  }
   ctx.slots.inject('sidebar.brand.action', () => ctx.slots.register({
     name: 'sidebar.brand.action',
     locale: NS,

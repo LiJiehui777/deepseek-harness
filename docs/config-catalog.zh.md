@@ -420,6 +420,8 @@ export interface HostReturnConfig {
   returnUrl?: string
   /** Same-origin host destination for creating a conversation with new resource bindings. */
   newConversationUrl?: string
+  /** Same-origin account management destination; enables the chat-service plugin settings tab. */
+  channelManagementUrl?: string
   /** Human-readable host application name interpolated into localized copy. */
   hostName?: string
   /** RAGFlow Agent name shown as the primary product identity. */
@@ -2789,6 +2791,32 @@ export interface Config {
 ```
 
 来源：[`packages/shell/tool-bash-persistent/src/index.ts:435`](../packages/shell/tool-bash-persistent/src/index.ts)
+
+<a id="deepseek-aidsh-tool-chat-records"></a>
+
+## `@deepseek-ai/dsh-tool-chat-records`
+
+依赖： `tools`
+
+```ts config-catalog
+/** Required deployment authority and complete-response bounds; never model arguments. */
+export interface Config {
+  /** Bot platform. Mount separate instances to enable both platforms. */
+  channel: 'feishu' | 'wecom'
+  /** Read-only host endpoint; redirects are rejected. */
+  endpoint: string
+  /** Host-issued authority, stored only in private server configuration. */
+  token: string
+  /** Maximum complete UTF-8 result bytes, including pagination and scope. */
+  maxResultBytes: number
+  /** Maximum requested records per page. */
+  maxPageSize: number
+  /** Deadline for a single read, in milliseconds. */
+  timeoutMs: number
+}
+```
+
+来源： [`packages/interaction/tool-chat-records/src/index.ts:9`](../packages/interaction/tool-chat-records/src/index.ts)
 
 <a id="deepseek-aidsh-tool-fs"></a>
 

@@ -8,6 +8,8 @@ export interface HostReturnConfig {
   returnUrl?: string
   /** Same-origin host destination for creating a conversation with new resource bindings. */
   newConversationUrl?: string
+  /** Same-origin account management destination; enables the chat-service plugin settings tab. */
+  channelManagementUrl?: string
   /** Human-readable host application name interpolated into localized copy. */
   hostName?: string
   /** RAGFlow Agent name shown as the primary product identity. */
@@ -23,6 +25,8 @@ export interface HostReturnBootstrap {
   returnUrl: string
   /** Optional host-owned New Session destination, validated against returnUrl. */
   newConversationUrl?: string
+  /** Same-origin account management destination; enables the chat-service plugin settings tab. */
+  channelManagementUrl?: string
   hostName: string
   agentName: string
   workspaceName: string
@@ -61,6 +65,12 @@ export function resolveHostReturnBootstrap(value: unknown): HostReturnBootstrap 
     && (newConversationUrl === undefined || new URL(newConversationUrl).origin !== new URL(returnUrl).origin)) {
     return undefined
   }
+  const channelManagementUrl = config.channelManagementUrl === undefined
+    ? undefined : normalizeHostReturnUrl(config.channelManagementUrl)
+  if (config.channelManagementUrl !== undefined
+    && (channelManagementUrl === undefined || new URL(channelManagementUrl).origin !== new URL(returnUrl).origin)) {
+    return undefined
+  }
   const configuredName = typeof config.hostName === 'string' ? config.hostName.trim() : ''
   const agentName = typeof config.agentName === 'string' ? config.agentName.trim() : ''
   const workspaceName = typeof config.workspaceName === 'string' ? config.workspaceName.trim() : ''
@@ -71,6 +81,7 @@ export function resolveHostReturnBootstrap(value: unknown): HostReturnBootstrap 
   return {
     returnUrl,
     ...(newConversationUrl === undefined ? {} : { newConversationUrl }),
+    ...(channelManagementUrl === undefined ? {} : { channelManagementUrl }),
     hostName: configuredName === '' ? 'RAGFlow' : configuredName.slice(0, 80),
     agentName,
     workspaceName: workspaceName === '' ? 'Agent Workspace' : workspaceName,

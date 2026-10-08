@@ -1,0 +1,3 @@
+- insert:
+    - id: chat-record-fixture
+      name: './chat-record-fixture.mjs'

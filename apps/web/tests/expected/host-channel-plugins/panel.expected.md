@@ -1,0 +1,17 @@
+- tabpanel "Chat services":
+  - paragraph: Manage Feishu and enterprise WeChat accounts here. Select plugins and accounts when starting a new conversation.
+  - article:
+    - heading "Feishu chat reader" [level=3]
+    - text: Enabled for this conversation
+    - paragraph: Read history accessible to the bot. Grant Feishu message-read permissions and add the bot to the relevant chats.
+    - paragraph: 1 configured accounts
+    - paragraph: "Bound account: Research bot"
+    - text: Read only; cannot send or modify messages
+    - button "Manage accounts"
+  - article:
+    - heading "Enterprise WeChat message reader" [level=3]
+    - text: Not enabled for this conversation
+    - paragraph: Read text messages received after storage was enabled, within the default 30-day read window. Earlier history, outgoing replies and company-wide archives are unavailable.
+    - paragraph: No configured account
+    - text: Read only; cannot send or modify messages
+    - button "Manage accounts"
