@@ -1,0 +1,36 @@
+/** Report-card copy. */
+export const en = {
+  title: 'Quality report review', pending: 'Checking draft', fallback: 'Review details unavailable',
+  passed: 'Structure checked · awaiting human review', gaps: 'Draft has missing information',
+  scope: 'Structure checks do not verify source authenticity or confirm a root cause.',
+  evidence: 'Sources stated in the draft', hypotheses: 'Hypotheses and verification plans',
+  issues: 'Items to complete', source: 'Document / chunk', inspect: 'Inspect tool call',
+  missing_title: 'Missing report title',
+  missing_facts: 'Add the confirmed facts',
+  missing_evidence: 'Add source references',
+  invalid_evidence_id: 'Evidence identifiers must be unique and non-empty',
+  incomplete_evidence: 'Complete document names, chunk identifiers and summaries',
+  missing_hypotheses: 'Add cause hypotheses',
+  incomplete_hypothesis: 'Each hypothesis needs a statement and verification plan',
+  unresolved_evidence_reference: 'Hypotheses must reference declared evidence identifiers',
+  incomplete_actions: 'Complete actions, owners and acceptance criteria',
+  unknownIssue: 'Inspect the tool call for more details',
+}
+/** Chinese report-card copy. */
+export const zh: Record<keyof typeof en, string> = {
+  title: '质量报告检查', pending: '正在检查草稿', fallback: '暂无可展示的检查详情',
+  passed: '结构检查通过 · 待人工审阅', gaps: '草稿存在待补充事项',
+  scope: '结构检查不核验来源真实性，也不确认根因。',
+  evidence: '草稿中填写的来源', hypotheses: '原因假设与验证计划',
+  issues: '待补充事项', source: '文档 / 片段', inspect: '查看工具调用',
+  missing_title: '缺少报告标题',
+  missing_facts: '请补充已确认的事实',
+  missing_evidence: '请补充证据来源',
+  invalid_evidence_id: '证据编号需非空且不重复',
+  incomplete_evidence: '请补齐文档名、片段标识和摘要',
+  missing_hypotheses: '请补充原因假设',
+  incomplete_hypothesis: '每个假设都需描述和验证计划',
+  unresolved_evidence_reference: '假设需引用报告中已列出的证据编号',
+  incomplete_actions: '请补齐行动、负责人和验收标准',
+  unknownIssue: '请查看工具调用了解详情',
+}

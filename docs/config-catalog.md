@@ -407,6 +407,28 @@ export interface Config {
 
 Source: [`packages/client/hmr/src/index.ts:31`](../packages/client/hmr/src/index.ts)
 
+<a id="deepseek-aidsh-client-ui-host-return"></a>
+
+## `@deepseek-ai/dsh-client-ui-host-return`
+
+```ts config-catalog
+/** Loader-row configuration supplied by an embedding host application. */
+export interface HostReturnConfig {
+  /** Absolute HTTP(S) URL opened in the current tab. Omit to hide the action. */
+  returnUrl?: string
+  /** Human-readable host application name interpolated into localized copy. */
+  hostName?: string
+  /** RAGFlow Agent name shown as the primary product identity. */
+  agentName?: string
+  /** Secondary label describing the embedded work surface. */
+  workspaceName?: string
+  /** Selected RAGFlow knowledge-base names shown in the welcome state. */
+  datasetNames?: string[]
+}
+```
+
+Source: [`packages/client/ui-host-return/src/config.ts:6`](../packages/client/ui-host-return/src/config.ts)
+
 <a id="deepseek-aidsh-code-runtime-worker-thread"></a>
 
 ## `@deepseek-ai/dsh-code-runtime-worker-thread`
@@ -2931,6 +2953,24 @@ export interface Config {
 
 Source: [`packages/shell/tool-pwsh-persistent/src/index.ts:472`](../packages/shell/tool-pwsh-persistent/src/index.ts)
 
+<a id="deepseek-aidsh-tool-quality-report"></a>
+
+## `@deepseek-ai/dsh-tool-quality-report`
+
+Requires: `tools`
+
+```ts config-catalog
+/** Deployment bounds on the complete result and all report collections. */
+export interface Config {
+  /** Maximum UTF-8 bytes in the complete canonical review result. */
+  maxReportBytes: number
+  /** Maximum combined report items, including hypothesis evidence references. */
+  maxItems: number
+}
+```
+
+Source: [`packages/interaction/tool-quality-report/src/index.ts:9`](../packages/interaction/tool-quality-report/src/index.ts)
+
 <a id="deepseek-aidsh-tool-ralph"></a>
 
 ## `@deepseek-ai/dsh-tool-ralph`
@@ -3477,6 +3517,7 @@ These load from a `cordis.yml` entry with no `config:` block; they declare no co
 - `@deepseek-ai/dsh-client-ui-open-in-app` ([`packages/client/ui-open-in-app/src/index.ts`](../packages/client/ui-open-in-app/src/index.ts))
 - `@deepseek-ai/dsh-client-ui-permission-presets` ([`packages/client/ui-permission-presets/src/index.ts`](../packages/client/ui-permission-presets/src/index.ts))
 - `@deepseek-ai/dsh-client-ui-plan` ([`packages/client/ui-plan/src/index.ts`](../packages/client/ui-plan/src/index.ts))
+- `@deepseek-ai/dsh-client-ui-quality-report` ([`packages/client/ui-quality-report/src/index.ts`](../packages/client/ui-quality-report/src/index.ts))
 - `@deepseek-ai/dsh-client-ui-reference` ([`packages/client/ui-reference/src/index.ts`](../packages/client/ui-reference/src/index.ts))
 - `@deepseek-ai/dsh-client-ui-renderer` ([`packages/client/ui-renderer/src/index.ts`](../packages/client/ui-renderer/src/index.ts))
 - `@deepseek-ai/dsh-client-ui-schedule` ([`packages/client/ui-schedule/src/index.ts`](../packages/client/ui-schedule/src/index.ts))

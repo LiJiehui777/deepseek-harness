@@ -1,0 +1,4 @@
+- insert:
+    - id: quality-report-review
+      name: '@deepseek-ai/dsh-tool-quality-report'
+      config: { maxReportBytes: 262144, maxItems: 200 }

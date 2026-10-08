@@ -104,16 +104,20 @@ exports[`sidebar shell snapshots > renders the expanded column (wordmark, capsul
     <div
       class="logoRow"
     >
-      <button
-        aria-label="New session"
+      <div
+        data-slot="sidebar.brand.action"
+        style="display: contents;"
+      />
+      <div
         class="brand wide"
-        type="button"
       >
-        <span
-          aria-hidden="true"
-          class="brandIdentity"
+        <button
+          aria-label="New session"
+          class="brandMarkButton"
+          type="button"
         >
           <span
+            aria-hidden="true"
             class="brandMark"
           >
             <div
@@ -130,31 +134,31 @@ exports[`sidebar shell snapshots > renders the expanded column (wordmark, capsul
               />
             </div>
           </span>
-          <span
-            class="brandName"
+        </button>
+        <div
+          class="brandName"
+        >
+          <div
+            data-slot="sidebar.brand.name"
+            style="display: contents;"
           >
-            <div
-              data-slot="sidebar.brand.name"
-              style="display: contents;"
+            <span
+              class="localBuildBrand"
             >
               <span
-                class="localBuildBrand"
+                class="localBuildTitle"
               >
-                <span
-                  class="localBuildTitle"
-                >
-                  DSH Local Build
-                </span>
-                <span
-                  class="buildVersion"
-                >
-                  1.2.3-rc.4-abc1234-dirty
-                </span>
+                DSH Local Build
               </span>
-            </div>
-          </span>
-        </span>
-      </button>
+              <span
+                class="buildVersion"
+              >
+                1.2.3-rc.4-abc1234-dirty
+              </span>
+            </span>
+          </div>
+        </div>
+      </div>
       <button
         aria-label="Collapse sidebar"
         class="iconButton toggle"
@@ -234,16 +238,20 @@ exports[`sidebar shell snapshots > renders the expanded column in the default lo
     <div
       class="logoRow"
     >
-      <button
-        aria-label="新建会话"
+      <div
+        data-slot="sidebar.brand.action"
+        style="display: contents;"
+      />
+      <div
         class="brand wide"
-        type="button"
       >
-        <span
-          aria-hidden="true"
-          class="brandIdentity"
+        <button
+          aria-label="新建会话"
+          class="brandMarkButton"
+          type="button"
         >
           <span
+            aria-hidden="true"
             class="brandMark"
           >
             <div
@@ -260,31 +268,31 @@ exports[`sidebar shell snapshots > renders the expanded column in the default lo
               />
             </div>
           </span>
-          <span
-            class="brandName"
+        </button>
+        <div
+          class="brandName"
+        >
+          <div
+            data-slot="sidebar.brand.name"
+            style="display: contents;"
           >
-            <div
-              data-slot="sidebar.brand.name"
-              style="display: contents;"
+            <span
+              class="localBuildBrand"
             >
               <span
-                class="localBuildBrand"
+                class="localBuildTitle"
               >
-                <span
-                  class="localBuildTitle"
-                >
-                  DSH 本地构建
-                </span>
-                <span
-                  class="buildVersion"
-                >
-                  1.2.3-rc.4-abc1234-dirty
-                </span>
+                DSH 本地构建
               </span>
-            </div>
-          </span>
-        </span>
-      </button>
+              <span
+                class="buildVersion"
+              >
+                1.2.3-rc.4-abc1234-dirty
+              </span>
+            </span>
+          </div>
+        </div>
+      </div>
       <button
         aria-label="收起侧边栏"
         class="iconButton toggle"

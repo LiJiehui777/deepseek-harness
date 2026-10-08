@@ -68,6 +68,7 @@ import * as ToolWeb from '@deepseek-ai/dsh-tool-web'
 import VmWorkflowEngine from '@deepseek-ai/dsh-workflow-worker-thread'
 import * as ToolRalph from '@deepseek-ai/dsh-tool-ralph'
 import * as ToolWorkflow from '@deepseek-ai/dsh-tool-workflow'
+import * as ToolQualityReport from '@deepseek-ai/dsh-tool-quality-report'
 import { githubSlug } from './verify-md-links.ts'
 
 /** Attachment seam marker that makes the attachments-conditional `read_image` schema harvestable. */
@@ -188,6 +189,12 @@ export interface ToolPackage {
  * guard proves it is exhaustive against the on-disk glob.
  */
 const TOOL_PACKAGES: ToolPackage[] = [
+  {
+    pkg: '@deepseek-ai/dsh-tool-quality-report', dir: 'tool-quality-report', source: 'packages/interaction/tool-quality-report/src/index.ts',
+    requires: ['ctx.tools'], writes: ['tool/call', 'tool/result'],
+    async mount(ctx) { await ctx.plugin(ToolQualityReport, { maxReportBytes: 262144, maxItems: 200 }) },
+    note: 'Optional structural review of draft reports. Source claims remain unverified; the result never approves a report or establishes a root cause.',
+  },
   {
     pkg: '@deepseek-ai/dsh-tool-ask-user',
     dir: 'tool-ask-user',

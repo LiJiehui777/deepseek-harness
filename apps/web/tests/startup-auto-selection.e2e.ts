@@ -42,9 +42,9 @@ describe('web e2e: startup auto-selection', () => {
     onTestFailed(() => saveFailureShot(page, 'web-e2e-first-workspace-stable-tree'))
     await page.locator(`${ROOT_PHASE}[data-phase="hero"]`).waitFor({ timeout: 15_000 })
     const headline = page.getByText('Into the Unknown', { exact: true })
-    // The headline text sits in its own span inside the title group; the fish
-    // hitbox precedes the group, not the text span.
-    const fishHitbox = headline.locator('xpath=../preceding-sibling::span[1]')
+    // Resolve the public branding slot: embedding plugins may replace the
+    // adjacent identity layout without changing the mark's hover contract.
+    const fishHitbox = page.locator('[data-slot="conversation.hero.brand.mark"]')
     const fish = fishHitbox.locator('svg')
     expect(await fish.evaluate(node => getComputedStyle(node).color))
       .toBe(await headline.evaluate(node => getComputedStyle(node).color))

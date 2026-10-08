@@ -1,0 +1,8 @@
+version: 1
+scenario: quality-report-review
+profile: headless
+composition: quality-report-review
+recording: authored
+header:
+  class: quality-report-review
+  pin: true

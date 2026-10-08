@@ -1,0 +1,6 @@
+.card { border: 0.5px solid var(--dsw-alias-border-l2); border-radius: 12px; padding: 16px; color: var(--dsw-alias-label-primary); background: var(--dsw-alias-bg-base); font-size: 13px; }
+.card p { margin: 8px 0; overflow-wrap: anywhere; }
+.card details { margin-top: 12px; }
+.card summary { cursor: pointer; }
+.card article { margin-top: 8px; padding: 8px; border-left: 0.5px solid var(--dsw-alias-border-l2); }
+.note { color: var(--dsw-alias-label-secondary); }

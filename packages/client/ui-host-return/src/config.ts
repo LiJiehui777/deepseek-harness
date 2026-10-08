@@ -25,7 +25,10 @@ export interface HostReturnBootstrap {
   datasetNames: string[]
 }
 
-/** Resolve one configured host URL without allowing script-bearing schemes. */
+/** Resolve a configured HTTP(S) destination.
+ * @param value - untrusted configured URL.
+ * @returns the normalized destination, or undefined when invalid.
+ */
 export function normalizeHostReturnUrl(value: unknown): string | undefined {
   if (typeof value !== 'string' || value.length === 0 || value.length > 2048) return undefined
   try {
@@ -39,7 +42,10 @@ export function normalizeHostReturnUrl(value: unknown): string | undefined {
   }
 }
 
-/** Validate and normalize the complete Host-to-browser payload. */
+/** Validate and normalize the Host-to-browser payload.
+ * @param value - untrusted Loader configuration.
+ * @returns validated branding, or undefined when incomplete or invalid.
+ */
 export function resolveHostReturnBootstrap(value: unknown): HostReturnBootstrap | undefined {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) return undefined
   const config = value as HostReturnConfig
@@ -69,7 +75,10 @@ function normalizeDatasetNames(value: unknown): string[] | undefined {
   return [...new Set(names)]
 }
 
-/** Read and revalidate the Host-injected bootstrap value in the browser. */
+/** Read and revalidate Host-injected branding.
+ * @param target - browser global containing the bootstrap projection.
+ * @returns validated branding, or undefined when unavailable or invalid.
+ */
 export function readHostReturnBootstrap(target: typeof globalThis): HostReturnBootstrap | undefined {
   return resolveHostReturnBootstrap(
     (target as typeof globalThis & Record<string, unknown>)[HOST_RETURN_BOOTSTRAP_GLOBAL],

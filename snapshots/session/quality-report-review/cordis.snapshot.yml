@@ -1,0 +1,17 @@
+- id: llm-deepseek
+  disabled: true
+- insert:
+    - id: llm-replay
+      name: '@deepseek-ai/dsh-llm-replay'
+      config:
+        providers:
+          - id: deepseek-official
+            name: DeepSeek
+            models:
+              - id: deepseek-v4-flash
+              - id: deepseek-v4-pro
+
+- insert:
+    - id: quality-report-review
+      name: '@deepseek-ai/dsh-tool-quality-report'
+      config: { maxReportBytes: 262144, maxItems: 200 }
