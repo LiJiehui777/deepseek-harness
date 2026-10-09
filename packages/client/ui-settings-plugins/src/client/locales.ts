@@ -2,6 +2,7 @@
 
 /** Locale keys these surfaces render. */
 export type PluginsSettingsLocaleKey =
+  | 'ragflowTitle' | 'ragflowDescription' | 'ragflowApiKey' | 'ragflowApiKeyHint' | 'ragflowApiKeySet' | 'ragflowApiKeyUnset' | 'ragflowBaseUrl' | 'ragflowBaseUrlHint' | 'ragflowDatasets' | 'ragflowDatasetsHint' | 'ragflowEnabled' | 'ragflowInvalidUrl' | 'ragflowInvalidDatasets'
   | 'nav' | 'title' | 'intro' | 'tabs' | 'configurableTab' | 'empty'
   | 'overridden' | 'reset' | 'readOnly' | 'expand' | 'collapse'
   | 'save' | 'saving' | 'discard' | 'unsaved' | 'saveFailed' | 'invalidNumber'
@@ -20,6 +21,20 @@ export type PluginsSettingsLocaleKey =
 
 /** English copy. */
 export const en: Record<PluginsSettingsLocaleKey, string> = {
+  ragflowTitle: 'RAGFlow connector',
+  ragflowDescription: 'Connect an independent RAGFlow service for knowledge retrieval.',
+  ragflowApiKey: 'RAGFlow API Key',
+  ragflowApiKeyHint: 'Stored by DH credentials; never returned to the browser. Blank keeps the current key.',
+  ragflowApiKeySet: 'API Key configured.',
+  ragflowApiKeyUnset: 'API Key not configured.',
+  ragflowBaseUrl: 'RAGFlow service address',
+  ragflowBaseUrlHint: 'Example: http://localhost:9380. Enter the service base, without /api/v1.',
+  ragflowDatasets: 'Allowed knowledge base IDs',
+  ragflowDatasetsHint: 'Comma-separated IDs. Empty allows listing only; retrieval requires an explicit selection. Ask DH to list RAGFlow knowledge bases to obtain IDs.',
+  ragflowEnabled: 'Enable RAGFlow connection',
+  ragflowInvalidUrl: 'Enter an HTTP(S) service base without credentials, query or fragment.',
+  ragflowInvalidDatasets: 'Enter at most 100 IDs using letters, numbers, underscores or hyphens.',
+
   nav: 'Plugins',
   title: 'Plugins',
   intro: 'Configure and inspect the plugins installed in this deployment.',
@@ -76,6 +91,20 @@ export const en: Record<PluginsSettingsLocaleKey, string> = {
 
 /** Simplified Chinese copy. */
 export const zh: Record<PluginsSettingsLocaleKey, string> = {
+  ragflowTitle: 'RAGFlow 连接器',
+  ragflowDescription: '连接独立运行的 RAGFlow 服务，读取知识库并检索内容。',
+  ragflowApiKey: 'RAGFlow API Key',
+  ragflowApiKeyHint: '由 DH 凭证服务保存，保存后不返回浏览器。留空保留已有密钥。',
+  ragflowApiKeySet: '已配置 API Key。',
+  ragflowApiKeyUnset: '尚未配置 API Key。',
+  ragflowBaseUrl: 'RAGFlow 服务地址',
+  ragflowBaseUrlHint: '例如 http://localhost:9380，填写服务根地址，不含 /api/v1。',
+  ragflowDatasets: '允许检索的知识库 ID',
+  ragflowDatasetsHint: '多个 ID 用逗号分隔。留空时仅可列出知识库；填写后才能检索。可让 DH 列出 RAGFlow 知识库来获取 ID。',
+  ragflowEnabled: '启用 RAGFlow 连接',
+  ragflowInvalidUrl: '请填写 HTTP(S) 服务地址，不含账号密码、查询参数或锚点。',
+  ragflowInvalidDatasets: '最多填写 100 个 ID，仅支持字母、数字、下划线和连字符。',
+
   nav: '插件',
   title: '插件',
   intro: '配置和查看本部署已安装的插件。',

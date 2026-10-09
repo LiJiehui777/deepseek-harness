@@ -1,3 +1,5 @@
+import { RagflowCardController, RAGFLOW_NS } from './ragflow-card-controller.ts'
+import { RagflowCard } from './RagflowCard.tsx'
 /**
  * Plugins settings surface, browser half — one section whose feature-owned
  * tabs include configurable Host plugin cards and read-only inventory.
@@ -65,6 +67,7 @@ export function apply(ctx: ClientContext): void {
   const t = ctx.locale.bind(NS)
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'ui-settings-plugins: section dictionaries')
 
+  const ragflow = new RagflowCardController(ctx.settingsScope.bind({ namespace: RAGFLOW_NS }), ctx)
   const bash = new BashCardController(ctx.settingsScope.bind({ namespace: SHELL_NS }))
   const agentLoop = new AgentLoopCardController(ctx.settingsScope.bind({ namespace: AGENT_LOOP_NS }))
   const webSearch = new WebSearchCardController(
@@ -78,7 +81,7 @@ export function apply(ctx: ClientContext): void {
   // scope publishes nothing when one is written. This is the only signal that
   // a key written on another surface reached the Host.
   ctx.effect(
-    () => ctx.remote.$on('credentials/reference-updated', (ref) => { webSearch.refreshCredential(ref) }),
+    () => ctx.remote.$on('credentials/reference-updated', (ref) => { webSearch.refreshCredential(ref); ragflow.refreshCredential(ref) }),
     'ui-settings-plugins: credential invalidations',
   )
   ctx.effect(
@@ -165,6 +168,7 @@ export function apply(ctx: ClientContext): void {
   }, ConfigurablePluginsTab))
 
   ctx.slots.inject('settings.plugin.item', function* () {
+    yield ctx.slots.register({ name: 'settings.plugin.item', key: RAGFLOW_NS, locale: NS, inject: () => ragflow.inject() }, RagflowCard)
     yield ctx.slots.register({
       name: 'settings.plugin.item',
       key: SHELL_NS,

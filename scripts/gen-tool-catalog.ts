@@ -1,3 +1,5 @@
+import * as ToolRagflowConnector from '@deepseek-ai/dsh-tool-ragflow-connector'
+import type CredentialProvider from '@deepseek-ai/dsh-credentials'
 /**
  * Generate `docs/tool-catalog.md` from schemas collected by booting each tool
  * plugin. Runtime registration is the source of truth for computed schemas;
@@ -191,6 +193,17 @@ export interface ToolPackage {
  * guard proves it is exhaustive against the on-disk glob.
  */
 const TOOL_PACKAGES: ToolPackage[] = [
+  {
+    pkg: '@deepseek-ai/dsh-tool-ragflow-connector', dir: 'tool-ragflow-connector',
+    source: 'packages/interaction/tool-ragflow-connector/src/index.ts',
+    requires: ['ctx.tools', 'ctx.credentials'], writes: ['tool/call', 'tool/result'],
+    async mount(ctx) {
+      // Schema harvesting never executes a tool or resolves a secret.
+      ctx.provide('credentials', { resolve: () => Promise.resolve(undefined) } as unknown as CredentialProvider)
+      await ctx.plugin(ToolRagflowConnector, { enabled: false, baseURL: 'http://localhost:9380', apiKeyEnv: 'RAGFLOW_API_KEY', datasetIds: [], maxChunks: 10, maxPageSize: 50, maxResultBytes: 262144, timeoutMs: 30000 })
+    },
+    note: 'Independent read-only RAGFlow connector; disabled until configured. Retrieval requires an explicit dataset allowlist.',
+  },
   {
     pkg: '@deepseek-ai/dsh-tool-feishu-connection', dir: 'tool-feishu-connection', source: 'packages/interaction/tool-feishu-connection/src/index.ts',
     requires: ['ctx.tools', 'conversation-scoped read bridge'], writes: ['tool/call', 'tool/result'],

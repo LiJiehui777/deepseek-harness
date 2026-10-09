@@ -3041,6 +3041,36 @@ export interface Config {
 
 Source: [`packages/interaction/tool-quality-report/src/index.ts:9`](../packages/interaction/tool-quality-report/src/index.ts)
 
+<a id="deepseek-aidsh-tool-ragflow-connector"></a>
+
+## `@deepseek-ai/dsh-tool-ragflow-connector`
+
+Requires: `tools` · `credentials`
+
+```ts config-catalog
+/** Server-owned connection settings; credentials resolve separately on every call. */
+export interface Config {
+  /** Whether this connection may issue requests. */
+  enabled: boolean
+  /** RAGFlow service base; /api/v1 is appended. */
+  baseURL: string
+  /** Server-side credential reference; never a literal API Key. */
+  apiKeyEnv: string
+  /** Allowed dataset identifiers; empty permits discovery only. */
+  datasetIds: string[]
+  /** Maximum evidence chunks per retrieval. */
+  maxChunks: number
+  /** Maximum datasets requested on one discovery page. */
+  maxPageSize: number
+  /** Complete UTF-8 wire and rendered result byte limit. */
+  maxResultBytes: number
+  /** HTTP request deadline, including response streaming. */
+  timeoutMs: number
+}
+```
+
+Source: [`packages/interaction/tool-ragflow-connector/src/index.ts:9`](../packages/interaction/tool-ragflow-connector/src/index.ts)
+
 <a id="deepseek-aidsh-tool-ralph"></a>
 
 ## `@deepseek-ai/dsh-tool-ralph`

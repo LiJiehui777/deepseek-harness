@@ -1,0 +1,3 @@
+- insert:
+    - id: ragflow-connector
+      name: '@deepseek-ai/dsh-tool-ragflow-connector'

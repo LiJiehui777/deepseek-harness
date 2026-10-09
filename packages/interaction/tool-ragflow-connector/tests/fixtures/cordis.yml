@@ -1,0 +1,14 @@
+- id: agents
+  name: '@deepseek-ai/dsh-agent'
+- id: system-prompt
+  name: '@deepseek-ai/dsh-system-prompt'
+- id: tools
+  name: '@deepseek-ai/dsh-tools'
+- id: credentials
+  name: test:credentials
+- id: ragflow-connector
+  name: '@deepseek-ai/dsh-tool-ragflow-connector'
+  config:
+    enabled: true
+    baseURL: http://fixture.invalid
+    datasetIds: [kb_a]

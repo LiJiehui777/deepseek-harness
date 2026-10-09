@@ -262,6 +262,7 @@ flowchart TD
     pkg_tool_chat_records["tool-chat-records"]
     pkg_tool_feishu_connection["tool-feishu-connection"]
     pkg_tool_quality_report["tool-quality-report"]
+    pkg_tool_ragflow_connector["tool-ragflow-connector"]
     pkg_user_approval["user-approval"]
     pkg_user_questions["user-questions"]
   end
@@ -822,6 +823,8 @@ flowchart TD
   pkg_tool_chat_records --> pkg_tools
   pkg_tool_feishu_connection --> pkg_tools
   pkg_tool_quality_report --> pkg_tools
+  pkg_tool_ragflow_connector --> pkg_credentials
+  pkg_tool_ragflow_connector --> pkg_tools
   pkg_tool_jobs --> pkg_agent
   pkg_tool_jobs --> pkg_jobs
   pkg_tool_jobs --> pkg_llm
@@ -1414,6 +1417,7 @@ flowchart TD
 | [`tool-chat-records`](../packages/interaction/tool-chat-records) | `interaction` | [`tools`](../packages/core/tools) |
 | [`tool-feishu-connection`](../packages/interaction/tool-feishu-connection) | `interaction` | [`tools`](../packages/core/tools) |
 | [`tool-quality-report`](../packages/interaction/tool-quality-report) | `interaction` | [`tools`](../packages/core/tools) |
+| [`tool-ragflow-connector`](../packages/interaction/tool-ragflow-connector) | `interaction` | [`credentials`](../packages/credentials/credentials), [`tools`](../packages/core/tools) |
 | [`tool-jobs`](../packages/jobs/tool-jobs) | `jobs` | [`agent`](../packages/core/agent), [`jobs`](../packages/jobs/jobs), [`llm`](../packages/llm/llm), [`output-retention`](../packages/util/output-retention), [`system-prompt`](../packages/core/system-prompt), [`tools`](../packages/core/tools) |
 | [`tool-lsp`](../packages/lsp/tool-lsp) | `lsp` | [`llm`](../packages/llm/llm), [`lsp`](../packages/lsp/lsp), [`system-prompt`](../packages/core/system-prompt), [`timeout`](../packages/util/timeout), [`tools`](../packages/core/tools) |
 | [`mcp-client`](../packages/mcp/mcp-client) | `mcp` | [`attachment`](../packages/attachment/attachment), [`llm`](../packages/llm/llm), [`scope`](../packages/core/scope), [`subprocess`](../packages/subprocess/subprocess), [`timeout`](../packages/util/timeout), [`tools`](../packages/core/tools) |

@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-10-09-standalone-ragflow-connector.md
+2026-10-09-standalone-ragflow-connector.md: 5d7f5a504faea03d88ac115acfbb1f8cc69335dc
+2026-10-09-standalone-ragflow-connector.zh.md: 1ef3d9ebb93d7bb225b2f6300a571f502307e6db

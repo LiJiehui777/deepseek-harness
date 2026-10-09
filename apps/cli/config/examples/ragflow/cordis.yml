@@ -1,0 +1,12 @@
+- insert:
+    - id: ragflow-connector
+      name: '@deepseek-ai/dsh-tool-ragflow-connector'
+      config:
+        enabled: false
+        baseURL: http://localhost:9380
+        apiKeyEnv: RAGFLOW_API_KEY
+        datasetIds: []
+        maxChunks: 10
+        maxPageSize: 50
+        maxResultBytes: 262144
+        timeoutMs: 30000

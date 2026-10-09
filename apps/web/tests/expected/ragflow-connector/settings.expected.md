@@ -1,0 +1,62 @@
+- dialog "设置":
+  - navigation:
+    - text: 设置
+    - button "通用设置":
+      - img
+      - text: 通用设置
+    - button "模型":
+      - img
+      - text: 模型
+    - button "插件":
+      - img
+      - text: 插件
+    - button "Agent 预设":
+      - img
+      - text: Agent 预设
+  - button "打开配置文件"
+  - button "关闭":
+    - img
+    - text: 关闭
+  - heading "插件" [level=2]
+  - paragraph: 配置和查看本部署已安装的插件。
+  - tablist "插件视图":
+    - tab "插件配置" [selected]
+    - tab "插件列表"
+  - tabpanel "插件配置":
+    - list:
+      - listitem:
+        - 'button "收起设置: RAGFlow 连接器" [expanded]':
+          - text: RAGFlow 连接器 连接独立运行的 RAGFlow 服务，读取知识库并检索内容。
+          - img
+        - text: RAGFlow API Key 尚未配置 API Key。
+        - textbox "RAGFlow API Key"
+        - paragraph: 由 DH 凭证服务保存，保存后不返回浏览器。留空保留已有密钥。
+        - text: RAGFlow 服务地址
+        - textbox "RAGFlow 服务地址":
+          - /placeholder: ""
+          - text: http://localhost:9380
+        - paragraph: 例如 http://localhost:9380，填写服务根地址，不含 /api/v1。
+        - text: 允许检索的知识库 ID
+        - textbox "允许检索的知识库 ID":
+          - /placeholder: ""
+        - paragraph: 多个 ID 用逗号分隔。留空时仅可列出知识库；填写后才能检索。可让 DH 列出 RAGFlow 知识库来获取 ID。
+        - checkbox "启用 RAGFlow 连接"
+        - text: 启用 RAGFlow 连接
+        - button "放弃修改" [disabled]
+        - button "保存" [disabled]
+      - listitem:
+        - 'button "展开设置: 终端"':
+          - text: 终端 限制 agent 运行的每一条命令。
+          - img
+      - listitem:
+        - 'button "展开设置: Agent 循环"':
+          - text: Agent 循环 Agent 如何派发工具调用。
+          - img
+      - listitem:
+        - 'button "展开设置: Subagent"':
+          - text: Subagent 控制 Agent 为 Subagent 选择模型的权限。
+          - img
+      - listitem:
+        - 'button "展开设置: 网页搜索"':
+          - text: 网页搜索 DeepSeek 搜索提供方。
+          - img

@@ -33,6 +33,7 @@
     "apps/web/tests/details-session-lifecycle.e2e.ts",
     "apps/web/tests/document-preview.e2e.ts",
     "apps/web/tests/plugin-config.e2e.ts",
+    "apps/web/tests/ragflow-connector.e2e.ts",
     "apps/web/tests/settings-chrome.e2e.ts",
     "apps/web/tests/models-settings.e2e.ts",
     "apps/web/tests/models-settings-recovery.e2e.ts",
@@ -134,6 +135,7 @@
     "scripts/client-bundle-purity.spec.ts"
   ],
   "references": [
+    { "path": "./packages/interaction/tool-ragflow-connector" },
     { "path": "./packages/interaction/tool-quality-report" },
     { "path": "./packages/interaction/tool-chat-records" },
     { "path": "./packages/interaction/tool-feishu-connection" },

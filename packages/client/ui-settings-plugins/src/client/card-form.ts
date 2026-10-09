@@ -32,6 +32,8 @@ export interface CardFieldSpec {
    * value this field accepts — which blocks the save rather than discarding it.
    */
   parse: (text: string) => FieldWrite | undefined
+  /** Compare a serialized settings read-back; primitives use identity by default. */
+  equals?: (stored: unknown, staged: unknown) => boolean
 }
 
 /**
@@ -307,7 +309,8 @@ export class CardForm<T> {
 
   private async store(field: string, value: unknown): Promise<boolean> {
     await this.scope.set(field, value)
-    return this.userLayer()?.[field] === value
+    const stored = this.userLayer()?.[field]
+    return this.spec(field).equals?.(stored, value) ?? stored === value
   }
 
   private stage(field: string, edit: StagedEdit): void {
