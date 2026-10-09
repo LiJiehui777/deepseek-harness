@@ -1,0 +1,3 @@
+- insert:
+    - id: feishu-connection-fixture
+      name: './feishu-connection-fixture.mjs'

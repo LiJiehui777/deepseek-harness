@@ -69,6 +69,7 @@ import VmWorkflowEngine from '@deepseek-ai/dsh-workflow-worker-thread'
 import * as ToolRalph from '@deepseek-ai/dsh-tool-ralph'
 import * as ToolWorkflow from '@deepseek-ai/dsh-tool-workflow'
 import * as ToolChatRecords from '@deepseek-ai/dsh-tool-chat-records'
+import * as ToolFeishuConnection from '@deepseek-ai/dsh-tool-feishu-connection'
 import * as ToolQualityReport from '@deepseek-ai/dsh-tool-quality-report'
 import { githubSlug } from './verify-md-links.ts'
 
@@ -190,6 +191,12 @@ export interface ToolPackage {
  * guard proves it is exhaustive against the on-disk glob.
  */
 const TOOL_PACKAGES: ToolPackage[] = [
+  {
+    pkg: '@deepseek-ai/dsh-tool-feishu-connection', dir: 'tool-feishu-connection', source: 'packages/interaction/tool-feishu-connection/src/index.ts',
+    requires: ['ctx.tools', 'conversation-scoped read bridge'], writes: ['tool/call', 'tool/result'],
+    async mount(ctx) { await ctx.plugin(ToolFeishuConnection, { capabilities: ['chats', 'documents', 'bitable'], endpoint: 'http://bridge.invalid/read', token: 'catalog-only', maxResultBytes: 262144, maxPageSize: 50, timeoutMs: 30000 }) },
+    note: 'All three selectable read capabilities are shown. Only conversation-selected tools are mounted in deployments. Application credentials and user OAuth grants remain at the host. Feishu membership, history visibility, resource sharing and Base advanced permissions still apply.',
+  },
   {
     pkg: '@deepseek-ai/dsh-tool-chat-records', dir: 'tool-chat-records', source: 'packages/interaction/tool-chat-records/src/index.ts',
     requires: ['ctx.tools', 'conversation-scoped read bridge'], writes: ['tool/call', 'tool/result'],

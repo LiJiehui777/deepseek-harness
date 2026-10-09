@@ -1,0 +1,18 @@
+- id: agents
+  name: '@deepseek-ai/dsh-agent'
+- id: system-prompt
+  name: '@deepseek-ai/dsh-system-prompt'
+- id: tools
+  name: '@deepseek-ai/dsh-tools'
+- id: feishu-connection
+  name: '@deepseek-ai/dsh-tool-feishu-connection'
+  config:
+    capabilities:
+      - chats
+      - documents
+      - bitable
+    endpoint: http://bridge.invalid/read
+    token: host-only-authority
+    maxResultBytes: 4096
+    maxPageSize: 50
+    timeoutMs: 1000

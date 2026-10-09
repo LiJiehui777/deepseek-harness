@@ -1,9 +1,9 @@
-- tabpanel "Chat services":
+- tabpanel "Connections":
   - paragraph: Manage Feishu and enterprise WeChat accounts here. Select plugins and accounts when starting a new conversation.
   - article:
-    - heading "Feishu chat reader" [level=3]
+    - heading "Feishu connection" [level=3]
     - text: Enabled for this conversation
-    - paragraph: Read history accessible to the bot. Grant Feishu message-read permissions and add the bot to the relevant chats.
+    - paragraph: Manage application and user authorization, then select chats, documents and Base reads for each conversation. Feishu membership, sharing and resource permissions apply.
     - paragraph: 1 configured accounts
     - paragraph: "Bound account: Research bot"
     - text: Read only; cannot send or modify messages

@@ -2816,6 +2816,32 @@ export interface Config {
 
 Source: [`packages/interaction/tool-chat-records/src/index.ts:9`](../packages/interaction/tool-chat-records/src/index.ts)
 
+<a id="deepseek-aidsh-tool-feishu-connection"></a>
+
+## `@deepseek-ai/dsh-tool-feishu-connection`
+
+Requires: `tools`
+
+```ts config-catalog
+/** Per-conversation selection and server-only connection authority. */
+export interface Config {
+  /** Only selected capabilities contribute tools. */
+  capabilities: Array<'chats' | 'documents' | 'bitable'>
+  /** Host read endpoint; redirects are rejected. */
+  endpoint: string
+  /** Conversation authority; never a model argument or browser setting. */
+  token: string
+  /** Complete UTF-8 result limit, including metadata. */
+  maxResultBytes: number
+  /** Requested page bound, between 1 and 50. */
+  maxPageSize: number
+  /** Read deadline in milliseconds. */
+  timeoutMs: number
+}
+```
+
+Source: [`packages/interaction/tool-feishu-connection/src/index.ts:9`](../packages/interaction/tool-feishu-connection/src/index.ts)
+
 <a id="deepseek-aidsh-tool-fs"></a>
 
 ## `@deepseek-ai/dsh-tool-fs`

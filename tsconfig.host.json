@@ -136,6 +136,7 @@
   "references": [
     { "path": "./packages/interaction/tool-quality-report" },
     { "path": "./packages/interaction/tool-chat-records" },
+    { "path": "./packages/interaction/tool-feishu-connection" },
     { "path": "./packages/client/ui-deliverables/tsconfig.host.json" },
     { "path": "./vendor/cosmokit" },
     { "path": "./vendor/schemastery" },

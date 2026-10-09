@@ -92,9 +92,9 @@ describe('web e2e: host-owned New Session', () => {
     await frame.getByRole('button', { name: 'Settings', exact: true }).click()
     const settings = frame.getByRole('dialog', { name: 'Settings' })
     await settings.getByRole('button', { name: 'Plugins', exact: true }).click()
-    await settings.getByRole('tab', { name: 'Chat services', exact: true }).click()
+    await settings.getByRole('tab', { name: 'Connections', exact: true }).click()
     await settings.getByText('Bound account: Research bot', { exact: true }).waitFor()
-    const panel = settings.getByRole('tabpanel', { name: 'Chat services' })
+    const panel = settings.getByRole('tabpanel', { name: 'Connections' })
     await compareOrRefreshGolden(EXPECTED, await panel.ariaSnapshot(), MODE)
     const managers = panel.getByRole('button', { name: 'Manage accounts', exact: true })
     for (const [index, channel] of ['feishu', 'wecom'].entries()) {

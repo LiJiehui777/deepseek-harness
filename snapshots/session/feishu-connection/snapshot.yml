@@ -1,0 +1,9 @@
+version: 1
+scenario: feishu-connection
+profile: headless
+composition: feishu-connection
+recording: authored
+permission: workspace-write
+header:
+  class: feishu-connection
+  pin: true
