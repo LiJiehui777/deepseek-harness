@@ -10,7 +10,7 @@
 
 ```bash
 pnpm install --frozen-lockfile
-pnpm run build
+pnpm run build:enhanced
 pnpm run start:enhanced
 ```
 

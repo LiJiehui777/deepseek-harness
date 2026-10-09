@@ -1,3 +1,6 @@
+/** Build-scoped input guidance for the standalone quality application. */
+const qualityBuild = process.env.DSH_CLIENT_BUILD_PROFILE === 'ztt'
+
 /** `conversation` namespace dictionaries. */
 
 /** Dictionary namespace owned by this plugin. */
@@ -16,7 +19,7 @@ export const zh = {
   'placeholder.default': '发消息或创建任务, / 调用指令, @ 文件或对话',
   'placeholder.unavailable': '会话不可用',
   'placeholder.parentOffline': '父会话已离线，无法继续发送；仍可停止当前运行',
-  'placeholder.hero': '描述你想要构建的内容, / 调用指令, @ 文件或对话',
+  'placeholder.hero': qualityBuild ? '描述质量问题，检索标准或整理检验资料；/ 调用指令，@ 文件或对话' : '描述你想要构建的内容, / 调用指令, @ 文件或对话',
   'placeholder.workspace': '选择一个工作区开始',
   'placeholder.steerQueue': 'Cmd/Ctrl+Enter 插话发送全部排队消息',
   'input.commands': '添加文件或调用指令',
@@ -182,7 +185,7 @@ export const en = {
   'placeholder.default': 'Message or run a task, / commands, @ files or sessions',
   'placeholder.unavailable': 'Session unavailable',
   'placeholder.parentOffline': 'Parent session offline; sending is unavailable but you can still stop the run',
-  'placeholder.hero': 'Describe what you want to build, / commands, @ files or sessions',
+  'placeholder.hero': qualityBuild ? 'Describe a quality question or review inspection records, / commands, @ files or sessions' : 'Describe what you want to build, / commands, @ files or sessions',
   'placeholder.workspace': 'Choose a workspace to start',
   'placeholder.steerQueue': 'Cmd/Ctrl+Enter steers all queued messages',
   'input.commands': 'Add files or run commands',

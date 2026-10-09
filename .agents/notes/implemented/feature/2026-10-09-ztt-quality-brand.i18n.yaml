@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-10-09-ztt-quality-brand.md
+2026-10-09-ztt-quality-brand.md: cadc32782fde4f4921a38d08e8ab21364aa0943a
+2026-10-09-ztt-quality-brand.zh.md: c1600df9cf2a34684c20f01ee1abe559670e0c6f

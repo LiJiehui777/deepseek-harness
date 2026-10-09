@@ -10,7 +10,7 @@ Start your existing RAGFlow service separately. Its default API base is `http://
 
 ```bash
 pnpm install --frozen-lockfile
-pnpm run build
+pnpm run build:enhanced
 pnpm run start:enhanced
 ```
 

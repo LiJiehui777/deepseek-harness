@@ -264,6 +264,11 @@
     - id: ui-brand-official
       name: '@deepseek-ai/dsh-client-ui-brand-official'
 
+    # Standalone quality identity is enabled by the enhanced launch overlay.
+    - id: ui-brand-ztt
+      name: '@deepseek-ai/dsh-client-ui-brand-ztt'
+      disabled: true
+
     - id: ui-attachment
       name: '@deepseek-ai/dsh-client-ui-attachment'
 

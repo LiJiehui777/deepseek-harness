@@ -1,0 +1,16 @@
+{
+  "id": "/",
+  "name": "中天质量智能体",
+  "short_name": "中天质量",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "icons": [
+    {
+      "src": "./ztt-mark.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

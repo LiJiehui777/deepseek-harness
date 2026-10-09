@@ -536,6 +536,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     slotInject: '',
     declaredBy: 'an entry in \'main.conversation\' (client-ui-conversation), so it exists while that entry is mounted',
     occupants: [
+      'client-ui-brand-ztt ZttMark',
       'client-ui-host-return HostAgentMark',
     ],
     replaceRisk: 'shadows-shipped-ui',
@@ -564,6 +565,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     slotInject: '',
     declaredBy: 'an entry in \'main.conversation\' (client-ui-conversation), so it exists while that entry is mounted',
     occupants: [
+      'client-ui-brand-ztt ZttHero',
       'client-ui-host-return HostAgentHero',
     ],
     replaceRisk: 'shadows-shipped-ui',
@@ -2046,6 +2048,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     slotInject: '',
     declaredBy: 'an entry in \'root\' (client-ui-layout), so it exists while that entry is mounted',
     occupants: [
+      'client-ui-brand-ztt ZttDocumentTitle',
       'client-ui-host-return HostAgentDocumentTitle',
     ],
     replaceRisk: 'shadows-shipped-ui',
@@ -2182,6 +2185,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     declaredBy: 'an entry in \'sidebar\' (client-ui-sidebar), so it exists while that entry is mounted',
     occupants: [
       'client-ui-brand-official OfficialBrandMark',
+      'client-ui-brand-ztt ZttMark',
       'client-ui-host-return HostAgentMark',
     ],
     replaceRisk: 'shadows-shipped-ui',
@@ -2213,6 +2217,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     declaredBy: 'an entry in \'sidebar\' (client-ui-sidebar), so it exists while that entry is mounted',
     occupants: [
       'client-ui-brand-official OfficialBrandName',
+      'client-ui-brand-ztt ZttName',
       'client-ui-host-return HostAgentName',
     ],
     replaceRisk: 'shadows-shipped-ui',

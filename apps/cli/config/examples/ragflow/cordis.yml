@@ -1,3 +1,9 @@
+# The enhanced application owns its identity independently of RAGFlow.
+- id: ui-brand-official
+  disabled: true
+- id: ui-brand-ztt
+  disabled: false
+
 - insert:
     - id: ragflow-connector
       name: '@deepseek-ai/dsh-tool-ragflow-connector'

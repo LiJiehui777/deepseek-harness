@@ -1,0 +1,32 @@
+- button "新建会话"
+- text: 中天质量智能体 中天科技 · 质量工作台
+- button "收起侧边栏":
+  - img
+- button "新建会话":
+  - img
+  - text: 新会话
+- text: 工作区
+- button "搜索会话":
+  - img
+- textbox "搜索会话…"
+- button "视图选项":
+  - img
+- button "添加工作区":
+  - img
+- tree "会话": 暂无会话
+- button "设置":
+  - img
+  - text: 设置
+- text: 中天质量智能体 连接企业知识，辅助质量工作 质量知识检索 · 检验资料整理 · 报告辅助编写
+- button "选择工作区":
+  - img
+  - text: 选择工作区
+  - img
+- button "标准模式":
+  - img
+  - text: 标准模式
+  - img
+- textbox "选择工作区"
+- button "添加文件或调用指令" [disabled]:
+  - img
+- button "发送消息" [disabled]

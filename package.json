@@ -182,7 +182,8 @@
     "mock:llm": "node --import tsx packages/test-support/llm-mock-server/src/bin.ts",
     "dev:web": "tsx scripts/dev-web.ts --poll",
     "postinstall": "node scripts/install-lefthook.mjs",
-    "start:enhanced": "bash scripts/start-enhanced.sh"
+    "start:enhanced": "bash scripts/start-enhanced.sh",
+    "build:enhanced": "DSH_CLIENT_BUILD_PROFILE=ztt DSH_CLIENT_TITLE=中天质量智能体 pnpm run build"
   },
   "devDependencies": {
     "@deepseek-ai/dsh-agent": "workspace:^",

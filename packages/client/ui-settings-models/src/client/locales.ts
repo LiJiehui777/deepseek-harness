@@ -1,5 +1,8 @@
 /** Copy dictionaries for the Models settings section. */
 
+/** Build-scoped product copy for the independent quality application. */
+const qualityBuild = process.env.DSH_CLIENT_BUILD_PROFILE === 'ztt'
+
 /** English strings (the key-set source of truth for this pair). */
 export const en = {
   nav: 'Models',
@@ -92,12 +95,14 @@ export const en = {
   settingsPathUnresolvable: 'unresolvable settings path',
   create: 'Create provider',
   creating: 'Creating\u2026',
-  welcomeTitle: 'Internal Testing Notice',
-  welcomeBody: "DeepSeek Harness 0.1 remains in testing for Harness developers. Many areas need further improvement, and we welcome feedback from the developer community. DeepSeek Harness's core plugins and foundational APIs will continue to evolve rapidly over the coming months.\n\nWe look forward to exploring the limits of intelligence with developers around the world, building on open-source, open, reusable, and composable infrastructure. We welcome Harness developers everywhere to join the DSH plugin ecosystem.",
+  welcomeTitle: qualityBuild ? 'Welcome to ZTT Quality Assistant' : 'Internal Testing Notice',
+  welcomeBody: qualityBuild
+    ? 'Use enterprise knowledge and inspection records to investigate quality questions and prepare reports. Connect RAGFlow in Plugins to retrieve authorized knowledge bases.\n\nConfigure a model before starting a conversation. Check referenced standards and original records before using a response in quality decisions.'
+    : "DeepSeek Harness 0.1 remains in testing for Harness developers. Many areas need further improvement, and we welcome feedback from the developer community. DeepSeek Harness's core plugins and foundational APIs will continue to evolve rapidly over the coming months.\n\nWe look forward to exploring the limits of intelligence with developers around the world, building on open-source, open, reusable, and composable infrastructure. We welcome Harness developers everywhere to join the DSH plugin ecosystem.",
   welcomeContinue: 'Continue',
   welcomeError: 'The acknowledgement could not be saved. Please try again.',
   onboardingTitle: 'Add an API key to get started',
-  onboardingDescription: 'Configure the official DeepSeek provider to start building.',
+  onboardingDescription: qualityBuild ? 'Configure DeepSeek to start quality work, or add another provider later in Models settings.' : 'Configure the official DeepSeek provider to start building.',
   onboardingLater: 'Configure later',
   onboardingSave: 'Save and continue',
   onboardingSaving: 'Saving…',
@@ -199,12 +204,14 @@ export const zh: { [Key in keyof typeof en]: string } = {
   settingsPathUnresolvable: '无法解析设置路径',
   create: '创建提供方',
   creating: '创建中\u2026',
-  welcomeTitle: '内测声明',
-  welcomeBody: 'DeepSeek Harness 目前的 0.1 版本仍处在面向 Harness 开发者进行测试的阶段，还有许多地方需要持续改进和打磨，希望听取广大开发者的反馈建议。预计 DeepSeek Harness 的核心插件以及基础 API 都会在接下来的一段时间内快速迭代、持续演化。\n\n我们期待与全球开发者一起，在开源、开放、可复用、可组合的基础设施之上，共同探索智能上限。欢迎全球 Harness 开发者加入 DSH 插件生态。',
+  welcomeTitle: qualityBuild ? '欢迎使用中天质量智能体' : '内测声明',
+  welcomeBody: qualityBuild
+    ? '结合企业知识和检验资料，辅助分析质量问题、整理记录与编写报告。可在插件设置中连接 RAGFlow，检索已授权的知识库。\n\n开始对话前请先配置模型。涉及质量判断时，请结合引用标准和原始记录核实回答内容。'
+    : 'DeepSeek Harness 目前的 0.1 版本仍处在面向 Harness 开发者进行测试的阶段，还有许多地方需要持续改进和打磨，希望听取广大开发者的反馈建议。预计 DeepSeek Harness 的核心插件以及基础 API 都会在接下来的一段时间内快速迭代、持续演化。\n\n我们期待与全球开发者一起，在开源、开放、可复用、可组合的基础设施之上，共同探索智能上限。欢迎全球 Harness 开发者加入 DSH 插件生态。',
   welcomeContinue: '继续',
   welcomeError: '暂时无法保存确认状态，请重试。',
   onboardingTitle: '添加一个 API Key 开始使用',
-  onboardingDescription: '配置 DeepSeek 官方模型，即可开始使用。',
+  onboardingDescription: qualityBuild ? '配置 DeepSeek 模型后开始质量工作，也可稍后在模型设置中添加其他提供方。' : '配置 DeepSeek 官方模型，即可开始使用。',
   onboardingLater: '稍后配置',
   onboardingSave: '保存并继续',
   onboardingSaving: '保存中…',

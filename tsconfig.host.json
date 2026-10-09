@@ -34,6 +34,7 @@
     "apps/web/tests/document-preview.e2e.ts",
     "apps/web/tests/plugin-config.e2e.ts",
     "apps/web/tests/ragflow-connector.e2e.ts",
+    "apps/web/tests/ztt-brand.e2e.ts",
     "apps/web/tests/settings-chrome.e2e.ts",
     "apps/web/tests/models-settings.e2e.ts",
     "apps/web/tests/models-settings-recovery.e2e.ts",
