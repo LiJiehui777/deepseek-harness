@@ -79,15 +79,17 @@ function documentId(value: unknown): { id: string; wiki: boolean } {
  * @param bounds - result and page limits.
  * @param operation - registered native tool operation.
  * @param args - untrusted tool JSON arguments.
+ * @param userToken - optional Host-only user grant; omitted requests use application identity.
  * @returns projected metadata and text, without tokens or SDK transport objects.
  */
 export async function readFeishu(
-  client: Lark.Client, account: FeishuSettings, bounds: Config, operation: string, args: Record<string, unknown>,
+  client: Lark.Client, account: FeishuSettings, bounds: Config, operation: string, args: Record<string, unknown>, userToken?: string,
 ): Promise<unknown> {
+  const options = userToken === undefined ? undefined : Lark.withUserAccessToken(userToken)
   const page = { page_size: pageSize(args.page_size, bounds.maxPageSize),
     ...(args.cursor === undefined ? {} : { page_token: text(args.cursor, 4096) }) }
   if (operation === 'chats') {
-    const response = checked(await client.im.v1.chat.list({ params: page }))
+    const response = checked(await client.im.v1.chat.list({ params: page }, options))
     return { channel: 'feishu', items: (response.data?.items ?? [])
       .filter(row => !account.allowedChats.length || account.allowedChats.includes(row.chat_id ?? ''))
       .map(row => ({ chat_id: row.chat_id, name: row.name })),
@@ -96,7 +98,7 @@ export async function readFeishu(
   if (operation === 'messages') {
     const response = checked(await client.im.v1.message.list({ params: {
       ...page, container_id_type: 'chat', container_id: allowedChat(account, args.chat_id), sort_type: 'ByCreateTimeDesc',
-    } }))
+    } }, options))
     return { channel: 'feishu', chat_id: args.chat_id,
       items: (response.data?.items ?? []).map(row => ({ message_id: row.message_id,
         sender_id: row.sender?.id, message_type: row.msg_type, create_time: row.create_time,
@@ -107,11 +109,11 @@ export async function readFeishu(
     const resource = documentId(args.resource)
     let id = resource.id
     if (resource.wiki) {
-      const node = checked(await client.wiki.v2.space.getNode({ params: { token: id } })).data?.node
+      const node = checked(await client.wiki.v2.space.getNode({ params: { token: id } }, options)).data?.node
       if (node?.obj_type !== 'docx' || !node.obj_token) throw new Error('The Wiki node must contain a Docx document.')
       id = node.obj_token
     }
-    const response = checked(await client.docx.v1.document.rawContent({ path: { document_id: id } }))
+    const response = checked(await client.docx.v1.document.rawContent({ path: { document_id: id } }, options))
     return { channel: 'feishu', document_id: id, content: response.data?.content ?? '' }
   }
   throw new Error('Unsupported Feishu operation.')

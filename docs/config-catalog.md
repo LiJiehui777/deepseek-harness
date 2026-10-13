@@ -631,6 +631,10 @@ export interface Config {
   maxPendingTasks: number
   /** UTF-8 text limit for task input, sends and provider replies. */
   maxTextBytes: number
+  /** Browser authorization lifetime in milliseconds. */
+  oauthTimeoutMs: number
+  /** Refresh user access tokens this many milliseconds before expiration. */
+  oauthRefreshSkewMs: number
   /** WeCom heartbeat interval in milliseconds. */
   heartbeatMs: number
   /** WeCom initial reconnect delay in milliseconds. */
@@ -645,8 +649,14 @@ export interface FeishuSettings extends AccountPolicy {
   appId: string
   /** Feishu OpenAPI origin; mainland Feishu is the default. */
   baseURL: string
-  /** Whether application-scoped resource reads are available. */
+  /** Whether resource reads are available. */
   readEnabled: boolean
+  /** Identity used for resource reads; user mode requires a saved OAuth grant. */
+  readIdentity: 'app' | 'user'
+  /** Exact Web callback URI registered in Feishu; empty uses the loopback Web port. */
+  redirectURI: string
+  /** User permissions requested at consent, including offline_access for refresh. */
+  userScopes: string[]
 }
 
 /** Enterprise WeChat intelligent-bot connection. */
@@ -678,7 +688,7 @@ export interface AccountPolicy {
 }
 ```
 
-Source: [`packages/interaction/enterprise-connectors/src/index.ts:16`](../packages/interaction/enterprise-connectors/src/index.ts)
+Source: [`packages/interaction/enterprise-connectors/src/index.ts:17`](../packages/interaction/enterprise-connectors/src/index.ts)
 
 <a id="deepseek-aidsh-experimental-agent-team"></a>
 

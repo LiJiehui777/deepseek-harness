@@ -471,6 +471,8 @@ type ObjectJsonSchema = JsonSchemaNode & { type: 'object' }
 
 可选[企业连接器](../../packages/interaction/enterprise-connectors/README.zh.md)提供 `EnterpriseChannel`（`feishu` 或 `wecom`）和不含凭据的 `EnterpriseConnectionStatus`。状态包含 `channel`、`state`（`disabled`、`missing-credentials`、`connecting`、`connected`、`error`）、脱敏 `error`、`receivedMessages`、`lastSenderId` 和 `lastChatId`。ID 用于明确配置发送者与会话，认证状态本身不授予工具权限。
 
+`FeishuAuthorizationStatus` 包含 `identity`（`app` 或 `user`）、`state`（`pending`、`authorized`、`unauthorized`）、脱敏的 `error`（`cancelled`、`expired`、`failed` 或空字符串）、`redirectURI`、`requestedScopes`、`grantedScopes` 和 `userName`，不会暴露 OAuth 授权码或令牌。
+
 <!-- BEGIN GENERATED cordis-surface (gen-cordis-catalog.ts) — do not edit between markers -->
 
 <a id="cordis-surface"></a>
@@ -498,6 +500,21 @@ Native tools, live account sections, and redacted connection status.
  * @returns credential-free status after the authentication attempt.
  */
 @Remote async reconnect(channel: EnterpriseChannel): Promise<EnterpriseConnectionStatus[]>
+
+/**
+ * Describe the saved user grant without exposing tokens.
+ * @returns credential-free OAuth state and exact callback URI.
+ */
+@Remote async feishuAuthorization(): Promise<FeishuAuthorizationStatus>
+
+/**
+ * Begin user consent using the saved account, scopes and callback URI.
+ * @returns an authenticated local browser start URL.
+ */
+@Remote async authorizeFeishu(): Promise<string>
+
+/** Remove the saved user grant from this DH home. Feishu consent is managed separately. */
+@Remote async revokeFeishu(): Promise<void>
 ```
 
 Source: [`packages/interaction/enterprise-connectors/src/index.ts`](../../packages/interaction/enterprise-connectors/src/index.ts)

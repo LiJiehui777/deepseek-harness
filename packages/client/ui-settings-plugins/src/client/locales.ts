@@ -2,6 +2,22 @@
 
 /** Locale keys these surfaces render. */
 export type PluginsSettingsLocaleKey =
+  | 'feishuReadIdentity'
+  | 'feishuUserHint'
+  | 'feishuAuthorize'
+  | 'feishuRevoke'
+  | 'feishuAuthorized'
+  | 'feishuUnauthorized'
+  | 'feishuPending'
+  | 'feishuAuthFailed'
+  | 'feishuAuthCancelled'
+  | 'feishuAuthLink'
+  | 'feishuCallback'
+  | 'feishuCallbackHint'
+  | 'feishuRedirectURI'
+  | 'feishuRedirectHint'
+  | 'feishuUserScopes'
+  | 'feishuUserScopesHint'
   | 'feishuTitle'
   | 'wecomTitle'
   | 'feishuDescription'
@@ -70,6 +86,23 @@ export type PluginsSettingsLocaleKey =
 
 /** English copy. */
 export const en: Record<PluginsSettingsLocaleKey, string> = {
+  feishuReadIdentity: 'Use my Feishu account for reads',
+  feishuUserHint: 'User reads need your consent and published user permissions. Admitted remote tasks share these read permissions; bot transport and sends use app identity.',
+  feishuAuthorize: 'Authorize my Feishu account',
+  feishuRevoke: 'Disconnect my account',
+  feishuAuthorized: 'Account authorized',
+  feishuUnauthorized: 'Account not authorized',
+  feishuPending: 'Waiting for Feishu consent',
+  feishuAuthFailed: 'Authorization failed or expired. Check the callback URI and published user permissions, then retry.',
+  feishuAuthCancelled: 'Authorization cancelled.',
+  feishuAuthLink: 'Open Feishu authorization page',
+  feishuCallback: 'Authorization callback URI',
+  feishuCallbackHint: "Copy this exact URI into your Feishu app's Security settings > Redirect URLs before authorizing. Keep the same browser and host.",
+  feishuRedirectURI: 'Custom callback URI',
+  feishuRedirectHint: 'Leave blank for the local Web server. HTTPS deployments must use their public /auth/feishu/callback URL.',
+  feishuUserScopes: 'Requested user permissions',
+  feishuUserScopesHint: 'Default: group reads and token refresh. For documents, also enable docx:document:readonly and wiki:wiki:readonly in Feishu, add them here, save and authorize again.',
+
   feishuTitle: 'Feishu connector',
   wecomTitle: 'WeCom connector',
   feishuDescription: 'Read authorized messages and documents; send and receive DH tasks.',
@@ -197,6 +230,23 @@ export const en: Record<PluginsSettingsLocaleKey, string> = {
 
 /** Simplified Chinese copy. */
 export const zh: Record<PluginsSettingsLocaleKey, string> = {
+  feishuReadIdentity: '使用我的飞书账号读取',
+  feishuUserHint: '用户读取需要本人授权及已发布的用户权限，已获准的远程任务也可使用这份读取权限；机器人收发仍使用应用身份。',
+  feishuAuthorize: '授权我的飞书账号',
+  feishuRevoke: '解除账号授权',
+  feishuAuthorized: '账号已授权',
+  feishuUnauthorized: '账号尚未授权',
+  feishuPending: '等待飞书授权',
+  feishuAuthFailed: '授权失败或已过期。请检查回调地址及已发布的用户权限后重试。',
+  feishuAuthCancelled: '已取消授权。',
+  feishuAuthLink: '打开飞书授权页',
+  feishuCallback: '授权回调地址',
+  feishuCallbackHint: '授权前，将这个完整地址添加到飞书应用「安全设置 → 重定向 URL」。请使用同一浏览器及访问地址。',
+  feishuRedirectURI: '自定义回调地址',
+  feishuRedirectHint: '本机使用留空即可；HTTPS 部署请填写公网地址，路径为 /auth/feishu/callback。',
+  feishuUserScopes: '申请的用户权限',
+  feishuUserScopesHint: '默认申请群聊读取和自动续期。需要读取文档时，请在飞书开通 docx:document:readonly、wiki:wiki:readonly，并在此添加、保存后重新授权。',
+
   feishuTitle: '飞书连接器',
   wecomTitle: '企业微信连接器',
   feishuDescription: '读取授权消息与文档，收发消息并联动 DH 任务。',

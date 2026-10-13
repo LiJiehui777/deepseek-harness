@@ -1,3 +1,5 @@
 - insert:
+    - id: enterprise-authorization
+      name: '@deepseek-ai/dsh-authorization'
     - id: enterprise-connectors
       name: '@deepseek-ai/dsh-enterprise-connectors'

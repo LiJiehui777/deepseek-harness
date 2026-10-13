@@ -102,7 +102,8 @@
     "node-addon-require-builtin": "^0.1.4",
     "@deepseek-ai/dsh-http-proxy": "workspace:^",
     "@deepseek-ai/dsh-tool-ragflow-connector": "workspace:^",
-    "@deepseek-ai/dsh-enterprise-connectors": "workspace:^"
+    "@deepseek-ai/dsh-enterprise-connectors": "workspace:^",
+    "@deepseek-ai/dsh-authorization": "workspace:^"
   },
   "devDependencies": {
     "@agentclientprotocol/sdk": "1.4.0",

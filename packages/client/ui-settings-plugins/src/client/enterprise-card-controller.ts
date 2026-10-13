@@ -1,6 +1,6 @@
 /** Staged enterprise account settings; credentials use the native write-only provider. */
 import type { Context } from '@deepseek-ai/cordis'
-import type { EnterpriseChannel, EnterpriseConnectionStatus } from '@deepseek-ai/dsh-api-remotes/client'
+import type { EnterpriseChannel, EnterpriseConnectionStatus, FeishuAuthorizationStatus } from '@deepseek-ai/dsh-api-remotes/client'
 import type { SnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { SettingsScope } from '@deepseek-ai/dsh-client-ui-settings/client'
 import { CardForm, textField, type CardActions, type CardFieldState, type CardShell } from './card-form.ts'
@@ -15,6 +15,9 @@ export interface EnterpriseSettings {
   websocketURL?: string
   receiveEnabled?: boolean
   sendEnabled?: boolean
+  readIdentity?: 'app' | 'user'
+  redirectURI?: string
+  userScopes?: string[]
   readEnabled?: boolean
   allowedSenders?: string[]
   allowedChats?: string[]
@@ -29,10 +32,15 @@ export interface EnterpriseCardState extends CardShell {
   secretConfigured: boolean
   secretWritable: boolean
   status?: EnterpriseConnectionStatus
+  authorization?: FeishuAuthorizationStatus
+  authorizationFailed: boolean
+  authorizationURL: string
   checking: boolean
 }
 /** Actions injected into either account's card. */
 export interface EnterpriseCardFace extends CardActions {
+  authorize: () => void
+  revoke: () => void
   reconnect: () => void
   refresh: () => void
   allowLatest: (kind: 'sender' | 'chat') => void
@@ -47,6 +55,11 @@ export class EnterpriseCardController {
   private configured = false
   private writable = true
   private status: EnterpriseConnectionStatus | undefined
+  private authorization: FeishuAuthorizationStatus | undefined
+  private authorizationFailed = false
+  private authorizationURL = ''
+  private popup: Window | null = null
+  private poll: ReturnType<typeof setTimeout> | undefined
   private checking = false
   private generation = 0
   private disposed = false
@@ -61,27 +74,34 @@ export class EnterpriseCardController {
     const id = channel === 'feishu' ? 'appId' : 'botId'
     const url = channel === 'feishu' ? 'baseURL' : 'websocketURL'
     const booleans = ['enabled', 'receiveEnabled', 'sendEnabled', ...(channel === 'feishu' ? ['readEnabled'] : [])]
-    this.fields = [id, url, 'workspacePath', 'agentPreset', 'allowedSenders', 'allowedChats', ...booleans]
-    this.form = new CardForm(scope, [textField(id), textField('workspacePath'), textField('agentPreset'),
-      { ...textField(url), parse: (value) => {
-        try {
-          const parsed = new URL(value)
-          const protocols = channel === 'feishu' ? ['https:', 'http:'] : ['wss:', 'ws:']
-          return protocols.includes(parsed.protocol) && !parsed.username && !parsed.password && !parsed.search && !parsed.hash
-            ? { kind: 'set', value } : undefined
-        } catch { return undefined }
-      } },
-      ...['allowedSenders', 'allowedChats'].map(field => ({ field,
-        format: (value: unknown) => Array.isArray(value) ? value.join(', ') : '',
-        equals: (stored: unknown, staged: unknown) => JSON.stringify(stored) === JSON.stringify(staged),
-        parse: (value: string) => {
-          const ids = [...new Set(value.split(/[,，\s]+/).filter(Boolean))]
-          return ids.length <= 100 && ids.every(item => /^[a-zA-Z0-9_@.:-]{1,256}$/.test(item))
-            ? { kind: 'set' as const, value: ids } : undefined
-        },
-      })),
-      ...booleans.map(field => ({ field, format: (value: unknown) => String(value === true),
-        parse: (value: string) => ({ kind: 'set' as const, value: value === 'true' }) })),
+    this.fields = [id, url, ...(channel === 'feishu' ? ['readIdentity', 'redirectURI', 'userScopes'] : []), 'workspacePath', 'agentPreset', 'allowedSenders', 'allowedChats', ...booleans]
+    this.form = new CardForm(scope, [textField(id), ...(channel === 'feishu' ? [textField('redirectURI'),
+      { field: 'readIdentity', format: (value: unknown) => String(value === 'user'),
+        parse: (value: string) => ({ kind: 'set' as const, value: value === 'true' ? 'user' : 'app' }) },
+      { field: 'userScopes', format: (value: unknown) => Array.isArray(value) ? value.join(', ') : '',
+        parse: (value: string) => { const scopes = [...new Set(value.split(/[,\s]+/).filter(Boolean))]
+          return scopes.length > 0 && scopes.length <= 30 && scopes.every(item => /^[a-zA-Z0-9_:.-]{1,128}$/.test(item))
+            ? { kind: 'set' as const, value: scopes } : undefined } },
+    ] : []), textField('workspacePath'), textField('agentPreset'),
+    { ...textField(url), parse: (value) => {
+      try {
+        const parsed = new URL(value)
+        const protocols = channel === 'feishu' ? ['https:', 'http:'] : ['wss:', 'ws:']
+        return protocols.includes(parsed.protocol) && !parsed.username && !parsed.password && !parsed.search && !parsed.hash
+          ? { kind: 'set', value } : undefined
+      } catch { return undefined }
+    } },
+    ...['allowedSenders', 'allowedChats'].map(field => ({ field,
+      format: (value: unknown) => Array.isArray(value) ? value.join(', ') : '',
+      equals: (stored: unknown, staged: unknown) => JSON.stringify(stored) === JSON.stringify(staged),
+      parse: (value: string) => {
+        const ids = [...new Set(value.split(/[,，\s]+/).filter(Boolean))]
+        return ids.length <= 100 && ids.every(item => /^[a-zA-Z0-9_@.:-]{1,256}$/.test(item))
+          ? { kind: 'set' as const, value: ids } : undefined
+      },
+    })),
+    ...booleans.map(field => ({ field, format: (value: unknown) => String(value === true),
+      parse: (value: string) => ({ kind: 'set' as const, value: value === 'true' }) })),
     ], [{ field: 'secret', write: async (value) => {
       const response = await ctx.remote.credentials.set(this.reference(), value)
       if (!response.ok) return false
@@ -100,6 +120,8 @@ export class EnterpriseCardController {
     return { ...this.form.shell(), channel: this.channel,
       fields: Object.fromEntries(this.fields.map(field => [field, this.form.field(field)])), secret: this.form.field('secret'),
       secretConfigured: this.configured, secretWritable: this.writable, checking: this.checking,
+      authorizationURL: this.authorizationURL, authorizationFailed: this.authorizationFailed,
+      ...(this.authorization === undefined ? {} : { authorization: this.authorization }),
       ...(this.status === undefined ? {} : { status: this.status }) }
   }
   /**
@@ -111,13 +133,24 @@ export class EnterpriseCardController {
     const generation = ++this.generation
     const ref = this.reference()
     try {
-      const [credentials, statuses] = await Promise.all([
+      const [credentials, statuses, authorization] = await Promise.all([
         this.ctx.remote.credentials.describe([ref]), this.ctx.remote.enterpriseConnections.status(),
+        this.channel === 'feishu' ? this.ctx.remote.enterpriseConnections.feishuAuthorization() : Promise.resolve(undefined),
       ])
       if (this.isDisposed() || generation !== this.generation) return
       if (credentials.ok) {
         this.configured = credentials.value[ref]?.configured ?? false
         this.writable = credentials.value[ref]?.writable ?? true
+      }
+      if (authorization?.ok) {
+        const wasPending = this.authorization?.state === 'pending'
+        this.authorization = authorization.value
+        if (wasPending && authorization.value.state !== 'pending') {
+          this.authorizationURL = ''; this.popup?.close(); this.popup = null
+        }
+        if (authorization.value.state === 'pending' && this.poll === undefined) this.poll = setTimeout(() => {
+          this.poll = undefined; void this.refresh()
+        }, 2000)
       }
       if (statuses.ok) this.status = statuses.value.find(row => row.channel === this.channel)
       this.store.set(this.projection())
@@ -136,6 +169,8 @@ export class EnterpriseCardController {
    */
   inject(): EnterpriseCardFace {
     return { ...this.form.actions(), hooks: { enterpriseCard: this.store },
+      authorize: () => { this.authorize() },
+      revoke: () => { void this.revoke() },
       refresh: () => { void this.refresh() },
       reconnect: () => { void this.reconnect() },
       allowLatest: (kind) => {
@@ -146,6 +181,39 @@ export class EnterpriseCardController {
         if (!values.includes(value)) this.form.actions().edit(field, [...values, value].join(', '))
       },
     }
+  }
+  private authorize(): void {
+    if (this.isDisposed() || this.checking || this.form.shell().dirty || this.channel !== 'feishu') return
+    // Open synchronously within the click gesture; a blocked popup leaves an ordinary link.
+    this.authorizationFailed = false
+    this.popup?.close()
+    this.popup = window.open('about:blank', '_blank')
+    if (this.popup) this.popup.opener = null
+    this.checking = true
+    this.store.set(this.projection())
+    void this.ctx.remote.enterpriseConnections.authorizeFeishu().then(async (response) => {
+      if (this.isDisposed()) return
+      if (response.ok) {
+        this.authorizationURL = response.value
+        if (this.popup) this.popup.location.replace(response.value)
+      } else { this.authorizationFailed = true; this.popup?.close(); this.popup = null }
+      await this.refresh()
+    }).catch(() => { this.authorizationFailed = true; this.popup?.close(); this.popup = null }).finally(() => {
+      this.checking = false
+      if (!this.isDisposed()) this.store.set(this.projection())
+    })
+  }
+  private async revoke(): Promise<void> {
+    if (this.isDisposed() || this.checking || this.form.shell().dirty) return
+    this.checking = true
+    this.authorizationFailed = false
+    this.store.set(this.projection())
+    try {
+      const response = await this.ctx.remote.enterpriseConnections.revokeFeishu()
+      this.authorizationFailed = !response.ok
+      this.authorizationURL = ''; await this.refresh()
+    } catch { this.authorizationFailed = true }
+    finally { this.checking = false; if (!this.isDisposed()) this.store.set(this.projection()) }
   }
   private async reconnect(): Promise<void> {
     if (this.isDisposed() || this.checking || this.form.shell().dirty || !this.form.shell().available) return
@@ -163,5 +231,5 @@ export class EnterpriseCardController {
     }
   }
   /** Release this card's subscriptions and reject late metadata publication. */
-  dispose(): void { this.disposed = true; this.generation++; this.unsubscribe() }
+  dispose(): void { this.disposed = true; clearTimeout(this.poll); this.popup?.close(); this.generation++; this.unsubscribe() }
 }

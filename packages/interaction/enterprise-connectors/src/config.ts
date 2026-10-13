@@ -26,8 +26,14 @@ export interface FeishuSettings extends AccountPolicy {
   appId: string
   /** Feishu OpenAPI origin; mainland Feishu is the default. */
   baseURL: string
-  /** Whether application-scoped resource reads are available. */
+  /** Whether resource reads are available. */
   readEnabled: boolean
+  /** Identity used for resource reads; user mode requires a saved OAuth grant. */
+  readIdentity: 'app' | 'user'
+  /** Exact Web callback URI registered in Feishu; empty uses the loopback Web port. */
+  redirectURI: string
+  /** User permissions requested at consent, including offline_access for refresh. */
+  userScopes: string[]
 }
 /** Enterprise WeChat intelligent-bot connection. */
 export interface WecomSettings extends AccountPolicy {
@@ -59,8 +65,15 @@ export const FeishuSettings: Schema<FeishuSettings> = Schema.object({
   secretRef: Schema.string().default('FEISHU_APP_SECRET'),
   /** Feishu OpenAPI origin; mainland Feishu is the default. */
   baseURL: Schema.string().default('https://open.feishu.cn'),
-  /** Whether application-scoped resource reads are available. */
+  /** Whether resource reads are available. */
   readEnabled: Schema.boolean().default(true),
+  /** Identity used for resource reads; user mode requires a saved OAuth grant. */
+  readIdentity: Schema.union(['app', 'user']).default('app'),
+  /** Exact Web callback URI registered in Feishu; empty uses the loopback Web port. */
+  redirectURI: Schema.string().default(''),
+  /** User permissions requested at consent, including offline_access for refresh. */
+  userScopes: Schema.array(Schema.string().pattern(/^[a-zA-Z0-9_:.-]{1,128}$/)).min(1).max(30)
+    .default(['im:chat:read', 'im:message:readonly', 'im:message.group_msg:get_as_user', 'offline_access']),
 })
 /** Native settings section for the WeCom account; this is the intelligent bot Secret. */
 export const WecomSettings: Schema<WecomSettings> = Schema.object({

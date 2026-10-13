@@ -45,6 +45,7 @@
     "tests/ragflow-connector.e2e.ts",
     "tests/ragflow-settings.e2e.ts",
     "tests/enterprise-connectors.e2e.ts",
+    "tests/feishu-user-authorization.e2e.ts",
     "tests/ztt-brand.e2e.ts",
     "tests/settings-chrome.e2e.ts",
     "tests/models-settings.e2e.ts",

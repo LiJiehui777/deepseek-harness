@@ -21,3 +21,14 @@ export interface CapturedEnterpriseMessage {
   received_at: number
   direction: 'incoming' | 'outgoing'
 }
+
+/** Public user-consent metadata; tokens and OAuth codes remain on the Host. */
+export interface FeishuAuthorizationStatus {
+  identity: 'app' | 'user'
+  state: 'pending' | 'authorized' | 'unauthorized'
+  error: '' | 'cancelled' | 'expired' | 'failed'
+  redirectURI: string
+  requestedScopes: string[]
+  grantedScopes: string[]
+  userName: string
+}

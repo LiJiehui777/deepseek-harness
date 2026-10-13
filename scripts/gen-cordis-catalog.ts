@@ -250,6 +250,7 @@ export const EVENT_WALK_EXEMPTIONS: Record<string, string> = {
 export const LINK_MAP: Readonly<Record<string, string>> = {
   EnterpriseChannel: 'tools.md',
   EnterpriseConnectionStatus: 'tools.md',
+  FeishuAuthorizationStatus: 'tools.md',
   RagflowDataset: 'tools.md',
   RagflowDatasetPage: 'tools.md',
   Agent: 'core.md',

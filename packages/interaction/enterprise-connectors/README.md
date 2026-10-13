@@ -27,6 +27,8 @@ Feishu uses a self-built application's App ID and App Secret. Its tools list API
 
 `sendEnabled` and an explicitly listed destination are both required for model-initiated sends, which additionally request one-shot DH approval. Authorized task replies use the original conversation. An ambiguous send failure never triggers automatic retry. Message bytes, retained messages, pending tasks, HTTP requests and task waiting have deployment bounds. Reconfiguration cancels the previous connection generation; unloading stops SDK connections and drains owned tasks. Cancelling a reply watcher leaves the ordinary DH Agent under its existing lifecycle.
 
+Feishu `readIdentity` selects application or user reads. User consent uses the native authorization service, a same-browser start cookie, single-use state and PKCE S256. The Host stores the grant in `ctx.credentials` and serializes refresh-token rotation through `modifyRecord`. Missing, expired or insufficient user grants fail without application fallback. Account changes cancel pending consent and reads; disconnect removes the local grant. One DH home shares that user's grant, including its admitted remote tasks. Bot ingress, replies and proactive sends retain application identity.
+
 ## Model Experience
 
 ### Enterprise tools and remote tasks
@@ -45,7 +47,7 @@ Tool schemas remain fixed. Reads and task responses append through ordinary Sess
 
 ## Known Limitations and Deferred Work
 
-- One account per provider is shared by this DH home. Feishu user OAuth, Base/calendar writes, media transfer and IM-side approval buttons are deferred. Application credentials do not grant the visibility of a personal account. WeCom history is bounded, in memory, and cleared on reconnection; enterprise conversation archives require a separate authorized provider. Local status is advisory rather than an independent authorization source, so no invariant companion is published.
+- One account per provider is shared by this DH home. Base/calendar writes, media transfer and IM-side approval buttons are deferred. Application credentials do not grant the visibility of a personal account. WeCom history is bounded, in memory, and cleared on reconnection; enterprise conversation archives require a separate authorized provider. Local status is advisory rather than an independent authorization source, so no invariant companion is published.
 
 ### Dev Note
 

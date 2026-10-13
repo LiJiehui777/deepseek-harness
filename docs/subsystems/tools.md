@@ -471,6 +471,8 @@ The full presentation field docs live in [`packages/core/tools/src/presentation.
 
 The optional [enterprise connectors](../../packages/interaction/enterprise-connectors/README.md) expose `EnterpriseChannel` (`feishu` or `wecom`) and credential-free `EnterpriseConnectionStatus`. A status carries `channel`, `state` (`disabled`, `missing-credentials`, `connecting`, `connected`, `error`), sanitized `error`, `receivedMessages`, `lastSenderId` and `lastChatId`. IDs support explicit sender/chat setup; authentication state never grants tool authorization.
 
+`FeishuAuthorizationStatus` contains `identity` (`app` or `user`), `state` (`pending`, `authorized`, `unauthorized`), sanitized `error` (`cancelled`, `expired`, `failed`, or empty), `redirectURI`, `requestedScopes`, `grantedScopes` and `userName`. It never exposes OAuth codes or tokens.
+
 <!-- BEGIN GENERATED cordis-surface (gen-cordis-catalog.ts) — do not edit between markers -->
 
 <a id="cordis-surface"></a>
@@ -498,6 +500,21 @@ Native tools, live account sections, and redacted connection status.
  * @returns credential-free status after the authentication attempt.
  */
 @Remote async reconnect(channel: EnterpriseChannel): Promise<EnterpriseConnectionStatus[]>
+
+/**
+ * Describe the saved user grant without exposing tokens.
+ * @returns credential-free OAuth state and exact callback URI.
+ */
+@Remote async feishuAuthorization(): Promise<FeishuAuthorizationStatus>
+
+/**
+ * Begin user consent using the saved account, scopes and callback URI.
+ * @returns an authenticated local browser start URL.
+ */
+@Remote async authorizeFeishu(): Promise<string>
+
+/** Remove the saved user grant from this DH home. Feishu consent is managed separately. */
+@Remote async revokeFeishu(): Promise<void>
 ```
 
 Source: [`packages/interaction/enterprise-connectors/src/index.ts`](../../packages/interaction/enterprise-connectors/src/index.ts)

@@ -44,6 +44,26 @@ export function EnterpriseCard(props: EnterpriseCardProps) {
     <a className={enterpriseCss.link} href={feishu ? 'https://open.feishu.cn/app' : 'https://work.weixin.qq.com/'} target="_blank" rel="noreferrer">{t('enterpriseOpenConsole')}</a>
     {toggle('enabled', 'enterpriseEnable')}
     {feishu ? toggle('readEnabled', 'enterpriseRead') : <p className={css.hint}>{t('wecomHistoryHint')}</p>}
+    {feishu ? <>
+      {toggle('readIdentity', 'feishuReadIdentity')}
+      <p className={css.hint}>{t('feishuUserHint')}</p>
+      <div role="status" className={enterpriseCss.status}>
+        <p>{t(state.authorization?.state === 'authorized' ? 'feishuAuthorized'
+          : state.authorization?.state === 'pending' ? 'feishuPending' : 'feishuUnauthorized')}
+        {state.authorization?.userName ? `: ${state.authorization.userName}` : ''}</p>
+        {state.authorizationFailed ? <p className={css.invalid}>{t('feishuAuthFailed')}</p> : null}
+        {state.authorization?.error ? <p className={css.invalid}>{t(state.authorization.error === 'cancelled' ? 'feishuAuthCancelled' : 'feishuAuthFailed')}</p> : null}
+      </div>
+      <label className={enterpriseCss.callback}>{t('feishuCallback')}
+        <input readOnly value={state.authorization?.redirectURI ?? ''} onFocus={(event) => { event.target.select() }} />
+      </label>
+      <p className={css.hint}>{t('feishuCallbackHint')}</p>
+      <div className={enterpriseCss.actions}>
+        <button type="button" disabled={disabled || state.dirty || state.checking || state.fields.enabled?.text !== 'true' || !state.secretConfigured} onClick={props.authorize}>{t('feishuAuthorize')}</button>
+        <button type="button" disabled={disabled || state.dirty || state.checking || state.authorization?.state === 'unauthorized'} onClick={props.revoke}>{t('feishuRevoke')}</button>
+      </div>
+      {state.authorizationURL ? <a href={state.authorizationURL} target="_blank" rel="noreferrer" className={enterpriseCss.link}>{t('feishuAuthLink')}</a> : null}
+    </> : null}
     {toggle('receiveEnabled', 'enterpriseReceive')}
     <p className={css.hint}>{t('enterpriseReceiveHint')}</p>
     {field('allowedSenders', 'enterpriseSenders', 'enterpriseSendersHint')}
@@ -53,6 +73,8 @@ export function EnterpriseCard(props: EnterpriseCardProps) {
     <details className={enterpriseCss.advanced}>
       <summary>{t('enterpriseAdvanced')}</summary>
       {field(feishu ? 'baseURL' : 'websocketURL', 'enterpriseEndpoint', feishu ? 'feishuEndpointHint' : 'wecomEndpointHint')}
+      {feishu ? field('redirectURI', 'feishuRedirectURI', 'feishuRedirectHint') : null}
+      {feishu ? field('userScopes', 'feishuUserScopes', 'feishuUserScopesHint') : null}
       {field('workspacePath', 'enterpriseWorkspace', 'enterpriseWorkspaceHint')}
       {field('agentPreset', 'enterprisePreset', 'enterprisePresetHint')}
     </details>

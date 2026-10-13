@@ -39,6 +39,8 @@ The Subagent card stages its permission switch and exact model checkboxes togeth
 
 The RAGFlow card offers a scrollable multi-select catalog of knowledge-base names, with search over loaded pages, refresh and further pages. Selection stays staged until save, which stores IDs only; missing names and failed reads do not clear selected IDs. Endpoint and key changes must be saved before catalog discovery. The catalog uses the authenticated Host Remote and its saved credential; it does not return the key to the browser.
 
+The Feishu card selects app or user reads and displays the exact OAuth callback URI, requested user permissions, consent status and user name. Authorize opens a browser-bound consent flow; disconnect removes the saved local user grant. Tokens never enter the card snapshot. The [enterprise connector guide](../../../docs/user/enterprise-connectors.md#authorize-your-feishu-account) owns platform setup.
+
 ### Secret-role fields
 
 A key control starts blank, reports only whether one is configured, and writes through the credentials domain rather than the settings section; a blank draft writes nothing and keeps the stored key.

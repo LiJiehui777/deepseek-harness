@@ -24,3 +24,6 @@
 }
 .actions > button:disabled { opacity: .5; cursor: default; }
 .actions > button:focus-visible { outline: 2px solid var(--dsw-alias-brand-primary); outline-offset: 2px; }
+
+.callback { display: grid; gap: 6px; font-size: 13px; }
+.callback input { width: 100%; padding: 8px; font: inherit; color: var(--dsw-alias-label-primary); background: var(--dsw-alias-bg-layer-3); border: 0.5px solid var(--dsw-alias-border-l4); border-radius: 8px; }

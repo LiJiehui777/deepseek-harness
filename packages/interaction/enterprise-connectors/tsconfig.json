@@ -43,6 +43,15 @@
     },
     {
       "path": "../../core/session"
+    },
+    {
+      "path": "../../credentials/authorization"
+    },
+    {
+      "path": "../../host/webserver"
+    },
+    {
+      "path": "../../client/connection/tsconfig.host.json"
     }
   ]
 }

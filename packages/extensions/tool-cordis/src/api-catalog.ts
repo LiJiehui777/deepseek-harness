@@ -911,6 +911,23 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         parameters: [{ name: 'channel', description: 'the account to reconnect; unsaved browser drafts are never used.' }],
         returns: 'credential-free status after the authentication attempt.',
       },
+      {
+        signature: '@Remote async feishuAuthorization(): Promise<FeishuAuthorizationStatus>',
+        description: 'Describe the saved user grant without exposing tokens.',
+        parameters: [],
+        returns: 'credential-free OAuth state and exact callback URI.',
+      },
+      {
+        signature: '@Remote async authorizeFeishu(): Promise<string>',
+        description: 'Begin user consent using the saved account, scopes and callback URI.',
+        parameters: [],
+        returns: 'an authenticated local browser start URL.',
+      },
+      {
+        signature: '@Remote async revokeFeishu(): Promise<void>',
+        description: 'Remove the saved user grant from this DH home. Feishu consent is managed separately.',
+        parameters: [],
+      },
     ],
   },
   {
@@ -4250,6 +4267,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'FeedbackCategory',
     declaration: 'export type FeedbackCategory = \'task-result\' | \'instruction-following\' | \'product-interaction\' | \'service-stability\' | \'resource-cost\' | \'security-privacy-permission\' | \'other\';',
+  },
+  {
+    name: 'FeishuAuthorizationStatus',
+    declaration: 'export interface FeishuAuthorizationStatus {\n    identity: \'app\' | \'user\';\n    state: \'pending\' | \'authorized\' | \'unauthorized\';\n    error: \'\' | \'cancelled\' | \'expired\' | \'failed\';\n    redirectURI: string;\n    requestedScopes: string[];\n    grantedScopes: string[];\n    userName: string;\n}',
   },
   {
     name: 'FiberState',

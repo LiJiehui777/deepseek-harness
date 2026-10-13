@@ -43,6 +43,16 @@
         - text: Enable this connection
         - checkbox "Allow reading visible chats and documents" [checked]
         - text: Allow reading visible chats and documents
+        - checkbox "Use my Feishu account for reads"
+        - text: Use my Feishu account for reads
+        - paragraph: User reads need your consent and published user permissions. Admitted remote tasks share these read permissions; bot transport and sends use app identity.
+        - status:
+          - paragraph: Account not authorized
+        - text: Authorization callback URI
+        - textbox "Authorization callback URI"
+        - paragraph: Copy this exact URI into your Feishu app's Security settings > Redirect URLs before authorizing. Keep the same browser and host.
+        - button "Authorize my Feishu account"
+        - button "Disconnect my account"
         - checkbox "Receive remote tasks from this platform" [checked]
         - text: Receive remote tasks from this platform
         - paragraph: Direct messages and bot mentions start DH tasks. Existing model, knowledge and approval settings apply.
