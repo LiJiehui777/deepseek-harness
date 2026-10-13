@@ -17,6 +17,8 @@ export const DEFAULT_TERMINAL_MAX_LINES = 16
 export interface TerminalBlockLabels {
   /** Status pill text for a signal-terminated command. */
   signal: (signal: string) => string
+  /** Status text when a terminated process supplied no exit code. */
+  noExitCode?: string
   /** Status pill text for a non-zero exit code. */
   exitCode: (exitCode: number) => string
   /** Run-state text while the command is still running. */
@@ -51,7 +53,7 @@ export interface TerminalBlockProps {
   /** The command's output text; may contain ANSI escape sequences. */
   output?: string | undefined
   /** Settled exit code; a non-zero value renders the status pill. */
-  exitCode?: number | undefined
+  exitCode?: number | null | undefined
   /** Settled terminating signal name; any value renders the status pill, taking precedence over the exit code. */
   signal?: string | undefined
   /** The command is still running: the block shows the prompt line alone. */
@@ -90,11 +92,12 @@ function promptLabel(cwd: string, home: string | undefined): string {
  * @returns the pill text, or undefined for a clean exit.
  */
 function statusText(
-  exitCode: number | undefined,
+  exitCode: number | null | undefined,
   signal: string | undefined,
   labels: TerminalBlockLabels,
 ): string | undefined {
   if (signal !== undefined) return labels.signal(signal)
+  if (exitCode === null) return labels.noExitCode ?? labels.failed
   if (exitCode !== undefined && exitCode !== 0) return labels.exitCode(exitCode)
   return undefined
 }
@@ -117,7 +120,7 @@ function statusText(
  */
 function runState(
   running: boolean,
-  exitCode: number | undefined,
+  exitCode: number | null | undefined,
   signal: string | undefined,
   labels: TerminalBlockLabels,
 ): { state: StateDotState; label: string } {

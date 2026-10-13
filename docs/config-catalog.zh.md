@@ -435,6 +435,24 @@ export interface HostReturnConfig {
 
 Source: [`packages/client/ui-host-return/src/config.ts:6`](../packages/client/ui-host-return/src/config.ts)
 
+<a id="deepseek-aidsh-client-ui-plugin-manager"></a>
+
+## `@deepseek-ai/dsh-client-ui-plugin-manager`
+
+```ts config-catalog
+/** Registry-probe deadline and process-local cache policy. */
+export interface Config {
+  /** Whether the dialog can compare the public npm registries. */
+  registryProbeEnabled: boolean
+  /** Deadline for the parallel HTTPS probes, including response cleanup. */
+  registryProbeTimeoutMs: number
+  /** Lifetime of a winning registry or unavailable result. */
+  registryProbeCacheTtlMs: number
+}
+```
+
+Source: [`packages/client/ui-plugin-manager/src/index.ts:15`](../packages/client/ui-plugin-manager/src/index.ts)
+
 <a id="deepseek-aidsh-client-ui-workspace"></a>
 
 ## `@deepseek-ai/dsh-client-ui-workspace`
@@ -1811,6 +1829,40 @@ export interface PlanModeConfig {
 ```
 
 来源：[`packages/plan/plan-mode/src/index.ts:64`](../packages/plan/plan-mode/src/index.ts)
+
+<a id="deepseek-aidsh-plugin-manager"></a>
+
+## `@deepseek-ai/dsh-plugin-manager`
+
+Requires: `loader` · `profileContext`
+
+```ts config-catalog
+/** The pnpm executable, registries, and limits for diagnostics, lookups and connection checks. */
+export interface Config {
+  /** The pnpm executable name or path, resolved through `PATH`. */
+  pnpmCommand?: string
+  /** Maximum retained package-operation diagnostic bytes. */
+  outputBytes?: number
+  /** Maximum time to wait for another process's profile package operation. */
+  lockWaitMs?: number
+  /** Bound on one registry lookup an inspection runs, in milliseconds. */
+  inspectTimeoutMs?: number
+  /** Maximum duration of the GitHub repository connection check before installation, in milliseconds. */
+  githubConnectionTimeoutMs?: number
+  /** Maximum time one captured package run may print nothing before the manager terminates it, in milliseconds. */
+  idleTimeoutMs?: number
+  /** The registry lookups and installations ask first, as an http(s) URL; absent, the one pnpm's own configuration names. */
+  registry?: string
+  /**
+   * Registries asked in turn, as http(s) URLs, while the one before is unreachable or holds no copy of the package.
+   * A registry outside this set and `registry` is asked alone, and so is the one pnpm's own configuration names
+   * unless that is npm's own registry or one of these.
+   */
+  fallbackRegistries?: string[]
+}
+```
+
+Source: [`packages/boot/plugin-manager/src/index.ts:43`](../packages/boot/plugin-manager/src/index.ts)
 
 <a id="deepseek-aidsh-plugin-package-inventory-deepseek"></a>
 
@@ -3813,6 +3865,7 @@ export interface Config {
 - `@deepseek-ai/dsh-native-command`（[`packages/util/native-command/src/index.ts`](../packages/util/native-command/src/index.ts)）
 - `@deepseek-ai/dsh-output-retention`（[`packages/util/output-retention/src/index.ts`](../packages/util/output-retention/src/index.ts)）
 - `@deepseek-ai/dsh-package-manifest` ([`packages/util/package-manifest/src/index.ts`](../packages/util/package-manifest/src/index.ts))
+- `@deepseek-ai/dsh-plugin-management` ([`packages/bundle/plugin-management/src/index.ts`](../packages/bundle/plugin-management/src/index.ts))
 - `@deepseek-ai/dsh-remote-mock` ([`packages/test-support/remote-mock/src/index.ts`](../packages/test-support/remote-mock/src/index.ts))
 - `@deepseek-ai/dsh-sandbox-windows-acl`（[`packages/sandbox/sandbox-windows-acl/src/index.ts`](../packages/sandbox/sandbox-windows-acl/src/index.ts)）
 - `@deepseek-ai/dsh-scope`（[`packages/core/scope/src/index.ts`](../packages/core/scope/src/index.ts)）

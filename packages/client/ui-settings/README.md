@@ -44,6 +44,8 @@ A bound scope reflects the current document revision immediately; a committed wr
 <a id="understand-the-implementation"></a>
 ## Understand the implementation
 
+Native plugin pages use `configForms.get(namespace)` and `configForms.describe()` over the same settings mirror. Stable handles share accepted values and use the existing Host persistence and validation path.
+
 <details>
 <summary>Implementation internals — click to expand</summary>
 

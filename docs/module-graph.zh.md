@@ -127,11 +127,13 @@ flowchart TD
   subgraph group_boot["packages/boot"]
     pkg_app_boot["app-boot"]
     pkg_cmdline["cmdline"]
+    pkg_plugin_manager["plugin-manager"]
   end
   subgraph group_bundle["packages/bundle"]
     pkg_acp_app["acp-app"]
     pkg_base["base"]
     pkg_headless["headless"]
+    pkg_plugin_management["plugin-management"]
     pkg_sdk_app["sdk-app"]
     pkg_sdk_minimal["sdk-minimal"]
     pkg_web_app["web-app"]
@@ -166,6 +168,7 @@ flowchart TD
     pkg_client_ui_open_in_app["client-ui-open-in-app"]
     pkg_client_ui_permission_presets["client-ui-permission-presets"]
     pkg_client_ui_plan["client-ui-plan"]
+    pkg_client_ui_plugin_manager["client-ui-plugin-manager"]
     pkg_client_ui_primitives["client-ui-primitives"]
     pkg_client_ui_quality_report["client-ui-quality-report"]
     pkg_client_ui_reference["client-ui-reference"]
@@ -1022,6 +1025,14 @@ flowchart TD
   pkg_tool_session_query --> pkg_system_prompt
   pkg_tool_session_query --> pkg_timeout
   pkg_tool_session_query --> pkg_tools
+  pkg_plugin_manager --> pkg_brand
+  pkg_plugin_manager --> pkg_host_plugin_inventory
+  pkg_plugin_manager --> pkg_sandbox
+  pkg_plugin_manager --> pkg_sandbox_policy
+  pkg_plugin_manager --> pkg_subprocess
+  pkg_plugin_manager --> pkg_tools
+  pkg_plugin_manager --> pkg_typert_protocol
+  pkg_plugin_manager --> pkg_user_approval
   pkg_compaction_basic --> pkg_agent
   pkg_compaction_basic --> pkg_commands
   pkg_compaction_basic --> pkg_compaction
@@ -1234,6 +1245,7 @@ flowchart TD
 | [`cmdline`](../packages/boot/cmdline) | `boot` | — |
 | [`acp-app`](../packages/bundle/acp-app) | `bundle` | — |
 | [`base`](../packages/bundle/base) | `bundle` | — |
+| [`plugin-management`](../packages/bundle/plugin-management) | `bundle` | — |
 | [`sdk-app`](../packages/bundle/sdk-app) | `bundle` | — |
 | [`sdk-minimal`](../packages/bundle/sdk-minimal) | `bundle` | — |
 | [`client-connection`](../packages/client/connection) | `client` | — |
@@ -1264,6 +1276,7 @@ flowchart TD
 | [`client-ui-open-in-app`](../packages/client/ui-open-in-app) | `client` | — |
 | [`client-ui-permission-presets`](../packages/client/ui-permission-presets) | `client` | — |
 | [`client-ui-plan`](../packages/client/ui-plan) | `client` | — |
+| [`client-ui-plugin-manager`](../packages/client/ui-plugin-manager) | `client` | — |
 | [`client-ui-primitives`](../packages/client/ui-primitives) | `client` | — |
 | [`client-ui-quality-report`](../packages/client/ui-quality-report) | `client` | — |
 | [`client-ui-reference`](../packages/client/ui-reference) | `client` | — |
@@ -1464,6 +1477,7 @@ flowchart TD
 | [`subagent`](../packages/subagent/subagent) | `subagent` | [`agent`](../packages/core/agent), [`agent-presets`](../packages/preset/agent-presets), [`attachment`](../packages/attachment/attachment), [`invariants`](../packages/runtime-diagnostics/invariants), [`jobs`](../packages/jobs/jobs), [`llm`](../packages/llm/llm), [`sandbox`](../packages/sandbox/sandbox), [`sandbox-policy`](../packages/sandbox/sandbox-policy), [`scope`](../packages/core/scope), [`session`](../packages/core/session), [`session-persistence`](../packages/session/session-persistence), [`session-projection`](../packages/session/session-projection), [`session-projection-cache`](../packages/session/session-projection-cache), [`session-query`](../packages/session-query/session-query), [`system-prompt`](../packages/core/system-prompt), [`tools`](../packages/core/tools), [`typert-protocol`](../packages/typert/protocol), [`user-approval`](../packages/interaction/user-approval), [`util-time`](../packages/util/time) |
 | [`session-query-sqlite`](../packages/session-query/session-query-sqlite) | `session-query` | [`session`](../packages/core/session), [`session-persistence`](../packages/session/session-persistence), [`session-query`](../packages/session-query/session-query) |
 | [`tool-session-query`](../packages/session-query/tool-session-query) | `session-query` | [`agent`](../packages/core/agent), [`llm`](../packages/llm/llm), [`session`](../packages/core/session), [`session-projection`](../packages/session/session-projection), [`session-query`](../packages/session-query/session-query), [`system-prompt`](../packages/core/system-prompt), [`timeout`](../packages/util/timeout), [`tools`](../packages/core/tools) |
+| [`plugin-manager`](../packages/boot/plugin-manager) | `boot` | [`brand`](../packages/util/brand), [`host-plugin-inventory`](../packages/host/plugin-inventory), [`sandbox`](../packages/sandbox/sandbox), [`sandbox-policy`](../packages/sandbox/sandbox-policy), [`subprocess`](../packages/subprocess/subprocess), [`tools`](../packages/core/tools), [`typert-protocol`](../packages/typert/protocol), [`user-approval`](../packages/interaction/user-approval) |
 | [`compaction-basic`](../packages/compaction/compaction-basic) | `compaction` | [`agent`](../packages/core/agent), [`commands`](../packages/interaction/commands), [`compaction`](../packages/compaction/compaction), [`compaction-tool-result-pruner`](../packages/compaction/compaction-tool-result-pruner), [`llm`](../packages/llm/llm), [`session`](../packages/core/session), [`token-meter`](../packages/llm/token-meter) |
 | [`session-reference`](../packages/context/session-reference) | `context` | [`agent`](../packages/core/agent), [`compaction`](../packages/compaction/compaction), [`llm`](../packages/llm/llm), [`output-retention`](../packages/util/output-retention), [`session`](../packages/core/session), [`session-projection`](../packages/session/session-projection), [`session-projection-cache`](../packages/session/session-projection-cache), [`session-query`](../packages/session-query/session-query), [`session-title`](../packages/session/session-title), [`spill`](../packages/spill/spill), [`system-prompt`](../packages/core/system-prompt), [`typert-protocol`](../packages/typert/protocol) |
 | [`webhook-github`](../packages/webhook/webhook-github) | `webhook` | [`credentials`](../packages/credentials/credentials), [`host-webserver`](../packages/host/webserver), [`session`](../packages/core/session), [`webhook`](../packages/webhook/webhook) |

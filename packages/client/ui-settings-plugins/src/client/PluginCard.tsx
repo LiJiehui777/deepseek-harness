@@ -35,6 +35,8 @@ export interface PluginCardProps {
   onSave: () => void
   /** Drop every staged edit. */
   onDiscard: () => void
+  /** Render an always-open form under the native plugin page header. */
+  standalone?: boolean
   /** The plugin's controls. */
   children: ReactNode
 }
@@ -60,11 +62,13 @@ export function PluginCard(props: PluginCardProps) {
     if (!state.dirty && !state.failed) setOpen(false)
   }, [state.dirty, state.failed, state.saving])
   if (!state.available) return null
+  const expanded = props.standalone === true || open
+  const Frame = props.standalone ? 'section' : 'li'
   const title = props.t(props.titleKey)
   const blocked = !state.dirty || state.invalid || state.saving
   return (
-    <li className={clsx(css.card, open && css.cardOpen)}>
-      <button
+    <Frame className={clsx(css.card, expanded && css.cardOpen)}>
+      {!props.standalone ? <button
         type="button"
         className={css.header}
         aria-expanded={open}
@@ -77,8 +81,8 @@ export function PluginCard(props: PluginCardProps) {
         </span>
         {state.dirty ? <Tag tone="neutral" className={css.pending}>{props.t('unsaved')}</Tag> : null}
         <IconChevronDownOutline14 className={clsx(css.chevron, open && css.chevronOpen)} />
-      </button>
-      {open
+      </button> : null}
+      {expanded
         ? (
           <div className={css.body}>
             {!state.writable ? <p className={css.readOnly} role="status">{props.t('readOnly')}</p> : null}
@@ -105,6 +109,6 @@ export function PluginCard(props: PluginCardProps) {
           </div>
         )
         : null}
-    </li>
+    </Frame>
   )
 }

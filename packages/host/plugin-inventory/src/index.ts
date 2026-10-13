@@ -17,8 +17,12 @@ import type {
 
 export type * from './types.ts'
 
-/** Brand an existing Loader-tree entry id at the owning boundary. */
-function pluginEntryId(value: string): PluginEntryId {
+/**
+ * Brand an existing Loader-tree entry id at the owning boundary.
+ * @param value - Loader-owned entry identifier.
+ * @returns the same identifier with its public plugin-entry brand.
+ */
+export function pluginEntryId(value: string): PluginEntryId {
   return value as PluginEntryId
 }
 
@@ -63,30 +67,38 @@ export class PluginInventoryGateway extends TypertRemoteService {
    * compositions when a roster is composed.
    */
   @Remote('list')
-  async list(): Promise<PluginInventorySnapshot> {
-    const entries: PluginInventoryEntry[] = []
-    for (const entry of this.ctx.loader.entries()) {
-      if (entry.options.group) continue
-      entries.push({
-        entryId: pluginEntryId(entry.id),
-        moduleName: entry.options.name,
-        enabled: !entry.disabled,
-        fiberPhase: entry.fiber === undefined ? null : FIBER_PHASE[entry.fiber.state],
-      })
-    }
-    const presets = this.ctx.get('agentPresets')
-    if (presets === undefined) return { entries }
-    const agentPresets: AgentPresetPluginGroup[] = (await presets.compositionInventory()).map(
-      composition => ({
-        ...composition,
-        rows: composition.rows.map(({ fiberState, ...row }) => ({
-          ...row,
-          fiberPhase: fiberState === undefined ? null : FIBER_PHASE[fiberState],
-        })),
-      }),
-    )
-    return { entries, agentPresets }
+  async list(): Promise<PluginInventorySnapshot> { return readPluginInventory(this.ctx) }
+}
+
+/**
+ * Read the active Loader inventory without exposing plugin configuration.
+ * @param ctx - Loader consumer scope.
+ * @returns current plugin entries and preset metadata.
+ */
+export async function readPluginInventory(ctx: Context): Promise<PluginInventorySnapshot> {
+  const entries: PluginInventoryEntry[] = []
+  for (const entry of ctx.loader.entries()) {
+    if (entry.options.group) continue
+    entries.push({
+      entryId: pluginEntryId(entry.id),
+      moduleName: entry.options.name,
+      enabled: !entry.disabled,
+      fiberPhase: entry.fiber === undefined ? null : FIBER_PHASE[entry.fiber.state],
+    })
   }
+  const management = [...ctx.loader.entries()].some(row => row.options.name === '@deepseek-ai/dsh-plugin-manager' && row.fiber?.state === FIBER_STATE.ACTIVE) ? { managementAvailable: true } : {}
+  const presets = ctx.get('agentPresets')
+  if (presets === undefined) return { entries, ...management }
+  const agentPresets: AgentPresetPluginGroup[] = (await presets.compositionInventory()).map(
+    composition => ({
+      ...composition,
+      rows: composition.rows.map(({ fiberState, ...row }) => ({
+        ...row,
+        fiberPhase: fiberState === undefined ? null : FIBER_PHASE[fiberState],
+      })),
+    }),
+  )
+  return { entries, agentPresets, ...management }
 }
 
 export default PluginInventoryGateway

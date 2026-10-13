@@ -30,7 +30,8 @@
     "@deepseek-ai/dsh-atomic-write": "workspace:^",
     "@deepseek-ai/dsh-package-manifest": "workspace:^",
     "js-yaml": "^4.2.0",
-    "resolve.exports": "^2.0.3"
+    "resolve.exports": "^2.0.3",
+    "semver": "^7.7.3"
   },
   "peerDependencies": {
     "@deepseek-ai/cordis-plugin-group": "workspace:^",
@@ -58,6 +59,7 @@
     "@deepseek-ai/dsh-system-prompt": "workspace:^",
     "@types/js-yaml": "^4.0.9",
     "@deepseek-ai/cordis": "workspace:^",
-    "chokidar": "4.0.3"
+    "chokidar": "4.0.3",
+    "@types/semver": "^7.7.1"
   }
 }

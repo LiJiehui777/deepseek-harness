@@ -1,0 +1,23 @@
+- heading "内置插件配置" [level=3]
+- list:
+  - listitem:
+    - button "查看 RAGFlow 连接器": RAGFlow 连接器
+    - text: 连接独立运行的 RAGFlow 服务，读取知识库并检索内容。
+  - listitem:
+    - button "查看 飞书连接器": 飞书连接器
+    - text: 读取授权消息与文档，收发消息并联动 DH 任务。
+  - listitem:
+    - button "查看 企业微信连接器": 企业微信连接器
+    - text: 通过智能机器人长连接收发消息并联动 DH 任务。
+  - listitem:
+    - button "查看 Subagent": Subagent
+    - text: 控制 Agent 为 Subagent 选择模型的权限。
+  - listitem:
+    - button "查看 网页搜索": 网页搜索
+    - text: DeepSeek 搜索提供方。
+  - listitem:
+    - button "查看 Agent 循环": Agent 循环
+    - text: Agent 如何派发工具调用。
+  - listitem:
+    - button "查看 终端": 终端
+    - text: 限制 agent 运行的每一条命令。

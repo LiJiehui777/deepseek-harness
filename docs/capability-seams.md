@@ -7,6 +7,13 @@ A service can be a core spine service, a swappable capability seam, or a bundle/
 
 ```mermaid
 flowchart LR
+  pkg_app_boot["app-boot"]
+  svc_profileContext["ctx.profileContext<br/>Launcher profile facts"]
+  pkg_plugin_manager["plugin-manager"]
+  svc_pluginManager["ctx.pluginManager<br/>Current profile plugin management"]
+  pkg_api_remotes["api-remotes"]
+  pkg_client_ui_plugin_manager["client-ui-plugin-manager"]
+  svc_pluginRegistryProbe["ctx.pluginRegistryProbe<br/>Installation registry probe"]
   pkg_enterprise_connectors["enterprise-connectors"]
   svc_enterpriseConnectors["ctx.enterpriseConnectors<br/>Standalone enterprise account lifetimes"]
   pkg_client_ui_settings_plugins["client-ui-settings-plugins"]
@@ -242,6 +249,7 @@ flowchart LR
   pkg_api_workspace_controller --> svc_directoryPickerController
   pkg_api_workspace_controller --> svc_workspaceController
   pkg_api_workspace_files --> svc_workspaceFiles
+  pkg_app_boot --> svc_profileContext
   pkg_attachment --> svc_attachments
   pkg_attachment_local --> svc_attachments
   pkg_authorization --> svc_authorization
@@ -249,6 +257,7 @@ flowchart LR
   pkg_bash_sandbox --> svc_shell
   pkg_client_file_upload --> svc_fileUploads
   pkg_client_modules --> svc_clientModules
+  pkg_client_ui_plugin_manager --> svc_pluginRegistryProbe
   pkg_code_runtime --> svc_codeRuntime
   pkg_code_runtime_worker_thread --> svc_codeRuntime
   pkg_command_feedback --> svc_sessionFeedback
@@ -289,6 +298,7 @@ flowchart LR
   pkg_message_feedback --> svc_messageFeedback
   pkg_permission_presets --> svc_permissionPresets
   pkg_plan_mode --> svc_planMode
+  pkg_plugin_manager --> svc_pluginManager
   pkg_plugin_package_inventory_deepseek --> svc_deepseekLlmApiExtensions
   pkg_pwsh_local --> svc_shell
   pkg_sandbox --> svc_sandbox
@@ -394,6 +404,11 @@ flowchart LR
   svc_llm --> pkg_agent_loop
   svc_llm --> pkg_compaction_basic
   svc_lsp --> pkg_tool_lsp
+  svc_pluginManager --> pkg_api_remotes
+  svc_pluginManager --> pkg_client_ui_plugin_manager
+  svc_pluginRegistryProbe --> pkg_api_remotes
+  svc_pluginRegistryProbe --> pkg_client_ui_plugin_manager
+  svc_profileContext --> pkg_plugin_manager
   svc_ragflowCatalog --> pkg_client_ui_settings_plugins
   svc_sandbox --> pkg_bash_sandbox
   svc_sandbox --> pkg_terminal_bash
@@ -483,6 +498,9 @@ flowchart LR
 
 | ctx key | Role | Owner | Implementations | Direct consumers | Companion plugins | Note |
 | --- | --- | --- | --- | --- | --- | --- |
+| `ctx.profileContext` | `core` | [`app-boot`](../packages/boot/app-boot) | - | [`plugin-manager`](../packages/boot/plugin-manager) | - | Supplies immutable locations and launch-time composition inputs. |
+| `ctx.pluginManager` | `core` | [`plugin-manager`](../packages/boot/plugin-manager) | - | [`api-remotes`](../packages/api/remotes), [`client-ui-plugin-manager`](../packages/client/ui-plugin-manager) | - | Persists profile edits, installs bundles and reconciles native Loader lifecycles. |
+| `ctx.pluginRegistryProbe` | `core` | [`client-ui-plugin-manager`](../packages/client/ui-plugin-manager) | - | [`api-remotes`](../packages/api/remotes), [`client-ui-plugin-manager`](../packages/client/ui-plugin-manager) | - | Bounds and shares installation registry probes on the Host. |
 | `ctx.enterpriseConnectors` | `core` | [`enterprise-connectors`](../packages/interaction/enterprise-connectors) | - | [`client-ui-settings-plugins`](../packages/client/ui-settings-plugins) | - | Official SDK providers resolve Host credentials, authorize remote tasks, and expose redacted status to native settings cards. |
 | `ctx.ragflowCatalog` | `core` | [`tool-ragflow-connector`](../packages/interaction/tool-ragflow-connector) | - | [`client-ui-settings-plugins`](../packages/client/ui-settings-plugins) | - | Authenticated settings discovery resolves Host credentials and returns API-authorized names; model-facing tools retain their separate configured dataset allowlist. |
 | `ctx.attachments` | `seam` | [`attachment`](../packages/attachment/attachment) | [`attachment-local`](../packages/attachment/attachment-local) | [`api-session-controller`](../packages/api/session-controller), [`tool-fs`](../packages/fs/tool-fs), [`llm-pi-ai`](../packages/llm/llm-pi-ai), [`llm-deepseek`](../packages/llm/llm-deepseek) | - | The host commits accepted images before session events; provider adapters resolve authorized durable references into provider-native content. |

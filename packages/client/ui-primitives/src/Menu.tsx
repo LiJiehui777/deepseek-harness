@@ -84,15 +84,19 @@ const MEASURE_STYLE: CSSProperties = { visibility: 'hidden', left: 0, top: 0 }
  * crowds the cell).
  * @returns anchor wrapper with the conditional list.
  */
-export function Menu({ open, anchor, items, selectedId, selectedIds, onSelect, onClose, align = 'start', side = 'bottom', portal = false, closeOnPointerLeave = false, dense = false, compact = false, autoFocus = false, selection = 'check', getAnchorRect, footer, className }: {
+export function Menu({ open, anchor, items = [], children, listClassName, selectedId, selectedIds, onSelect = () => {}, onClose, align = 'start', side = 'bottom', portal = false, closeOnPointerLeave = false, dense = false, compact = false, autoFocus = false, selection = 'check', getAnchorRect, footer, className }: {
   open: boolean
   autoFocus?: boolean
   anchor: ReactNode
-  items: readonly MenuEntry[]
+  items?: readonly MenuEntry[]
+  /** Slot-contributed menu controls. */
+  children?: ReactNode
+  /** Additional class on the floating list. */
+  listClassName?: string | undefined
   footer?: readonly MenuEntry[]
   selectedId?: string | undefined
   selectedIds?: readonly string[] | undefined
-  onSelect: (id: string) => void
+  onSelect?: (id: string) => void
   onClose: () => void
   align?: 'start' | 'end'
   side?: 'bottom' | 'top' | 'right'
@@ -288,7 +292,7 @@ export function Menu({ open, anchor, items, selectedId, selectedIds, onSelect, o
   const list = open && (
     <div
       ref={listRef}
-      className={clsx(css.list, dense && css.denseList, compact && css.compactList, scrollable && css.scrollable, portal && css.portal, side === 'top' && !portal && css.sideTop, align === 'end' && !portal && css.alignEnd)}
+      className={clsx(css.list, listClassName, dense && css.denseList, compact && css.compactList, scrollable && css.scrollable, portal && css.portal, side === 'top' && !portal && css.sideTop, align === 'end' && !portal && css.alignEnd)}
       style={portal ? fixedPos ?? MEASURE_STYLE : undefined}
       role="menu"
       // React portals bubble synthetic events through the REACT tree: without
@@ -298,6 +302,7 @@ export function Menu({ open, anchor, items, selectedId, selectedIds, onSelect, o
     >
       <div className={css.viewport} role="presentation">
         {items.map(renderEntry)}
+        {children}
       </div>
       {footer !== undefined && footer.length > 0 && (
         <div className={css.footer} role="presentation">
@@ -322,4 +327,14 @@ export function Menu({ open, anchor, items, selectedId, selectedIds, onSelect, o
       {portal ? (list !== false && createPortal(list, document.body)) : list}
     </span>
   )
+}
+
+/** A selectable menu control for plugin-contributed actions. */
+export function MenuItemButton({ children, icon, onSelect, disabled = false }: {
+  children: ReactNode
+  icon?: ReactNode
+  onSelect: () => void
+  disabled?: boolean
+}) {
+  return <button type="button" role="menuitem" className={css.item} disabled={disabled} onClick={onSelect}>{icon}{children}</button>
 }

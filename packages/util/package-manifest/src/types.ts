@@ -80,3 +80,18 @@ export interface DshClientManifest {
    */
   external?: string[]
 }
+
+/** Literal text or translations indexed by lowercase language id, with a required English fallback. */
+export type LocalizedText = string | { readonly en: string; readonly [locale: string]: string }
+
+/** Validated plugin display fields and diagnostics from exported locales, manifests, or icon files. */
+export interface PluginLocalizedMeta {
+  /** Display title; omission preserves the consumer's technical-name fallback. */
+  readonly title?: LocalizedText
+  /** Display introduction after locale and package-field fallback. */
+  readonly description?: LocalizedText
+  /** Base64 image data URL from a package root's manifest icon or an exported `<specifier>/icon`; render as an image, not inline markup. */
+  readonly icon?: string
+  /** Unmodified local metadata diagnostic; the plugin remains manageable. */
+  readonly error?: string
+}

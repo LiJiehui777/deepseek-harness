@@ -12,3 +12,5 @@ export type {
   DshProfileManifest,
   ProfilePatchReload,
 } from './types.ts'
+
+export type { LocalizedText, PluginLocalizedMeta } from './types.ts'

@@ -175,6 +175,7 @@ describe('typertPlugin', () => {
   it('emits every explicit workspace contributor once from a host-only prepass', async () => {
     const root = await workspace()
     const trigger = await packageOutput(root, 'generator', { name: '@deepseek-ai/dsh-typert-generator' })
+    writeFileSync(join(root, 'packages', 'generator', 'tsconfig.host.json'), '{}\n')
     await packageOutput(root, 'core/tools', {
       name: '@deepseek-ai/dsh-tools',
       exports: { './typert': './lib/typert.host.js' },
@@ -208,6 +209,7 @@ async function workspace(): Promise<string> {
   const root = mkdtempSync(join(tmpdir(), 'dsh-typert-tsdown-'))
   roots.push(root)
   writeFileSync(join(root, 'tsconfig.host.json'), '{}\n')
+  writeFileSync(join(root, 'pnpm-workspace.yaml'), 'packages: [packages/**]\n')
   return root
 }
 

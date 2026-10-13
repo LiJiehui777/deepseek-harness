@@ -256,7 +256,7 @@ export async function watchUserPatches(
   if (hmr === undefined) throw new Error(`${binName}: user patch-layer watching requires the Cordis HMR service`)
   const entry = bootstrapIncludes.get(ctx)
   if (entry === undefined) throw new Error(`${binName}: user patch-layer watching requires the root Include entry`)
-  const register = hmr.registerConfig(filename, async () => {
+  const refresh = async () => {
     // Re-read the include's non-patch options per refresh so a writer that
     // updates another option between refreshes is not silently reverted.
     const { patches: _previousPatches, ...includeConfig } = entry.options.config as Include.Config
@@ -268,6 +268,10 @@ export async function watchUserPatches(
         patches,
       },
     })
+  }
+  const register = hmr.registerConfig(filename, () => {
+    const runtime = ctx.get('profileRuntime')
+    return runtime ? runtime.runExclusive(refresh) : refresh()
   })
   try {
     return await register
@@ -860,3 +864,34 @@ export function addHarnessSourceSection(ctx: Context, sourceRoot: string): (() =
     text: `The DeepSeek Harness implementation checkout is at ${sourceRoot}. The checkout location and current working directory are separate values and may differ; never infer the working directory from this path. Use pwd to determine the current working directory. Use this checkout only to inspect or extend DSH itself.`,
   })
 }
+
+export { readProfilePatches, type ProfileContext, type ProfilePnpmInvocation } from './profile-context.ts'
+export { readPluginMeta, resolvePluginResource } from './package-meta.ts'
+export { getDshRuntimeVersion, evaluatePluginCompatibility, pluginCompatibilityWarning, type PluginCompatibility } from './plugin-compatibility.ts'
+export { readProfileCompatibility, readProfileVersionExemptions, setProfileVersionExemption, PROFILE_COMPATIBILITY_FILENAME } from './profile-compatibility.ts'
+export { OPTIONAL_BUNDLES, OFFICIAL_ON_DEMAND_CATALOG } from './plugin-catalog.ts'
+
+/**
+ * Reconcile a profile's persisted selection with its live Loader tree.
+ * @param ctx - running application root.
+ * @param patches - freshly read ordered profile patches.
+ * @param binName - diagnostic prefix.
+ * @param requiredIds - entries that must exist after activation.
+ * @returns warnings for the caller; failed activation rejects and retains Loader rollback semantics.
+ */
+export async function reconcileProfilePatches(
+  ctx: Context, patches: PatchOptions[], binName: string, requiredIds: readonly string[] = [],
+): Promise<string[]> {
+  const entry = ctx.loader.resolve('include')
+  if (entry.options.name !== 'cordis:include') throw new Error(`${binName}: profile management requires the root Include`)
+  const { patches: _previous, ...includeConfig } = entry.options.config as Include.Config
+  await entry.update({ config: { ...includeConfig, patches } })
+  await ctx.loader.await()
+  await assertEntriesActivated(ctx, binName)
+  for (const id of requiredIds) {
+    if (![...ctx.loader.entries()].some(row => row.options.id === id && !row.disabled)) throw new Error(`${binName}: plugin ${id} did not activate`)
+  }
+  return []
+}
+
+export { bundlePatchPaths } from './profile.ts'

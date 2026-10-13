@@ -111,6 +111,11 @@ export const PROFILE_TEMPLATES: Record<string, ProfileTemplate> = {
     bundles: ['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-app'],
     patchReload: 'live',
   },
+  enhanced: {
+    bundles: ['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-app', '@deepseek-ai/dsh-plugin-management',
+      '@deepseek-ai/dsh-tool-ragflow-connector', '@deepseek-ai/dsh-enterprise-connectors'],
+    patchReload: 'live',
+  },
   headless: {
     bundles: ['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-headless'],
     patchReload: 'startup',
@@ -845,4 +850,14 @@ export function composeEntries(
     let index = 0
     warn(message.replace(/%C/g, () => JSON.stringify(args[index++])))
   })
+}
+
+/**
+ * Resolve a bundle's declared patch file using the profile's normal path rules.
+ * @param directory - package directory.
+ * @param bundle - manifest's bundle declaration.
+ * @returns ordered absolute patch paths.
+ */
+export function bundlePatchPaths(directory: string, bundle: NonNullable<NonNullable<ProfileManifest['dsh']>['bundle']>): string[] {
+  return [resolve(directory, bundle.patch)]
 }

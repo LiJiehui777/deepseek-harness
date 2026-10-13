@@ -11,6 +11,8 @@ English | [中文](README.zh.md)
 
 Use **Plugins** settings to configure the capabilities exposed by this deployment. Expand a card, stage changes, save them or reset to deployment defaults. Conflicting saves retain drafts for correction. Optional cards configure the independent [RAGFlow knowledge connector](../../../docs/user/ragflow-connector.md) and [Feishu/WeCom connectors](../../../docs/user/enterprise-connectors.md); credentials stay in DH's credential service. Feature-specific tabs expose additional plugin pages.
 
+The enhanced sidebar Plugins page also registers these forms through `plugins.item`, with a short summary and an always-open configuration page. The existing controllers retain their staged edits, credential references, dataset-name picker and Feishu OAuth actions.
+
 ## Table of Contents
 
 - [Use this package](#use-this-package)
@@ -98,7 +100,7 @@ These limits define which plugins appear and how fresh the list is; they are cur
 
 - **Only host-plane plugins appear** — a plugin an agent preset mounts carries its configuration inline in that preset's `agent.cordis.yml` and cannot register a settings namespace at all, so this section lists nothing for it. Editing those values remains the preset editor's job.
 - **A card still needs a browser bundle** — the browser half must be a `dsh.client` package built in the client module system's lazy-CJS factory format, and the `clientBundle` preset that emits it lives in `../../../packages/client/tsdown.client.ts` rather than a published package, so a plugin outside this repository has to reproduce that build itself.
-- **The served namespaces re-read on two signals only** — the wire announces settings-document commits and connection resets, not registrations, so a namespace whose owner registers after the tab's read joins the list on the next document commit or reconnect.
+- **Namespace availability follows management changes** — the shared mirror reloads after settings commits, connection resets and native plugin-manager events. Other registrations still join on the next one of these signals.
 - **The shell card follows the composed executor** — the POSIX and PowerShell executor families share the `bash` namespace because a host composes exactly one of them, so the served schema differs by platform (PowerShell adds `pwshPath`) even though the card edits the same two fields on both.
 
 <a id="dev-note"></a>

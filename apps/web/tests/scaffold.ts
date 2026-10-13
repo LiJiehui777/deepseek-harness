@@ -60,6 +60,7 @@ import {
   assertEntriesLoaded,
   composeEntries,
   healProfilesModuleFallback,
+  initProfile, loadProfileDirectory, mountRootInclude, type ProfileContext,
   loadOverlayPatches,
   type Profile,
 } from '@deepseek-ai/dsh-app-boot'
@@ -285,6 +286,8 @@ export interface WebScaffold {
 
 /** Options for {@link launchWebScaffold}. */
 export interface LaunchOptions {
+  /** Include the enhanced distribution's native plugin management and connectors. */
+  pluginManagement?: boolean
   /** Enable the real Open In rows with deterministic launch-environment facts. */
   openInAppEnvironment?: LaunchEnvironmentSnapshot
   /** Compare the replayed root session with `replayFixture`; defaults on for a manifest-owned canonical recording. */
@@ -507,7 +510,11 @@ export async function launchWebScaffold(options: LaunchOptions = {}): Promise<We
   const extraOverlayPatches = options.extraOverlayPath === undefined
     ? []
     : loadOverlayPatches('web e2e scaffold', options.extraOverlayPath)
-  const composedRows = composeEntries([basePatches, surfacePatches, extraOverlayPatches])
+  const managedBundles = ['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-app', '@deepseek-ai/dsh-plugin-management', '@deepseek-ai/dsh-tool-ragflow-connector', '@deepseek-ai/dsh-enterprise-connectors']
+  const managementPatches = options.pluginManagement === true
+    ? ['plugin-management', '../interaction/tool-ragflow-connector', '../interaction/enterprise-connectors'].flatMap(name =>
+      loadOverlayPatches('web e2e plugins', new URL('../../../packages/bundle/' + name + '/cordis.patch.yml', import.meta.url).pathname)) : []
+  const composedRows = composeEntries([basePatches, surfacePatches, managementPatches, extraOverlayPatches])
   const webRuntimeConfig = composedRows.find(row => row.id === 'web-runtime')?.config as {
     surfaceContext?: boolean
   } | undefined
@@ -515,6 +522,7 @@ export async function launchWebScaffold(options: LaunchOptions = {}): Promise<We
   const patches: PatchOptions[] = [
     ...basePatches,
     ...surfacePatches,
+    ...managementPatches,
     // Keyless scenarios retain the recorded default; explicit scenario overlays win.
     ...mode === 'record' || options.deepSeekMissingCredential === true
       ? []
@@ -655,6 +663,16 @@ export async function launchWebScaffold(options: LaunchOptions = {}): Promise<We
   try {
     process.chdir(workspaceCwd)
     const profileDir = join(harnessHome, 'profiles', 'scaffold')
+    if (options.pluginManagement === true) {
+      initProfile(profileDir, managedBundles, 'live')
+      const profile = loadProfileDirectory('web e2e plugins', profileDir, INSTALL_ANCHOR, { userLayer: false })
+      const profileContext: ProfileContext = { name: 'scaffold', dir: profileDir, patchPath: profile.patchPath, installAnchor: INSTALL_ANCHOR, cwd: workspaceCwd, home: harnessHome, startedBundles: managedBundles, overlays: patches.slice(basePatches.length + surfacePatches.length + managementPatches.length), telemetryDisabledEnv: undefined }
+      ctx.provide('profileContext', profileContext)
+      let tail = Promise.resolve()
+      ctx.provide('profileRuntime', { runExclusive<T>(operation: () => Promise<T>): Promise<T> {
+        const work = tail.then(operation); tail = work.then(() => {}, () => {}); return work
+      } })
+    }
     const extraLayers: Profile['layers'] = await Promise.all((options.extraInstallAnchors ?? []).map(async (anchor) => {
       const manifest = JSON.parse(await readFile(anchor, 'utf8')) as { name?: unknown }
       if (typeof manifest.name !== 'string' || manifest.name === '') {
@@ -706,7 +724,8 @@ export async function launchWebScaffold(options: LaunchOptions = {}): Promise<We
     // and a preset resolving package names from its own directory cannot reach
     // `@deepseek-ai/cordis-plugin-group` by name.
     ctx.loader.builtins.group = Group
-    await ctx.loader.create({
+    if (options.pluginManagement === true) await mountRootInclude(ctx, rootConfig, patches)
+    else await ctx.loader.create({
       name: 'cordis:include',
       config: { path: pathToFileURL(rootConfig).href, patches },
     })

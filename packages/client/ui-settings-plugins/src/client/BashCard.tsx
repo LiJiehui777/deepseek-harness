@@ -1,5 +1,6 @@
 /** The shell plugin's card: the limits every command the agent runs is bound by. */
 
+import type { PluginConfigViewProps } from '@deepseek-ai/dsh-client-ui-plugin-manager/client'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import { ValueField } from './fields.tsx'
 import { PluginCard } from './PluginCard.tsx'
@@ -10,7 +11,7 @@ import type {} from './slot-contract.ts'
 export type BashCardProps =
   PropsRuntime<'settings.plugin.item'>
   & PropsLocale<'settings.plugins'>
-  & InjectFace<BashCardFace>
+  & InjectFace<BashCardFace> & Partial<PluginConfigViewProps>
 
 /**
  * Render the shell card.
@@ -20,9 +21,10 @@ export type BashCardProps =
 export function BashCard(props: BashCardProps) {
   const { t } = props
   const state = props.useBashCard(snapshot => snapshot)
+  if (props.view === 'summary') return <>{props.t('bashDescription')}</>
   const disabled = !state.writable
   return (
-    <PluginCard
+    <PluginCard standalone={props.view === 'page'}
       t={t}
       titleKey="bashTitle"
       descriptionKey="bashDescription"

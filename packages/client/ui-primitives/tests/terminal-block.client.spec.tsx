@@ -186,6 +186,11 @@ describe('TerminalBlock status pill', () => {
     expect(screen.getByText('退出码 1')).toBeTruthy()
   })
 
+  it('marks a terminated installer without an exit code as failed', () => {
+    const view = render(<TerminalBlock command="pnpm add fixture" output="stopped" exitCode={null} />)
+    expect(view.container.querySelector('[data-state="error"]')).not.toBeNull()
+  })
+
   it('renders the signal pill, which outranks the exit code', () => {
     render(<TerminalBlock command="sleep 9" output="a" exitCode={0} signal="SIGKILL" />)
     expect(screen.getByText('信号 SIGKILL')).toBeTruthy()

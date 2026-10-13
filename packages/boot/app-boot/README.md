@@ -77,6 +77,8 @@ When your app boots a model-backed agent, you can tell the agent where the DSH i
 <a id="understand-the-implementation"></a>
 ## Understand the implementation
 
+The enhanced profile supplies launcher-owned profile facts and serializes plugin edits with watched reloads. Native management re-reads bundle layers and reconciles the root Include; existing Web profile files and DH home data remain intact.
+
 <details>
 <summary>Implementation internals — click to expand</summary>
 

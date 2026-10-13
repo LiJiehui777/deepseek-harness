@@ -1,0 +1,5 @@
+- insert:
+    - id: plugin-manager
+      name: '@deepseek-ai/dsh-plugin-manager'
+    - id: ui-plugin-manager
+      name: '@deepseek-ai/dsh-client-ui-plugin-manager'

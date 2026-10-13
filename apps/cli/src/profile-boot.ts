@@ -30,6 +30,8 @@ import {
   PROFILE_TEMPLATES,
   resolveProfileDir,
   watchUserPatches,
+  readProfilePatches,
+  type ProfileContext,
   type Profile,
 } from '@deepseek-ai/dsh-app-boot'
 import { resolveDshHome } from '@deepseek-ai/dsh-home-paths'
@@ -325,16 +327,28 @@ export async function runProfile(options: RunProfileOptions): Promise<{ ctx: Con
   // objects in place. Reusing one parsed patch object across applications
   // would bake a user override into the bundle's in-memory insert row, so
   // removing the override could never revert the row to the bundle default.
-  const composeLive = (): PatchOptions[] => structuredClone([
-    ...composed.bundlePatches,
-    ...loadOptionalPatches(NAME, composed.profile.patchPath) ?? [],
-    ...loadOptionalPatches(NAME, homePatchPath()) ?? [],
-    ...composed.overlays,
-  ])
+  const profileContext: ProfileContext = {
+    name: composed.profile.name, dir: composed.profile.dir, patchPath: composed.profile.patchPath,
+    installAnchor: INSTALL_ANCHOR, cwd: process.cwd(), home: dirname(homePatchPath()),
+    startedBundles: composed.profile.layers.map(layer => layer.packageName), overlays: composed.overlays,
+    telemetryDisabledEnv: undefined,
+  }
+  const composeLive = (): PatchOptions[] => readProfilePatches(NAME, profileContext)
+
   // Cloned for the same insert-aliasing reason as composeLive: the boot
   // application must not mutate the objects later reloads recompose from.
   const ctx = await boot(NAME, rootConfig, structuredClone(allPatches(composed)), (hostCtx) => {
     app.current = hostCtx
+    hostCtx.provide('profileContext', profileContext)
+    if (composed.profile.patchReload === 'live') {
+      let tail = Promise.resolve()
+      hostCtx.provide('profileRuntime', { runExclusive<T>(operation: () => Promise<T>): Promise<T> {
+        const work = tail.then(operation)
+        tail = work.then(() => {}, () => {})
+        return work
+      } })
+      hostCtx.effect(() => async () => { await tail }, 'profile edit queue drain')
+    }
     // Before any config-tree entry mounts, so plugins resolve all launch-time
     // environment values from the same immutable provenance snapshot.
     hostCtx.provide(DSH_LAUNCH_ENVIRONMENT_KEY, options.environment)

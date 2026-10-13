@@ -1,3 +1,4 @@
+import type { PluginLocalizedMeta } from '@deepseek-ai/dsh-package-manifest'
 import type { Branded } from '@deepseek-ai/dsh-brand'
 
 /** Stable Loader-tree identity of one configured plugin entry. */
@@ -14,6 +15,8 @@ export type PluginFiberPhase =
 
 /** One non-group Loader entry exposed to trusted clients. */
 export interface PluginInventoryEntry {
+  /** Optional display metadata read without evaluating plugin code. */
+  readonly meta?: PluginLocalizedMeta
   readonly entryId: PluginEntryId
   /** Exact module specifier imported by the Loader entry. */
   readonly moduleName: string
@@ -61,6 +64,7 @@ export interface AgentPresetPluginGroup {
 
 /** Point-in-time inventory returned by the plugin inventory Remote. */
 export interface PluginInventorySnapshot {
+  readonly managementAvailable?: boolean
   readonly entries: readonly PluginInventoryEntry[]
   /**
    * Per-preset compositions, present only when an agent-preset roster is

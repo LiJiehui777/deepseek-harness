@@ -1,6 +1,7 @@
 /** User control for model-selectable subagent delegation in new sessions. */
 
 import { Switch } from '@deepseek-ai/dsh-client-ui-primitives'
+import type { PluginConfigViewProps } from '@deepseek-ai/dsh-client-ui-plugin-manager/client'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type {
   SubagentModelCandidate,
@@ -14,7 +15,7 @@ import css from './SubagentModelSelectionCard.module.css'
 export type SubagentModelSelectionCardProps =
   PropsRuntime<'settings.plugin.item'>
   & PropsLocale<'settings.plugins'>
-  & InjectFace<SubagentModelSelectionCardFace>
+  & InjectFace<SubagentModelSelectionCardFace> & Partial<PluginConfigViewProps>
 
 /**
  * Render the default-off preference and its exact adapter-route choices.
@@ -24,6 +25,7 @@ export type SubagentModelSelectionCardProps =
 export function SubagentModelSelectionCard(props: SubagentModelSelectionCardProps) {
   const { t } = props
   const state = props.useSubagentModelSelectionCard(snapshot => snapshot)
+  if (props.view === 'summary') return <>{props.t('subagentModelSelectionDescription')}</>
   const availableGroups = new Map<string, {
     providerName: string
     candidates: SubagentModelCandidate[]
@@ -62,7 +64,7 @@ export function SubagentModelSelectionCard(props: SubagentModelSelectionCardProp
     </label>
   )
   return (
-    <PluginCard
+    <PluginCard standalone={props.view === 'page'}
       t={t}
       titleKey="subagentModelSelectionTitle"
       descriptionKey="subagentModelSelectionDescription"

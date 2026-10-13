@@ -4,6 +4,7 @@
  * the settings section, so the literal never rides a response.
  */
 
+import type { PluginConfigViewProps } from '@deepseek-ai/dsh-client-ui-plugin-manager/client'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import { SecretField, ValueField } from './fields.tsx'
 import { PluginCard } from './PluginCard.tsx'
@@ -14,7 +15,7 @@ import type {} from './slot-contract.ts'
 export type WebSearchCardProps =
   PropsRuntime<'settings.plugin.item'>
   & PropsLocale<'settings.plugins'>
-  & InjectFace<WebSearchCardFace>
+  & InjectFace<WebSearchCardFace> & Partial<PluginConfigViewProps>
 
 /**
  * Render the web-search card.
@@ -24,9 +25,10 @@ export type WebSearchCardProps =
 export function WebSearchCard(props: WebSearchCardProps) {
   const { t } = props
   const state = props.useWebSearchCard(snapshot => snapshot)
+  if (props.view === 'summary') return <>{props.t('webSearchDescription')}</>
   const disabled = !state.writable
   return (
-    <PluginCard
+    <PluginCard standalone={props.view === 'page'}
       t={t}
       titleKey="webSearchTitle"
       descriptionKey="webSearchDescription"

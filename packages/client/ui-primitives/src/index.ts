@@ -71,3 +71,9 @@ export type { MarkdownCodeLabels, MarkdownFileMentions, MarkdownLabels, Markdown
 export { extractMarkdownPlainText } from './markdown/plain-text.ts'
 export type { MarkdownPlainTextMode, MarkdownPlainTextOptions } from './markdown/plain-text.ts'
 export * from './icons/index.tsx'
+
+export { PluginArtworkTerminal, PluginArtworkLoop, PluginArtworkSubagent, PluginArtworkSearch, PluginArtworkDefault } from './plugin-artwork.tsx'
+
+export { IconCheckCircleFillRegular, IconChevronDownOutlineRegular, IconChevronLeftOutlineMedium, IconChevronRightOutlineRegular, IconCloseOutlineMedium, IconDownloadOutlineRegular, IconInfoOutlineRegular, IconPlusOutlineRegular, IconRefreshOutlineRegular, IconTrashOutlineRegular, IconWarningOutlineRegular, IconPluginPinwheelOutlineRegular } from './icons/index.tsx'
+export { pointerModality } from './input-modality.ts'
+export { MenuItemButton } from './Menu.tsx'

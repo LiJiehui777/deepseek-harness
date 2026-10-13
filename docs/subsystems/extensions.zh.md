@@ -274,6 +274,130 @@ publish(topic: string, payload: InspectorJsonValue, monotonicMs?: number): void
 
 Source: [`packages/experimental/inspector/src/index.ts`](../../packages/experimental/inspector/src/index.ts)
 
+<a id="ctxpluginmanager--pluginmanager"></a>
+
+### `ctx.pluginManager` — `PluginManager`
+
+Manage profile files and apply their declared reload lifecycle.
+
+```ts cordis-catalog
+/** Read exact plugin-version exemptions saved in this profile.
+ * @returns Accepted package-name@version keys with the runtime versions they may run on, and any
+ * record or file problem the reader rejected, which the caller reports instead of failing.
+ */
+@Remote listVersionExemptions(): { exemptions: Record<string, string[]>; warnings: string[] }
+
+/** Grant or revoke one exact plugin/runtime exemption and reevaluate live plugins.
+ * @param packageVersion Exact manifest package name followed by @ and its version; never an installation spec or alias.
+ * @param runtimeVersion Exact current DSH version for grants; revocation may name a previous runtime.
+ * @param enabled Whether to grant rather than revoke the exemption.
+ * @param acceptRisk Required true for grants after the user accepts possible crashes and data loss.
+ * @returns Saved and runtime outcomes. Startup-only profiles require restart.
+ */
+@Remote setVersionExemption(packageVersion: string, runtimeVersion: string, enabled: boolean, acceptRisk?: boolean): Promise<ChangeResult>
+
+/** Read current plugins, including why a row cannot be changed through the profile patch.
+ * @returns Current runtime entries with persistent patch targets.
+ */
+@Remote async listPlugins(): Promise<PluginInfo[]>
+
+/** Read installed, installation-provided, and offline Official catalog bundles, plus selected non-bundle names.
+ * A dependency without a bundle patch is listed, as a `not-bundle` problem, only while it is selected.
+ * @returns Package versions, manifest descriptions, the installable spec of profile dependencies, rows, optional
+ * display metadata, activation selections, whether the installation offers the bundle, and removal availability.
+ */
+@Remote listBundles(): Promise<BundleInfo[]>
+
+/** Read the registries this manager asks: the configured first one, its fallbacks in order, and what pnpm's own configuration names.
+ * @returns The registries in pnpm's comparison form; null is the one pnpm's own configuration names, `resolved` as pnpm reads it now.
+ */
+@Remote async registries(): Promise<PluginRegistries>
+
+/** Read what a spec names before installing it.
+ * @param spec One package spec: a registry name, an absolute path, a git address, or a tarball.
+ * @param options The registry asked first.
+ * @param signal Ends a registry lookup early.
+ * @returns The package the spec names, or why it is refused.
+ */
+@Remote async inspect(spec: string, options?: InspectOptions, signal?: AbortSignal): Promise<PluginSpecInspection>
+
+/** Persist a plugin entry's desired enablement and apply it on live profiles.
+ * @param id Loader entry identity returned by listPlugins.
+ * @param enabled Whether the plugin should run.
+ * @returns Saved and runtime outcomes, including higher-priority overrides.
+ */
+@Remote setPluginEnabled(id: PluginEntryId, enabled: boolean): Promise<ChangeResult>
+
+/** Select or remove a bundle layer while retaining installed dependencies.
+ * @param name Bundle package name.
+ * @param enabled Whether the bundle contributes its patch layer.
+ * @returns Persisted and runtime outcomes.
+ */
+@Remote setBundleEnabled(name: string, enabled: boolean): Promise<ChangeResult>
+
+/**
+ * Install a package using the same pnpm implementation as dsh plugin. GitHub
+ * repositories get a connection check bounded by githubConnectionTimeoutMs before pnpm starts;
+ * only network failures or timeouts stop installation, while pnpm owns authentication and transport fallback. A run
+ * that fails, is cancelled, or adds a package without a bundle patch restores
+ * `package.json` and `pnpm-lock.yaml` as they were; downloaded files can stay.
+ * @param spec One package spec, including local paths relative to the invocation directory.
+ * @param options Whether to activate the installed bundle (defaults to true), the request id a cancellation names,
+ * the pending build scripts to allow, whether to save an exact dependency, and the registry asked first.
+ * @returns Package-manager diagnostics, the registries asked, and the observed activation outcome.
+ */
+@Remote installBundle(spec: string, options?: InstallBundleOptions): Promise<ChangeResult>
+
+/** Recover the result of an active installation without cancelling it.
+ * @param requestId The id supplied when installation started.
+ * @returns The installation's outcome after it settles, or null if no active request has that id.
+ * Completed results are not retained; null establishes neither success nor cancellation.
+ */
+@Remote async waitForInstall(requestId: PluginInstallRequestId): Promise<ChangeResult | null>
+
+/** Stop an installation this manager owns and wait until its files are back.
+ * @param requestId The id the installation was started with.
+ * @returns `cancelled` once the Git check or pnpm exited and the files are restored, `too-late` once the bundle is being
+ * applied, `not-running` for any other id.
+ */
+@Remote async cancelInstall(requestId: PluginInstallRequestId): Promise<PluginInstallCancellation>
+
+/** Unload and remove a profile-owned bundle dependency through dsh plugin's pnpm path; a selected name no
+ * dependency holds is only deselected.
+ * @param name Installed dependency or selected bundle name.
+ * @returns Removal diagnostics and the remaining profile state.
+ */
+@Remote removeBundle(name: string): Promise<ChangeResult>
+```
+
+Source: [`packages/boot/plugin-manager/src/index.ts`](../../packages/boot/plugin-manager/src/index.ts)
+
+<a id="ctxpluginregistryprobe--pluginregistryprobe"></a>
+
+### `ctx.pluginRegistryProbe` — `PluginRegistryProbe`
+
+Compares public registry responses on the Host; the Client owns the initial selection.
+
+```ts cordis-catalog
+/**
+ * Race npm and npmmirror HTTPS ping responses through the Host's fetch proxy.
+ * Concurrent readers share a probe; a winner cancels and awaits the other request.
+ * @returns the first registry with a successful response, or null when disabled or neither responds successfully; results are cached.
+ * @throws rejects when the service has been unloaded.
+ */
+@Remote async fastest(): Promise<string | null>
+```
+
+Source: [`packages/client/ui-plugin-manager/src/index.ts`](../../packages/client/ui-plugin-manager/src/index.ts)
+
+<a id="ctxprofilecontext--profilecontext"></a>
+
+### `ctx.profileContext` — `ProfileContext`
+
+Current profile facts; scheduling and mutation belong to their callers.
+
+Source: [`packages/boot/app-boot/src/profile-context.ts`](../../packages/boot/app-boot/src/profile-context.ts)
+
 <a id="cordis-events"></a>
 
 ### `cordis/*` events
@@ -379,4 +503,62 @@ A pending Client activation request left the answerable state.
 ```
 
 Source: [`packages/extensions/cordis-host-runner/src/types.ts`](../../packages/extensions/cordis-host-runner/src/types.ts)
+
+<a id="plugin-manager-events"></a>
+
+### `plugin-manager/*` events
+
+<a id="plugin-managerchanged--emit"></a>
+
+#### `plugin-manager/changed` — emit
+
+The profile's plugins, bundles, or composition changed: a manager operation completed. A patch generation applied outside the manager, by HMR's watcher after a CLI or hand edit, announces nothing here.
+
+```ts cordis-catalog
+/**
+ * The profile's plugins, bundles, or composition changed: a manager
+ * operation completed. A patch generation applied outside the manager,
+ * by HMR's watcher after a CLI or hand edit, announces nothing here.
+ * @mode emit
+ * @param change - what changed.
+ */
+'plugin-manager/changed'(change: PluginChange): void
+```
+
+Source: [`packages/boot/plugin-manager/src/types.ts`](../../packages/boot/plugin-manager/src/types.ts)
+
+<a id="plugin-managerinstall-log--emit"></a>
+
+#### `plugin-manager/install-log` — emit
+
+One chunk of a pnpm run's output, streamed as the run produces it.
+
+```ts cordis-catalog
+/**
+ * One chunk of a pnpm run's output, streamed as the run produces it.
+ * @mode emit
+ * @param chunk - the chunk and the run it belongs to.
+ */
+'plugin-manager/install-log'(chunk: PluginInstallLogChunk): void
+```
+
+Source: [`packages/boot/plugin-manager/src/types.ts`](../../packages/boot/plugin-manager/src/types.ts)
+
+<a id="plugin-managerinstall-state--emit"></a>
+
+#### `plugin-manager/install-state` — emit
+
+An installation moved between its Host phases. `installing` is announced once per registry the installation asks, with the attempt's registry and position; `cancelling` and `applying` once.
+
+```ts cordis-catalog
+/**
+ * An installation moved between its Host phases. `installing` is announced once per registry the
+ * installation asks, with the attempt's registry and position; `cancelling` and `applying` once.
+ * @mode emit
+ * @param progress - the installation's request id and phase, with the attempt while installing.
+ */
+'plugin-manager/install-state'(progress: PluginInstallProgress): void
+```
+
+Source: [`packages/boot/plugin-manager/src/types.ts`](../../packages/boot/plugin-manager/src/types.ts)
 <!-- END GENERATED cordis-surface -->

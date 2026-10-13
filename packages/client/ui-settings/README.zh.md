@@ -44,6 +44,8 @@ kind: "package-reference"
 <a id="understand-the-implementation"></a>
 ## 理解实现
 
+原生插件页面通过 `configForms.get(namespace)` 及 `configForms.describe()` 使用同一设置镜像。稳定的句柄共享已接受值，并使用现有 Host 持久化及校验链路。
+
 <details>
 <summary>实现细节——点击展开</summary>
 

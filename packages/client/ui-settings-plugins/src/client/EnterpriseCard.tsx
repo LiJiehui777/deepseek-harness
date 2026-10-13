@@ -1,4 +1,5 @@
 /** Native settings card for an independently authorized enterprise provider. */
+import type { PluginConfigViewProps } from '@deepseek-ai/dsh-client-ui-plugin-manager/client'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { EnterpriseCardFace } from './enterprise-card-controller.ts'
 import type { PluginsSettingsLocaleKey } from './locales.ts'
@@ -8,7 +9,7 @@ import css from './fields.module.css'
 import enterpriseCss from './EnterpriseCard.module.css'
 
 /** Framework-bound card props; both accounts use independent snapshots. */
-export type EnterpriseCardProps = PropsRuntime<'settings.plugin.item'> & PropsLocale<'settings.plugins'> & InjectFace<EnterpriseCardFace>
+export type EnterpriseCardProps = PropsRuntime<'settings.plugin.item'> & PropsLocale<'settings.plugins'> & InjectFace<EnterpriseCardFace> & Partial<PluginConfigViewProps>
 
 /**
  * Render account credentials, capabilities, sender scope and connection feedback.
@@ -19,6 +20,7 @@ export function EnterpriseCard(props: EnterpriseCardProps) {
   const state = props.useEnterpriseCard(snapshot => snapshot)
   const { t } = props
   const feishu = state.channel === 'feishu'
+  if (props.view === 'summary') return <>{t(feishu ? 'feishuDescription' : 'wecomDescription')}</>
   const disabled = !state.writable || state.saving
   const status: PluginsSettingsLocaleKey = state.status?.state === 'connected' ? 'enterpriseConnected'
     : state.status?.state === 'connecting' ? 'enterpriseConnecting'
@@ -34,7 +36,7 @@ export function EnterpriseCard(props: EnterpriseCardProps) {
     <label key={name} className={enterpriseCss.toggle}><input type="checkbox" disabled={disabled} checked={state.fields[name]?.text === 'true'}
       onChange={(event) => { props.edit(name, String(event.target.checked)) }} />{t(label)}</label>
   )
-  return <PluginCard t={t} titleKey={feishu ? 'feishuTitle' : 'wecomTitle'} descriptionKey={feishu ? 'feishuDescription' : 'wecomDescription'}
+  return <PluginCard standalone={props.view === 'page'} t={t} titleKey={feishu ? 'feishuTitle' : 'wecomTitle'} descriptionKey={feishu ? 'feishuDescription' : 'wecomDescription'}
     state={state} onSave={props.save} onDiscard={props.discard}>
     {field(feishu ? 'appId' : 'botId', feishu ? 'feishuAppId' : 'wecomBotId', feishu ? 'feishuSetupHint' : 'wecomSetupHint')}
     <SecretField id={`enterprise-${state.channel}-secret`} label={t(feishu ? 'feishuSecret' : 'wecomSecret')}

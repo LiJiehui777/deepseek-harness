@@ -22,6 +22,9 @@
     },
     {
       "path": "../../typert/protocol"
+    },
+    {
+      "path": "../../util/package-manifest"
     }
   ]
 }

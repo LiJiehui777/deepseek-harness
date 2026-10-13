@@ -20,6 +20,7 @@ import type {} from '@deepseek-ai/dsh-api-remotes/client'
 // settings-scope.ts).
 import type {} from '@deepseek-ai/dsh-api-remotes/types'
 import type {} from '@deepseek-ai/dsh-settings/types'
+import { ConfigForms } from './config-form.ts'
 import { SettingsSchemaService } from './schema.ts'
 import { SettingsScopeBinder } from './settings-scope.ts'
 import { SettingsDescribeMirror } from './settings-mirror.ts'
@@ -60,6 +61,7 @@ export function apply(ctx: Context): void {
   ctx.effect(() => {
     const disposers = [
       ctx.remote.$on('settings/document-updated', () => { void mirror.load() }),
+      ctx.remote.$on('plugin-manager/changed', () => { void mirror.load() }),
       ctx.on('connection/reset', () => { void mirror.load() }),
     ]
     // The first connection also emits connection/reset, so startup normally
@@ -69,5 +71,8 @@ export function apply(ctx: Context): void {
     void mirror.ensure()
     return () => { for (const dispose of disposers) dispose() }
   }, 'ui-settings: describe mirror invalidations')
-  new SettingsScopeBinder(ctx, { mirror, schema, persistence })
+  const scopes = new SettingsScopeBinder(ctx, { mirror, schema, persistence })
+  new ConfigForms(ctx, scopes)
 }
+
+export type { ConfigForms, ConfigForm, ConfigFormSnapshot } from './config-form.ts'

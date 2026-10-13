@@ -1,0 +1,52 @@
+- button "返回插件": 插件
+- heading "飞书连接器" [level=3]
+- paragraph: 读取授权消息与文档，收发消息并联动 DH 任务。
+- text: App ID 已覆盖
+- button "恢复默认"
+- textbox "App ID":
+  - /placeholder: ""
+  - text: cli_fixture_native_plugins
+- paragraph: 在飞书开放平台创建企业自建应用，并开启机器人能力。
+- text: App Secret 已保存密钥。
+- textbox "App Secret"
+- paragraph: 由 DH 凭证服务保存，保存后不返回浏览器。留空保留原密钥。
+- link "打开平台管理后台":
+  - /url: https://open.feishu.cn/app
+- checkbox "启用此连接"
+- text: 启用此连接
+- checkbox "允许读取可见群聊和文档" [checked]
+- text: 允许读取可见群聊和文档
+- checkbox "使用我的飞书账号读取" [checked]
+- text: 使用我的飞书账号读取
+- paragraph: 用户读取需要本人授权及已发布的用户权限，已获准的远程任务也可使用这份读取权限；机器人收发仍使用应用身份。
+- status:
+  - paragraph: 账号尚未授权
+- text: 授权回调地址
+- textbox "授权回调地址": {{origin}}/auth/feishu/callback
+- paragraph: 授权前，将这个完整地址添加到飞书应用「安全设置 → 重定向 URL」。请使用同一浏览器及访问地址。
+- button "授权我的飞书账号" [disabled]
+- button "解除账号授权" [disabled]
+- checkbox "接收平台消息并执行 DH 任务"
+- text: 接收平台消息并执行 DH 任务
+- paragraph: 私聊或群内 @机器人可启动 DH 任务，沿用现有模型、知识库和确认设置。
+- text: 允许派任务的用户 ID
+- textbox "允许派任务的用户 ID":
+  - /placeholder: ""
+- paragraph: 多个 ID 用逗号分隔；留空时拒绝所有远程任务。先给机器人发消息，再刷新状态并添加最近发送者。
+- text: 允许的会话 ID
+- textbox "允许的会话 ID":
+  - /placeholder: ""
+- paragraph: 留空允许可见资源读取及已授权用户派任务；主动发送时，目标会话必须填写在此处。
+- checkbox "允许 DH 主动发送消息"
+- text: 允许 DH 主动发送消息
+- paragraph: 模型主动发送每条消息时需要 DH 确认；已授权任务的回复返回原会话。
+- group: 高级连接设置
+- status:
+  - paragraph: 连接未启用
+- button "连接 / 检查已保存账号" [disabled]
+- button "刷新状态"
+- button "添加最近发送者" [disabled]
+- button "添加最近会话" [disabled]
+- paragraph: 请先保存修改，再检查连接。
+- button "放弃修改"
+- button "保存"

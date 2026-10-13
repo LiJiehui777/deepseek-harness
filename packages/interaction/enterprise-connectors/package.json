@@ -84,7 +84,8 @@
     "@larksuiteoapi/node-sdk": "1.75.0",
     "@wecom/aibot-node-sdk": "1.0.7",
     "zod": "^4.4.3",
-    "axios": "^1.16.0"
+    "axios": "^1.16.0",
+    "@deepseek-ai/dsh-authorization": "workspace:^"
   },
   "dsh": {
     "bundle": {

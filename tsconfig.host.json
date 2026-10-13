@@ -9,6 +9,7 @@
   },
   "include": [
     "apps/web/tests/scaffold.ts",
+    "apps/web/tests/plugin-management.e2e.ts",
     "apps/web/tests/scaffold-generation.spec.ts",
     "apps/web/tests/default-model.e2e.ts",
     "apps/web/tests/github-ready-review.e2e.ts",
@@ -138,6 +139,10 @@
     "scripts/client-bundle-purity.spec.ts"
   ],
   "references": [
+    { "path": "./packages/boot/plugin-manager" },
+    { "path": "./packages/client/ui-plugin-manager/tsconfig.host.json" },
+    { "path": "./packages/bundle/plugin-management" },
+
     { "path": "./packages/interaction/tool-ragflow-connector" },
     { "path": "./packages/interaction/enterprise-connectors" },
     { "path": "./packages/interaction/tool-quality-report" },

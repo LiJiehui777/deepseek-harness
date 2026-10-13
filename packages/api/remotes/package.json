@@ -87,6 +87,8 @@
     "zod": "^4.4.3",
     "@deepseek-ai/dsh-command-feedback": "workspace:^",
     "@deepseek-ai/dsh-tool-ragflow-connector": "workspace:^",
-    "@deepseek-ai/dsh-enterprise-connectors": "workspace:^"
+    "@deepseek-ai/dsh-enterprise-connectors": "workspace:^",
+    "@deepseek-ai/dsh-plugin-manager": "workspace:^",
+    "@deepseek-ai/dsh-client-ui-plugin-manager": "workspace:^"
   }
 }

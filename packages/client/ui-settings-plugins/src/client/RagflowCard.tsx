@@ -4,6 +4,7 @@
  * the settings section, so the literal never rides a response.
  */
 
+import type { PluginConfigViewProps } from '@deepseek-ai/dsh-client-ui-plugin-manager/client'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import { SecretField, ValueField } from './fields.tsx'
 import { RagflowDatasetsField } from './RagflowDatasetsField.tsx'
@@ -15,7 +16,7 @@ import type {} from './slot-contract.ts'
 export type RagflowCardProps =
   PropsRuntime<'settings.plugin.item'>
   & PropsLocale<'settings.plugins'>
-  & InjectFace<RagflowCardFace>
+  & InjectFace<RagflowCardFace> & Partial<PluginConfigViewProps>
 
 /**
  * Render the ragflow card.
@@ -25,9 +26,10 @@ export type RagflowCardProps =
 export function RagflowCard(props: RagflowCardProps) {
   const { t } = props
   const state = props.useRagflowCard(snapshot => snapshot)
+  if (props.view === 'summary') return <>{props.t('ragflowDescription')}</>
   const disabled = !state.writable
   return (
-    <PluginCard
+    <PluginCard standalone={props.view === 'page'}
       t={t}
       titleKey="ragflowTitle"
       descriptionKey="ragflowDescription"

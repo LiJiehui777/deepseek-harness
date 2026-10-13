@@ -179,6 +179,39 @@ export function apply(ctx: ClientContext): void {
     children: { 'settings.plugin.item': { kind: 'keyed', scope: 'root' } },
   }, ConfigurablePluginsTab))
 
+
+  // Native plugin pages use the same controllers and durable namespace revisions.
+  ctx.slots.inject('plugins.item', () => {
+    const mirror = ctx.settingsScope.describe()
+    const registrations = new Map<string, () => void>()
+    const sync = (): void => {
+      const served = new Set(mirror.getSnapshot().view?.namespaces.map(row => row.ns) ?? [])
+      const entries = [
+        { id: 'ragflow-connector', ns: RAGFLOW_NS, mount: () => ctx.slots.register({ name: 'plugins.item', id: 'ragflow-connector', order: -10,
+          label: () => t('ragflowTitle'), locale: NS, inject: () => ragflow.inject() }, RagflowCard) },
+        { id: 'feishu-connector', ns: 'feishu-connector', mount: () => ctx.slots.register({ name: 'plugins.item', id: 'feishu-connector', order: -9,
+          label: () => t('feishuTitle'), locale: NS, inject: () => enterprise.feishu.inject() }, EnterpriseCard) },
+        { id: 'wecom-connector', ns: 'wecom-connector', mount: () => ctx.slots.register({ name: 'plugins.item', id: 'wecom-connector', order: -8,
+          label: () => t('wecomTitle'), locale: NS, inject: () => enterprise.wecom.inject() }, EnterpriseCard) },
+        { id: 'subagent', ns: SUBAGENT_MODEL_SELECTION_NS, mount: () => ctx.slots.register({ name: 'plugins.item', id: 'subagent', order: -7,
+          label: () => t('subagentModelSelectionTitle'), locale: NS, inject: () => subagentModelSelection.inject() }, SubagentModelSelectionCard) },
+        { id: 'web-search', ns: WEB_SEARCH_NS, mount: () => ctx.slots.register({ name: 'plugins.item', id: 'web-search', order: -6,
+          label: () => t('webSearchTitle'), locale: NS, inject: () => webSearch.inject() }, WebSearchCard) },
+        { id: 'agent-loop', ns: AGENT_LOOP_NS, mount: () => ctx.slots.register({ name: 'plugins.item', id: 'agent-loop', order: -5,
+          label: () => t('agentLoopTitle'), locale: NS, inject: () => agentLoop.inject() }, AgentLoopCard) },
+        { id: 'shell', ns: SHELL_NS, mount: () => ctx.slots.register({ name: 'plugins.item', id: 'shell', order: -4,
+          label: () => t('bashTitle'), locale: NS, inject: () => bash.inject() }, BashCard) },
+      ]
+      for (const entry of entries) {
+        if (served.has(entry.ns) && !registrations.has(entry.id)) registrations.set(entry.id, entry.mount())
+        else if (!served.has(entry.ns)) { registrations.get(entry.id)?.(); registrations.delete(entry.id) }
+      }
+    }
+    const off = mirror.subscribe(sync)
+    sync()
+    return () => { off(); for (const dispose of registrations.values()) dispose() }
+  })
+
   ctx.slots.inject('settings.plugin.item', function* () {
     for (const channel of ['feishu', 'wecom'] as const) {
       yield ctx.slots.register({ name: 'settings.plugin.item', key: `${channel}-connector`, locale: NS,

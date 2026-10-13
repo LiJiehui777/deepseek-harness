@@ -9,6 +9,13 @@
 
 ```mermaid
 flowchart LR
+  pkg_app_boot["app-boot"]
+  svc_profileContext["ctx.profileContext<br/>Launcher profile facts"]
+  pkg_plugin_manager["plugin-manager"]
+  svc_pluginManager["ctx.pluginManager<br/>Current profile plugin management"]
+  pkg_api_remotes["api-remotes"]
+  pkg_client_ui_plugin_manager["client-ui-plugin-manager"]
+  svc_pluginRegistryProbe["ctx.pluginRegistryProbe<br/>Installation registry probe"]
   pkg_enterprise_connectors["enterprise-connectors"]
   svc_enterpriseConnectors["ctx.enterpriseConnectors<br/>Standalone enterprise account lifetimes"]
   pkg_client_ui_settings_plugins["client-ui-settings-plugins"]
@@ -244,6 +251,7 @@ flowchart LR
   pkg_api_workspace_controller --> svc_directoryPickerController
   pkg_api_workspace_controller --> svc_workspaceController
   pkg_api_workspace_files --> svc_workspaceFiles
+  pkg_app_boot --> svc_profileContext
   pkg_attachment --> svc_attachments
   pkg_attachment_local --> svc_attachments
   pkg_authorization --> svc_authorization
@@ -251,6 +259,7 @@ flowchart LR
   pkg_bash_sandbox --> svc_shell
   pkg_client_file_upload --> svc_fileUploads
   pkg_client_modules --> svc_clientModules
+  pkg_client_ui_plugin_manager --> svc_pluginRegistryProbe
   pkg_code_runtime --> svc_codeRuntime
   pkg_code_runtime_worker_thread --> svc_codeRuntime
   pkg_command_feedback --> svc_sessionFeedback
@@ -291,6 +300,7 @@ flowchart LR
   pkg_message_feedback --> svc_messageFeedback
   pkg_permission_presets --> svc_permissionPresets
   pkg_plan_mode --> svc_planMode
+  pkg_plugin_manager --> svc_pluginManager
   pkg_plugin_package_inventory_deepseek --> svc_deepseekLlmApiExtensions
   pkg_pwsh_local --> svc_shell
   pkg_sandbox --> svc_sandbox
@@ -396,6 +406,11 @@ flowchart LR
   svc_llm --> pkg_agent_loop
   svc_llm --> pkg_compaction_basic
   svc_lsp --> pkg_tool_lsp
+  svc_pluginManager --> pkg_api_remotes
+  svc_pluginManager --> pkg_client_ui_plugin_manager
+  svc_pluginRegistryProbe --> pkg_api_remotes
+  svc_pluginRegistryProbe --> pkg_client_ui_plugin_manager
+  svc_profileContext --> pkg_plugin_manager
   svc_ragflowCatalog --> pkg_client_ui_settings_plugins
   svc_sandbox --> pkg_bash_sandbox
   svc_sandbox --> pkg_terminal_bash
@@ -485,6 +500,9 @@ flowchart LR
 
 | ctx 键 | 角色 | 所属包 | 实现 | 直接消费方 | 配套插件 | 说明 |
 | --- | --- | --- | --- | --- | --- | --- |
+| `ctx.profileContext` | `core` | [`app-boot`](../packages/boot/app-boot) | - | [`plugin-manager`](../packages/boot/plugin-manager) | - | 提供不可变位置及启动时的组合输入。 |
+| `ctx.pluginManager` | `core` | [`plugin-manager`](../packages/boot/plugin-manager) | - | [`api-remotes`](../packages/api/remotes), [`client-ui-plugin-manager`](../packages/client/ui-plugin-manager) | - | 持久化配置编辑、安装插件包并协调原生 Loader 生命周期。 |
+| `ctx.pluginRegistryProbe` | `core` | [`client-ui-plugin-manager`](../packages/client/ui-plugin-manager) | - | [`api-remotes`](../packages/api/remotes), [`client-ui-plugin-manager`](../packages/client/ui-plugin-manager) | - | 在 Host 上共享有时限的安装源探测。 |
 | `ctx.enterpriseConnectors` | `core` | [`enterprise-connectors`](../packages/interaction/enterprise-connectors) | - | [`client-ui-settings-plugins`](../packages/client/ui-settings-plugins) | - | 官方 SDK 提供方解析 Host 凭据、授权远程任务，并向原生设置卡片提供脱敏状态。 |
 | `ctx.ragflowCatalog` | `core` | [`tool-ragflow-connector`](../packages/interaction/tool-ragflow-connector) | - | [`client-ui-settings-plugins`](../packages/client/ui-settings-plugins) | - | 已认证的设置目录使用 Host 保存的凭据，返回 API 授权范围内的知识库名称；模型工具仍受单独配置的知识库白名单约束。 |
 | `ctx.attachments` | `seam` | [`attachment`](../packages/attachment/attachment) | [`attachment-local`](../packages/attachment/attachment-local) | [`api-session-controller`](../packages/api/session-controller), [`tool-fs`](../packages/fs/tool-fs), [`llm-pi-ai`](../packages/llm/llm-pi-ai), [`llm-deepseek`](../packages/llm/llm-deepseek) | - | 宿主会在会话事件之前提交已接受的图片；提供方适配器将已授权的持久引用解析为提供方原生内容。 |

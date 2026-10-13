@@ -98,6 +98,9 @@ const GROUP_ORDER = [
 ]
 
 const SERVICE_ROLES: ServiceRole[] = [
+  { key: 'profileContext', pkg: 'app-boot', title: 'Launcher profile facts', mode: 'core', consumers: ['plugin-manager'], note: 'Supplies immutable locations and launch-time composition inputs.' },
+  { key: 'pluginManager', pkg: 'plugin-manager', title: 'Current profile plugin management', mode: 'core', consumers: ['api-remotes', 'client-ui-plugin-manager'], note: 'Persists profile edits, installs bundles and reconciles native Loader lifecycles.' },
+  { key: 'pluginRegistryProbe', pkg: 'client-ui-plugin-manager', title: 'Installation registry probe', mode: 'core', consumers: ['api-remotes', 'client-ui-plugin-manager'], note: 'Bounds and shares installation registry probes on the Host.' },
   {
     key: 'enterpriseConnectors',
     pkg: 'enterprise-connectors',

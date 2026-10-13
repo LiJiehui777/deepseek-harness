@@ -6,7 +6,7 @@ This guide connects the enhanced DH application to Feishu and enterprise WeChat.
 
 ## Start and configure
 
-Run `pnpm run start:enhanced` after installing dependencies and building the enhanced checkout. Keep DH running while receiving remote tasks. Open Settings → Plugins → Plugin configuration. The **Feishu connector** and **WeCom connector** cards are independent and start disabled. Save edits before selecting **Connect / check saved account**. Secrets are written to DH credentials; reopening a card shows presence only. Configure a working model in DH before sending tasks.
+Run `pnpm run start:enhanced` after installing dependencies and building the enhanced checkout. Keep DH running while receiving remote tasks. Open Plugins in the main sidebar. The **Feishu connector** and **WeCom connector** cards are independent and start disabled. Save edits before selecting **Connect / check saved account**. Secrets are written to DH credentials; reopening a card shows presence only. Configure a working model in DH before sending tasks.
 
 ## Connect Feishu
 

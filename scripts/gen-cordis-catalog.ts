@@ -54,6 +54,9 @@ export { REGION_BEGIN, REGION_END }
  * errors, so the partition can never silently drift from the service API.
  */
 export const SERVICE_PAGE: Record<string, string> = {
+  profileContext: 'extensions.md',
+  pluginManager: 'extensions.md',
+  pluginRegistryProbe: 'extensions.md',
   agentLoop: 'core.md',
   agentDefaultModel: 'core.md',
   agentPresets: 'core.md',
@@ -149,6 +152,9 @@ export const SERVICE_PAGE: Record<string, string> = {
  * to a model as `cordis_runtime_inspect what:"client"`).
  */
 export const SERVICE_WALK_EXEMPTIONS: Record<string, string> = {
+  profileRuntime: 'launcher-owned serialized profile operations — packages/boot/app-boot/README.md owns the contract',
+  configForms: 'client-side shared configuration forms — packages/client/ui-settings/README.md owns the API',
+  pluginNavigation: 'client-side plugin panel navigation — packages/client/ui-plugin-manager/README.md owns the API',
   appReady: 'not a service: launcher-provided successful-startup signal — packages/boot/cmdline/README.md owns the launcher contract',
   appExit: 'not a service: launcher-provided bounded process-exit callback — packages/boot/cmdline/README.md owns the launcher contract',
   cmdlineArgs: 'not a service: launcher-provided immutable app argument accessor — packages/boot/cmdline/README.md owns the launcher contract',
@@ -192,6 +198,7 @@ export const SERVICE_WALK_EXEMPTIONS: Record<string, string> = {
  * {@link EVENT_WALK_EXEMPTIONS} names each one with its documentation owner.
  */
 export const EVENT_SCOPE_PAGE: Record<string, string> = {
+  'plugin-manager': 'extensions.md',
   'agent': 'core.md',
   'agent-loop': 'core.md',
   'agent-preset': 'core.md',
@@ -248,6 +255,29 @@ export const EVENT_WALK_EXEMPTIONS: Record<string, string> = {
  * appear on more than one page.
  */
 export const LINK_MAP: Readonly<Record<string, string>> = {
+  PluginEntryId: 'extensions.md',
+  ReadOnlyReason: 'extensions.md',
+  IncompatiblePlugin: 'extensions.md',
+  ManagementError: 'extensions.md',
+  PluginInfo: 'extensions.md',
+  BundleRowInfo: 'extensions.md',
+  BundleInfo: 'extensions.md',
+  Registry: 'extensions.md',
+  PluginRegistries: 'extensions.md',
+  PluginInstallFailureKind: 'extensions.md',
+  PackageResult: 'extensions.md',
+  ChangeResult: 'extensions.md',
+  PluginInstallRequestId: 'extensions.md',
+  InstallBundleOptions: 'extensions.md',
+  InspectOptions: 'extensions.md',
+  InstallSpecKind: 'extensions.md',
+  PluginInspectProblem: 'extensions.md',
+  PluginSpecInspection: 'extensions.md',
+  PluginInstallProgress: 'extensions.md',
+  PluginInstallCancellation: 'extensions.md',
+  PluginInstallLogChunk: 'extensions.md',
+  PluginChange: 'extensions.md',
+
   EnterpriseChannel: 'tools.md',
   EnterpriseConnectionStatus: 'tools.md',
   FeishuAuthorizationStatus: 'tools.md',

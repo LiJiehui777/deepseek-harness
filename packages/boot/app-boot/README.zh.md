@@ -77,6 +77,8 @@ profile 是同一套 dsh 安装提供不同应用界面的方式：`web`、`head
 <a id="understand-the-implementation"></a>
 ## 理解实现
 
+增强版配置提供启动器持有的配置事实，并串行处理插件编辑及文件监听重载。原生管理重新读取插件包层并重组根 Include，既有 Web 配置文件和 DH 主目录数据保持不变。
+
 <details>
 <summary>实现细节——点击展开</summary>
 

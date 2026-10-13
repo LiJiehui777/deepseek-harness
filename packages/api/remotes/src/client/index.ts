@@ -16,6 +16,9 @@ import subagentsRemote from '@deepseek-ai/dsh-subagent/remote'
 import sessionRemote from '@deepseek-ai/dsh-api-session-controller/remote'
 import workspaceRemote from '@deepseek-ai/dsh-api-workspace-controller/remote'
 import workspaceFilesRemote from '@deepseek-ai/dsh-api-workspace-files/remote'
+import pluginManagerRemote from '@deepseek-ai/dsh-plugin-manager/remote'
+import pluginRegistryProbeRemote from '@deepseek-ai/dsh-client-ui-plugin-manager/remote'
+export type * from '@deepseek-ai/dsh-plugin-manager/types'
 import ragflowRemote from '@deepseek-ai/dsh-tool-ragflow-connector/remote'
 import enterpriseRemote from '@deepseek-ai/dsh-enterprise-connectors/remote'
 import type { ClientRemote } from '@deepseek-ai/dsh-api-gateway/client'
@@ -162,6 +165,7 @@ export async function apply(ctx: Context): Promise<() => Promise<void>> {
       agentPresetsRemote, commandsRemote, settingsControllerRemote, goalsRemote, llmRemote, dynamicRemote,
       pluginInventoryRemote, messageFeedbackRemote, sessionFeedbackRemote, fileUploadsRemote, sessionReferencesRemote,
       subagentsRemote, sessionRemote, workspaceRemote, workspaceFilesRemote, ragflowRemote, enterpriseRemote,
+      pluginManagerRemote, pluginRegistryProbeRemote,
     ]) {
       disposers.push(await ctx.remote.$mount(contribution))
     }
@@ -175,3 +179,6 @@ export async function apply(ctx: Context): Promise<() => Promise<void>> {
     for (const dispose of disposers.reverse()) await dispose()
   }
 }
+
+export type {} from '@deepseek-ai/dsh-plugin-manager/remote'
+export type {} from '@deepseek-ai/dsh-client-ui-plugin-manager/remote'

@@ -28,6 +28,19 @@
     // not declaration path aliases, keep each package/vendor source compiled
     // under its own tsconfig boundary.
     "paths": {
+      "@deepseek-ai/dsh-plugin-manager/types": ["./packages/boot/plugin-manager/src/types.ts"],
+      "@deepseek-ai/dsh-plugin-manager/registry": ["./packages/boot/plugin-manager/src/registry.ts"],
+      "@deepseek-ai/dsh-plugin-manager/operations": ["./packages/boot/plugin-manager/src/operations.ts"],
+      "@deepseek-ai/dsh-plugin-manager/tools": ["./packages/boot/plugin-manager/src/tools.ts"],
+      "@deepseek-ai/dsh-plugin-manager/typert": ["./packages/boot/plugin-manager/lib/typert.host.d.ts"],
+      "@deepseek-ai/dsh-plugin-manager/remote": ["./packages/boot/plugin-manager/lib/typert.remote-client.d.ts"],
+
+      "@deepseek-ai/dsh-client-ui-plugin-manager": ["./packages/client/ui-plugin-manager/src/index.ts"],
+      "@deepseek-ai/dsh-client-ui-plugin-manager/client": ["./packages/client/ui-plugin-manager/src/client/index.ts"],
+      "@deepseek-ai/dsh-client-ui-plugin-manager/typert": ["./packages/client/ui-plugin-manager/lib/typert.host.d.ts"],
+      "@deepseek-ai/dsh-client-ui-plugin-manager/remote": ["./packages/client/ui-plugin-manager/lib/typert.remote-client.d.ts"],
+      "@deepseek-ai/dsh-client-ui-plugin-manager/src/*": ["./packages/client/ui-plugin-manager/src/*"],
+
       "@deepseek-ai/dsh-tool-ragflow-connector": ["./packages/interaction/tool-ragflow-connector/src/index.ts"],
       "@deepseek-ai/dsh-enterprise-connectors/types": ["./packages/interaction/enterprise-connectors/src/types.ts"],
       "@deepseek-ai/dsh-tool-ragflow-connector/types": ["./packages/interaction/tool-ragflow-connector/src/types.ts"],
@@ -345,6 +358,8 @@
       "@deepseek-ai/dsh-persona": ["./packages/preset/persona/src"],
       "@deepseek-ai/dsh-plan-mode": ["./packages/plan/plan-mode/src"],
       "@deepseek-ai/dsh-plan-mode/invariant": ["./packages/plan/plan-mode/src/invariant.ts"],
+      "@deepseek-ai/dsh-plugin-management": ["./packages/bundle/plugin-management/src"],
+      "@deepseek-ai/dsh-plugin-manager": ["./packages/boot/plugin-manager/src"],
       "@deepseek-ai/dsh-plugin-package-inventory-deepseek": ["./packages/llm/plugin-package-inventory-deepseek/src"],
       "@deepseek-ai/dsh-pwsh-sandbox": ["./packages/shell/pwsh-sandbox/src"],
       "@deepseek-ai/dsh-remote-mock": ["./packages/test-support/remote-mock/src"],

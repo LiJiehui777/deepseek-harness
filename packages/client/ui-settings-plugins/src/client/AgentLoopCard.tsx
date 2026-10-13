@@ -1,5 +1,6 @@
 /** The agent loop's card: how many tool calls one step may run at once. */
 
+import type { PluginConfigViewProps } from '@deepseek-ai/dsh-client-ui-plugin-manager/client'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import { ValueField } from './fields.tsx'
 import { PluginCard } from './PluginCard.tsx'
@@ -10,7 +11,7 @@ import type {} from './slot-contract.ts'
 export type AgentLoopCardProps =
   PropsRuntime<'settings.plugin.item'>
   & PropsLocale<'settings.plugins'>
-  & InjectFace<AgentLoopCardFace>
+  & InjectFace<AgentLoopCardFace> & Partial<PluginConfigViewProps>
 
 /**
  * Render the agent-loop card.
@@ -20,8 +21,9 @@ export type AgentLoopCardProps =
 export function AgentLoopCard(props: AgentLoopCardProps) {
   const { t } = props
   const state = props.useAgentLoopCard(snapshot => snapshot)
+  if (props.view === 'summary') return <>{props.t('agentLoopDescription')}</>
   return (
-    <PluginCard
+    <PluginCard standalone={props.view === 'page'}
       t={t}
       titleKey="agentLoopTitle"
       descriptionKey="agentLoopDescription"
