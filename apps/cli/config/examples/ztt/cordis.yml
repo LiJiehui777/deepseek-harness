@@ -1,0 +1,5 @@
+# Application identity only; connector bundles remain profile-owned.
+- id: ui-brand-official
+  disabled: true
+- id: ui-brand-ztt
+  disabled: false

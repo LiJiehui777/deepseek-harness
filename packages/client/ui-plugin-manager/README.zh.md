@@ -22,7 +22,7 @@ kind: "package-reference"
 <a id="use-this-package"></a>
 ## 使用本包
 
-增强版配置包含此页面。RAGFlow、飞书及企业微信通过 `plugins.item` 提供既有表单。设置中保留内置插件清单用于查看运行状态。
+增强版配置包含此页面。RAGFlow、飞书及企业微信通过 `plugins.item` 提供既有表单。设置中保留内置插件清单用于查看运行状态。插件可通过 `plugins.item.icon` 按 `plugins.item` 的 id 提供装饰图标；列表卡片和详情共用图标，未提供时使用内置图标。
 
 <a id="understand-the-implementation"></a>
 ## 理解实现

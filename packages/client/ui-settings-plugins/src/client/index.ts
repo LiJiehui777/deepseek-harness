@@ -1,5 +1,6 @@
 import { EnterpriseCardController } from './enterprise-card-controller.ts'
 import { EnterpriseCard } from './EnterpriseCard.tsx'
+import { FeishuArtwork, WecomArtwork } from './ConnectorArtwork.tsx'
 import { RagflowCardController, RAGFLOW_NS } from './ragflow-card-controller.ts'
 import { RagflowCard } from './RagflowCard.tsx'
 /**
@@ -179,6 +180,11 @@ export function apply(ctx: ClientContext): void {
     children: { 'settings.plugin.item': { kind: 'keyed', scope: 'root' } },
   }, ConfigurablePluginsTab))
 
+
+  ctx.slots.inject('plugins.item.icon', function* () {
+    yield ctx.slots.register({ name: 'plugins.item.icon', key: 'feishu-connector' }, FeishuArtwork)
+    yield ctx.slots.register({ name: 'plugins.item.icon', key: 'wecom-connector' }, WecomArtwork)
+  })
 
   // Native plugin pages use the same controllers and durable namespace revisions.
   ctx.slots.inject('plugins.item', () => {

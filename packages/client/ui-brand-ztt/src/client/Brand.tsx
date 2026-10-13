@@ -40,6 +40,20 @@ PropsRuntime<'shell.document-title'> & PropsLocale<typeof NS>): null {
     ? undefined : state.byId[state.current]?.title)
   const productTitle = t('name')
   useEffect(() => {
+    const links = [...document.querySelectorAll<HTMLLinkElement>('link[rel="icon"], link[rel="manifest"]')]
+    const originals = links.map(link => link.getAttribute('href'))
+    for (const link of links) {
+      link.setAttribute('href', link.rel === 'icon' ? './ztt-mark.svg' : './ztt.webmanifest')
+    }
+    return () => {
+      links.forEach((link, index) => {
+        const original = originals[index]
+        if (original == null) link.removeAttribute('href')
+        else link.setAttribute('href', original)
+      })
+    }
+  }, [])
+  useEffect(() => {
     document.title = sessionTitle === undefined ? productTitle : `${sessionTitle} — ${productTitle}`
     return () => { document.title = productTitle }
   }, [productTitle, sessionTitle])

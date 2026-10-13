@@ -11,7 +11,7 @@ English | [中文](README.zh.md)
 
 Use **Plugins** settings to configure the capabilities exposed by this deployment. Expand a card, stage changes, save them or reset to deployment defaults. Conflicting saves retain drafts for correction. Optional cards configure the independent [RAGFlow knowledge connector](../../../docs/user/ragflow-connector.md) and [Feishu/WeCom connectors](../../../docs/user/enterprise-connectors.md); credentials stay in DH's credential service. Feature-specific tabs expose additional plugin pages.
 
-The enhanced sidebar Plugins page also registers these forms through `plugins.item`, with a short summary and an always-open configuration page. The existing controllers retain their staged edits, credential references, dataset-name picker and Feishu OAuth actions.
+The enhanced sidebar Plugins page also registers these forms through `plugins.item`, with a short summary and an always-open configuration page. Feishu and WeCom contribute their platform marks through `plugins.item.icon`. The existing controllers retain their staged edits, credential references, dataset-name picker and Feishu OAuth actions.
 
 ## Table of Contents
 

@@ -39,7 +39,7 @@ export type PluginManagerPageProps =
   PropsRuntime<'main'>
   & PropsLocale<'pluginManager'>
   & PropsRenderSlots<
-    | 'plugins.item' | 'plugins.bundle.config' | 'plugins.row.config' | 'plugins.bundle.activation'
+    | 'plugins.item' | 'plugins.item.icon' | 'plugins.bundle.config' | 'plugins.row.config' | 'plugins.bundle.activation'
     | 'plugins.add.actions'
     | 'plugins.detail.actions' | 'plugins.detail.badge' | 'plugins.detail.section'
   >
@@ -196,9 +196,11 @@ const ITEM_ARTWORK = new Map<string, (props: IconProps) => ReactNode>([
 ])
 
 /** An official plugin's card and page artwork; plugins without their own get the default. */
-function itemArtwork(id: string): ReactNode {
+function itemArtwork(id: string, renderSlot: RenderConfig): ReactNode {
   const Artwork = ITEM_ARTWORK.get(id) ?? PluginArtworkDefault
-  return <Artwork size={CARD_ARTWORK_SIZE} />
+  return renderSlot('plugins.item.icon', { size: CARD_ARTWORK_SIZE }, {
+    entryKey: id, fallback: <Artwork size={CARD_ARTWORK_SIZE} />,
+  })
 }
 
 /** Manifest images remain isolated from the page DOM; a failed decode keeps the position's default artwork. */
@@ -540,7 +542,7 @@ function ItemCard({ item, t, onOpen, renderSlot }: {
 }): ReactNode {
   return (
     <li className={`${css.card} ${css.cardLink}`} data-plugin-item={item.id}>
-      <CardHead title={item.label} t={t} onOpen={onOpen} icon={itemArtwork(item.id)} description={renderSlot('plugins.item', { view: 'summary' }, { only: item.id })} />
+      <CardHead title={item.label} t={t} onOpen={onOpen} icon={itemArtwork(item.id, renderSlot)} description={renderSlot('plugins.item', { view: 'summary' }, { only: item.id })} />
     </li>
   )
 }
@@ -582,7 +584,7 @@ function ItemDetail({ item, t, onBack, renderSlot, form }: {
         crumbLabel={t('backToList')}
         crumbText={t('crumbRoot')}
         onBack={onBack}
-        icon={itemArtwork(item.id)}
+        icon={itemArtwork(item.id, renderSlot)}
         actions={<div className={css.detailActions}>{renderSlot('plugins.detail.actions', { subject })}</div>}
       />
       <div className={css.detailMain}>

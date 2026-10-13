@@ -6,7 +6,7 @@ import { cleanup, render, screen } from '@testing-library/react'
 import { afterEach, expect, it } from 'vitest'
 import * as Browser from '../src/client/index.ts'
 import * as Host from '../src/index.ts'
-import { ZttHero, ZttName } from '../src/client/Brand.tsx'
+import { ZttDocumentTitle, ZttHero, ZttName } from '../src/client/Brand.tsx'
 import { en, NS, zh } from '../src/client/locales.ts'
 
 const holes = ['sidebar.brand.mark', 'sidebar.brand.name', 'conversation.hero.brand.mark', 'conversation.hero.identity', 'shell.document-title'] as const
@@ -53,5 +53,32 @@ it('presents the quality workspace and tasks in both locales', () => {
     expect(screen.getByText(dict.tagline)).toBeTruthy()
     expect(screen.getByText(dict.tasks)).toBeTruthy()
     identity.unmount()
+  }
+})
+
+it('owns browser artwork while mounted and restores the previous links on unload', () => {
+  const icon = document.createElement('link')
+  icon.rel = 'icon'
+  icon.setAttribute('href', '/official.svg')
+  const manifest = document.createElement('link')
+  manifest.rel = 'manifest'
+  const originalTitle = document.title
+  document.head.append(icon, manifest)
+  try {
+    const view = render(<ZttDocumentTitle {...{
+      useSessions: () => undefined, usePanelInfo: () => false,
+      t: (key: keyof typeof zh) => zh[key],
+    } as Parameters<typeof ZttDocumentTitle>[0]} />)
+    expect(icon.getAttribute('href')).toBe('./ztt-mark.svg')
+    expect(manifest.getAttribute('href')).toBe('./ztt.webmanifest')
+    expect(document.title).toBe(zh.name)
+    view.unmount()
+    expect(icon.getAttribute('href')).toBe('/official.svg')
+    expect(manifest.hasAttribute('href')).toBe(false)
+  } finally {
+    cleanup()
+    icon.remove()
+    manifest.remove()
+    document.title = originalTitle
   }
 })

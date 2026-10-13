@@ -13,7 +13,7 @@
  * for an official card's one-liner or a row's missing-description fallback.
  * Bundle configuration renders only `page`. A detail contribution is rendered
  * with the subject of the open page and decides from it whether to render at
- * all. The page draws the title, icon, and crumb itself.
+ * all. The page draws the title and crumb; `plugins.item.icon` supplies optional item artwork.
  */
 
 import type {} from '@deepseek-ai/dsh-client-ui-slots'
@@ -26,6 +26,12 @@ export interface PluginConfigViewProps {
   readonly view: 'summary' | 'page'
   /** Host-owned configuration values and write actions for this page's entry. */
   readonly form?: ConfigPageForm | undefined
+}
+
+/** Display dimensions for an item's decorative platform mark. */
+export interface PluginItemIconProps {
+  /** Square artwork frame length in CSS pixels. */
+  readonly size: number
 }
 
 /** One row of a bundle as a detail contribution sees it. */
@@ -99,6 +105,8 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
      * `plugins.bundle.config` or `plugins.row.config` instead.
      */
     'plugins.item': { kind: 'list'; scope: 'root'; owner: PluginConfigViewProps }
+    /** Decorative card and detail artwork, keyed by the matching `plugins.item` id; absent entries use built-in artwork. */
+    'plugins.item.icon': { kind: 'keyed'; scope: 'root'; owner: PluginItemIconProps }
     /**
      * A bundle's own configuration, keyed by the bundle's package name and
      * rendered on the bundle's page between its description and its rows

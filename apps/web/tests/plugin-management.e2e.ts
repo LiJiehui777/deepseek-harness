@@ -8,7 +8,7 @@ import type {} from '@deepseek-ai/dsh-plugin-manager'
 import { captureStableAria, compareOrRefreshGolden, launchWebScaffold, webSnapshotMode, watchConsole } from './scaffold.ts'
 
 it('configures all three connectors and persists native enablement through the real Loader', async () => {
-  const scaffold = await launchWebScaffold({ pluginManagement: true })
+  const scaffold = await launchWebScaffold({ pluginManagement: true, extraOverlayPath: fileURLToPath(new URL('../../cli/config/examples/ztt/cordis.yml', import.meta.url)) })
   const browser = await chromium.launch()
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 }, locale: 'zh-CN' })
   const console = watchConsole(page)
@@ -20,9 +20,18 @@ it('configures all three connectors and persists native enablement through the r
     for (const id of ['ragflow-connector', 'feishu-connector', 'wecom-connector']) {
       expect(await page.locator(`[data-plugin-item="${id}"]`).count()).toBe(1)
     }
+    for (const id of ['feishu-connector', 'wecom-connector']) {
+      const icon = page.locator(`[data-plugin-item="${id}"] svg[data-connector-icon="${id}"]`)
+      expect(await icon.count()).toBe(1)
+      expect(await icon.boundingBox()).toMatchObject({ width: 36, height: 36 })
+    }
     await compareOrRefreshGolden(fileURLToPath(new URL('./expected/plugin-management/list.expected.md', import.meta.url)), await captureStableAria(page, '[data-plugin-group="basic"]', scaffold.workspaceCwd), webSnapshotMode())
+    const artifacts = fileURLToPath(new URL('../../../.artifacts/', import.meta.url))
+    await mkdir(artifacts, { recursive: true })
+    await page.screenshot({ path: join(artifacts, 'enhanced-connector-icons.png') })
     await page.locator('[data-plugin-item="feishu-connector"] button').first().click()
     const feishu = panel.locator('[data-plugin-item-detail="feishu-connector"]')
+    expect(await feishu.locator('svg[data-connector-icon="feishu-connector"]').count()).toBe(1)
     await feishu.getByLabel('App ID', { exact: true }).fill('cli_fixture_native_plugins')
     await feishu.getByLabel('App Secret', { exact: true }).fill('fixture-private-secret')
     await feishu.getByRole('button', { name: '\u4fdd\u5b58', exact: true }).click()
@@ -34,6 +43,7 @@ it('configures all three connectors and persists native enablement through the r
     await panel.getByRole('button', { name: '\u8fd4\u56de\u63d2\u4ef6', exact: true }).click()
     await page.locator('[data-plugin-item="wecom-connector"] button').first().click()
     await page.getByLabel('Bot ID', { exact: true }).waitFor()
+    expect(await panel.locator('[data-plugin-item-detail="wecom-connector"] svg[data-connector-icon="wecom-connector"]').count()).toBe(1)
     await panel.getByRole('button', { name: '\u8fd4\u56de\u63d2\u4ef6', exact: true }).click()
     await page.locator('[data-plugin-item="ragflow-connector"] button').first().click()
     await page.getByLabel('\u5141\u8bb8\u68c0\u7d22\u7684\u77e5\u8bc6\u5e93', { exact: true }).waitFor()

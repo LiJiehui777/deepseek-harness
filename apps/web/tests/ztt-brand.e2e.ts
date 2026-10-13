@@ -7,7 +7,7 @@ import { captureStableAria, compareOrRefreshGolden, launchWebScaffold, watchCons
 import { ZH_BROWSER_LOCALE } from './support.ts'
 
 it('renders the ZTT identity, keeps sidebar navigation usable, and retains native connector settings', async () => {
-  const scaffold = await launchWebScaffold({ extraOverlayPath: fileURLToPath(new URL('../../cli/config/examples/ragflow/cordis.yml', import.meta.url)) })
+  const scaffold = await launchWebScaffold({ pluginManagement: true, extraOverlayPath: fileURLToPath(new URL('../../cli/config/examples/ztt/cordis.yml', import.meta.url)) })
   const browser = await chromium.launch()
   try {
     const page = await browser.newPage({ viewport: { width: 1440, height: 960 }, locale: ZH_BROWSER_LOCALE })
@@ -17,6 +17,8 @@ it('renders the ZTT identity, keeps sidebar navigation usable, and retains nativ
     await expect.poll(() => page.title()).toBe('中天质量智能体')
     expect(await page.getByText('中天质量智能体', { exact: true }).count()).toBe(2)
     expect(await page.getByText('DSH Local Build', { exact: true }).count()).toBe(0)
+    expect(await page.locator('link[rel="icon"]').getAttribute('href')).toBe('./ztt-mark.svg')
+    expect(await page.locator('link[rel="manifest"]').getAttribute('href')).toBe('./ztt.webmanifest')
     expect(await page.locator('img[src="./ztt-mark.svg"]').evaluateAll(images => images.every(image => (image as HTMLImageElement).complete && (image as HTMLImageElement).naturalWidth > 0))).toBe(true)
     const snapshot = await captureStableAria(page, 'body', scaffold.workspaceCwd)
     await compareOrRefreshGolden(fileURLToPath(new URL('./expected/ztt-brand/home.expected.md', import.meta.url)), snapshot, webSnapshotMode())

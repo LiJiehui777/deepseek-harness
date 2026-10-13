@@ -22,7 +22,7 @@ Open Plugins in the main sidebar to install, switch and configure plugins.
 <a id="use-this-package"></a>
 ## Use this package
 
-The enhanced profile includes this page. RAGFlow, Feishu and WeCom contribute existing forms through `plugins.item`. Settings retains the built-in inventory for runtime inspection.
+The enhanced profile includes this page. RAGFlow, Feishu and WeCom contribute existing forms through `plugins.item`. Settings retains the built-in inventory for runtime inspection. Plugins can contribute decorative artwork through `plugins.item.icon`, keyed by their `plugins.item` id; the page uses it on both cards and details, with built-in artwork as fallback.
 
 <a id="understand-the-implementation"></a>
 ## Understand the implementation
