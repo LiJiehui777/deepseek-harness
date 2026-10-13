@@ -1,0 +1,3 @@
+- insert:
+    - id: enterprise-connectors
+      name: '@deepseek-ai/dsh-enterprise-connectors'

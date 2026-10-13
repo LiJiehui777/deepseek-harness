@@ -2,6 +2,53 @@
 
 /** Locale keys these surfaces render. */
 export type PluginsSettingsLocaleKey =
+  | 'feishuTitle'
+  | 'wecomTitle'
+  | 'feishuDescription'
+  | 'wecomDescription'
+  | 'feishuAppId'
+  | 'wecomBotId'
+  | 'feishuSecret'
+  | 'wecomSecret'
+  | 'feishuSetupHint'
+  | 'wecomSetupHint'
+  | 'enterpriseSecretHint'
+  | 'enterpriseSecretSet'
+  | 'enterpriseMissingSecret'
+  | 'enterpriseOpenConsole'
+  | 'enterpriseEnable'
+  | 'enterpriseRead'
+  | 'wecomHistoryHint'
+  | 'enterpriseReceive'
+  | 'enterpriseReceiveHint'
+  | 'enterpriseSenders'
+  | 'enterpriseSendersHint'
+  | 'enterpriseChats'
+  | 'enterpriseChatsHint'
+  | 'enterpriseSend'
+  | 'enterpriseSendHint'
+  | 'enterpriseAdvanced'
+  | 'enterpriseEndpoint'
+  | 'feishuEndpointHint'
+  | 'wecomEndpointHint'
+  | 'enterpriseWorkspace'
+  | 'enterpriseWorkspaceHint'
+  | 'enterprisePreset'
+  | 'enterprisePresetHint'
+  | 'enterpriseConnected'
+  | 'enterpriseConnecting'
+  | 'enterpriseDisabled'
+  | 'enterpriseConnectionFailed'
+  | 'enterpriseTaskFailed'
+  | 'enterpriseQueueFull'
+  | 'enterpriseLastSender'
+  | 'enterpriseLastChat'
+  | 'enterpriseReconnect'
+  | 'enterpriseRefresh'
+  | 'enterpriseAllowSender'
+  | 'enterpriseAllowChat'
+  | 'enterpriseSaveFirst'
+  | 'enterpriseInvalid'
   | 'ragflowTitle' | 'ragflowDescription' | 'ragflowApiKey' | 'ragflowApiKeyHint' | 'ragflowApiKeySet' | 'ragflowApiKeyUnset' | 'ragflowBaseUrl' | 'ragflowBaseUrlHint' | 'ragflowDatasets' | 'ragflowDatasetsHint' | 'ragflowEnabled' | 'ragflowInvalidUrl' | 'ragflowInvalidDatasets'
   | 'ragflowChooseDatasets' | 'ragflowSearchDatasets' | 'ragflowDatasetUnknown' | 'ragflowCatalogLoading'
   | 'ragflowCatalogFailed' | 'ragflowCatalogEmpty' | 'ragflowCatalogRefresh' | 'ragflowCatalogMore' | 'ragflowCatalogSaveFirst'
@@ -23,6 +70,54 @@ export type PluginsSettingsLocaleKey =
 
 /** English copy. */
 export const en: Record<PluginsSettingsLocaleKey, string> = {
+  feishuTitle: 'Feishu connector',
+  wecomTitle: 'WeCom connector',
+  feishuDescription: 'Read authorized messages and documents; send and receive DH tasks.',
+  wecomDescription: 'Connect an intelligent bot for messages and DH tasks.',
+  feishuAppId: 'App ID',
+  wecomBotId: 'Bot ID',
+  feishuSecret: 'App Secret',
+  wecomSecret: 'Bot Secret',
+  feishuSetupHint: 'Create a self-built app with bot capability in Feishu Open Platform.',
+  wecomSetupHint: 'Create an intelligent bot in API / long-connection mode. This is not a group webhook key.',
+  enterpriseSecretHint: 'Stored by DH credentials, never returned to the browser. Blank keeps the saved secret.',
+  enterpriseSecretSet: 'Secret configured.',
+  enterpriseMissingSecret: 'Secret not configured.',
+  enterpriseOpenConsole: 'Open platform console',
+  enterpriseEnable: 'Enable this connection',
+  enterpriseRead: 'Allow reading visible chats and documents',
+  wecomHistoryHint: 'Only text received by this bot since connecting is available; arbitrary group history is not available.',
+  enterpriseReceive: 'Receive remote tasks from this platform',
+  enterpriseReceiveHint: 'Direct messages and bot mentions start DH tasks. Existing model, knowledge and approval settings apply.',
+  enterpriseSenders: 'Allowed sender IDs',
+  enterpriseSendersHint: 'Comma-separated IDs. Empty denies all remote tasks. Send a message, refresh status, then add the latest sender.',
+  enterpriseChats: 'Allowed chat IDs',
+  enterpriseChatsHint: 'Empty permits visible reads and authorized-sender tasks. Proactive sending requires an explicitly listed chat.',
+  enterpriseSend: 'Allow DH to send messages',
+  enterpriseSendHint: 'Every model-requested send requires DH approval. Authorized task replies return to their original conversation.',
+  enterpriseAdvanced: 'Advanced connection settings',
+  enterpriseEndpoint: 'Platform endpoint',
+  feishuEndpointHint: 'Feishu: https://open.feishu.cn; Lark: https://open.larksuite.com.',
+  wecomEndpointHint: 'Public cloud: wss://openws.work.weixin.qq.com.',
+  enterpriseWorkspace: 'Remote task folder',
+  enterpriseWorkspaceHint: 'Blank uses a dedicated folder inside the DH home. An explicit path must be absolute.',
+  enterprisePreset: 'Agent preset',
+  enterprisePresetHint: 'Uses a DH preset; standard keeps the configured model and tools.',
+  enterpriseConnected: 'Connected',
+  enterpriseConnecting: 'Connecting…',
+  enterpriseDisabled: 'Connection disabled',
+  enterpriseConnectionFailed: 'Connection failed. Check credentials, mode, permissions and network.',
+  enterpriseQueueFull: 'The remote-task queue is full. Retry after existing tasks finish.',
+  enterpriseTaskFailed: 'A remote task failed. Check model configuration and execution history in DH.',
+  enterpriseLastSender: 'Latest sender ID',
+  enterpriseLastChat: 'Latest chat ID',
+  enterpriseReconnect: 'Connect / check saved account',
+  enterpriseRefresh: 'Refresh status',
+  enterpriseAllowSender: 'Add latest sender',
+  enterpriseAllowChat: 'Add latest chat',
+  enterpriseSaveFirst: 'Save changes before connecting.',
+  enterpriseInvalid: 'Enter a valid value within the stated scope.',
+
   ragflowTitle: 'RAGFlow connector',
   ragflowDescription: 'Connect an independent RAGFlow service for knowledge retrieval.',
   ragflowApiKey: 'RAGFlow API Key',
@@ -102,6 +197,54 @@ export const en: Record<PluginsSettingsLocaleKey, string> = {
 
 /** Simplified Chinese copy. */
 export const zh: Record<PluginsSettingsLocaleKey, string> = {
+  feishuTitle: '飞书连接器',
+  wecomTitle: '企业微信连接器',
+  feishuDescription: '读取授权消息与文档，收发消息并联动 DH 任务。',
+  wecomDescription: '通过智能机器人长连接收发消息并联动 DH 任务。',
+  feishuAppId: 'App ID',
+  wecomBotId: 'Bot ID',
+  feishuSecret: 'App Secret',
+  wecomSecret: '机器人 Secret',
+  feishuSetupHint: '在飞书开放平台创建企业自建应用，并开启机器人能力。',
+  wecomSetupHint: '创建智能机器人，选择 API 模式和使用长连接；这里填写 Bot ID，不是群机器人 Webhook。',
+  enterpriseSecretHint: '由 DH 凭证服务保存，保存后不返回浏览器。留空保留原密钥。',
+  enterpriseSecretSet: '已保存密钥。',
+  enterpriseMissingSecret: '尚未配置密钥。',
+  enterpriseOpenConsole: '打开平台管理后台',
+  enterpriseEnable: '启用此连接',
+  enterpriseRead: '允许读取可见群聊和文档',
+  wecomHistoryHint: '仅能查询本次连接后机器人已接收的文本，不能读取任意群的全部历史消息。',
+  enterpriseReceive: '接收平台消息并执行 DH 任务',
+  enterpriseReceiveHint: '私聊或群内 @机器人可启动 DH 任务，沿用现有模型、知识库和确认设置。',
+  enterpriseSenders: '允许派任务的用户 ID',
+  enterpriseSendersHint: '多个 ID 用逗号分隔；留空时拒绝所有远程任务。先给机器人发消息，再刷新状态并添加最近发送者。',
+  enterpriseChats: '允许的会话 ID',
+  enterpriseChatsHint: '留空允许可见资源读取及已授权用户派任务；主动发送时，目标会话必须填写在此处。',
+  enterpriseSend: '允许 DH 主动发送消息',
+  enterpriseSendHint: '模型主动发送每条消息时需要 DH 确认；已授权任务的回复返回原会话。',
+  enterpriseAdvanced: '高级连接设置',
+  enterpriseEndpoint: '平台服务地址',
+  feishuEndpointHint: '飞书：https://open.feishu.cn；Lark：https://open.larksuite.com。',
+  wecomEndpointHint: '公有云：wss://openws.work.weixin.qq.com。',
+  enterpriseWorkspace: '远程任务目录',
+  enterpriseWorkspaceHint: '留空使用 DH 数据目录中的独立任务文件夹；自定义时填写绝对路径。',
+  enterprisePreset: '智能体预设',
+  enterprisePresetHint: '使用 DH 已有预设；standard 沿用配置的模型和工具。',
+  enterpriseConnected: '已连接',
+  enterpriseConnecting: '正在连接…',
+  enterpriseDisabled: '连接未启用',
+  enterpriseConnectionFailed: '连接失败，请检查凭据、接入模式、权限和网络。',
+  enterpriseQueueFull: '远程任务队列已满，请在当前任务结束后重试。',
+  enterpriseTaskFailed: '远程任务执行失败，请在 DH 检查模型配置和执行记录。',
+  enterpriseLastSender: '最近发送者 ID',
+  enterpriseLastChat: '最近会话 ID',
+  enterpriseReconnect: '连接 / 检查已保存账号',
+  enterpriseRefresh: '刷新状态',
+  enterpriseAllowSender: '添加最近发送者',
+  enterpriseAllowChat: '添加最近会话',
+  enterpriseSaveFirst: '请先保存修改，再检查连接。',
+  enterpriseInvalid: '请输入符合说明的有效配置。',
+
   ragflowTitle: 'RAGFlow 连接器',
   ragflowDescription: '连接独立运行的 RAGFlow 服务，读取知识库并检索内容。',
   ragflowApiKey: 'RAGFlow API Key',

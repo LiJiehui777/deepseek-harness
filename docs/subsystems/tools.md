@@ -469,6 +469,8 @@ How a tool wants its call shown in a UI (an editor tool-call card, a CLI log lin
 
 The full presentation field docs live in [`packages/core/tools/src/presentation.ts`](../../packages/core/tools/src/presentation.ts). The `bash` schema and executor are on [shell.md](shell.md); generic background controls are on [jobs.md](jobs.md).
 
+The optional [enterprise connectors](../../packages/interaction/enterprise-connectors/README.md) expose `EnterpriseChannel` (`feishu` or `wecom`) and credential-free `EnterpriseConnectionStatus`. A status carries `channel`, `state` (`disabled`, `missing-credentials`, `connecting`, `connected`, `error`), sanitized `error`, `receivedMessages`, `lastSenderId` and `lastChatId`. IDs support explicit sender/chat setup; authentication state never grants tool authorization.
+
 <!-- BEGIN GENERATED cordis-surface (gen-cordis-catalog.ts) — do not edit between markers -->
 
 <a id="cordis-surface"></a>
@@ -476,6 +478,29 @@ The full presentation field docs live in [`packages/core/tools/src/presentation.
 ## Cordis API
 
 Generated from source by `scripts/gen-cordis-catalog.ts` (verified fresh by `pnpm run verify-cordis-catalog` in doc-sync; regenerate with `pnpm run gen-cordis-catalog`) — the language sides differ only in locale-specific paired document paths. Signature blocks use a `ts cordis-catalog` fence and keep the original source JSDoc; dispatch modes are defined in the [primer](../cordis-primer.md#dispatch-modes), and the framework-inherited `ctx` API lives in [cordis-api/inherited.md](../cordis-api/inherited.md).
+
+<a id="ctxenterpriseconnectors--enterpriseconnectors"></a>
+
+### `ctx.enterpriseConnectors` — `EnterpriseConnectors`
+
+Native tools, live account sections, and redacted connection status.
+
+```ts cordis-catalog
+/**
+ * Read current authentication state and last received sender/chat IDs.
+ * @returns detached, credential-free status for both accounts.
+ */
+@Remote status(): EnterpriseConnectionStatus[]
+
+/**
+ * Re-read saved account credentials and await its bounded authentication attempt.
+ * @param channel - the account to reconnect; unsaved browser drafts are never used.
+ * @returns credential-free status after the authentication attempt.
+ */
+@Remote async reconnect(channel: EnterpriseChannel): Promise<EnterpriseConnectionStatus[]>
+```
+
+Source: [`packages/interaction/enterprise-connectors/src/index.ts`](../../packages/interaction/enterprise-connectors/src/index.ts)
 
 <a id="ctxragflowcatalog--ragflowcatalogcontroller"></a>
 

@@ -9,9 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-Use the **Plugins** settings section to configure the plugins exposed by the current deployment and to open feature-specific plugin pages. The **Plugin configuration** tab presents one expandable card for each supported plugin, shows which values the user overrode, and lets the user reset them to deployment defaults. Cards keep edits local until save. If the configuration changed after the card loaded, the save is rejected instead of overwriting the newer values.
-
-The RAGFlow card edits the standalone connector service address, dataset allowlist and enabled state. Its API Key uses the credential service. See [RAGFlow connector](../../../docs/user/ragflow-connector.md).
+Use **Plugins** settings to configure the capabilities exposed by this deployment. Expand a card, stage changes, save them or reset to deployment defaults. Conflicting saves retain drafts for correction. Optional cards configure the independent [RAGFlow knowledge connector](../../../docs/user/ragflow-connector.md) and [Feishu/WeCom connectors](../../../docs/user/enterprise-connectors.md); credentials stay in DH's credential service. Feature-specific tabs expose additional plugin pages.
 
 ## Table of Contents
 
@@ -27,7 +25,7 @@ The RAGFlow card edits the standalone connector service address, dataset allowli
 <a id="use-this-package"></a>
 ## Use this package
 
-Open the Plugins section in Settings and select the **Plugin configuration** tab to edit the host-plane plugins this deployment composes. The cards appear in this order: the shell executor (`bash`), the agent loop's tool-call parallelism (`agent-loop`), subagent model selection (`subagent-model-selection`), and the DeepSeek search provider (`web-search-deepseek`).
+Open the Plugins section in Settings and select the **Plugin configuration** tab to edit the host-plane plugins this deployment composes. Optional Feishu, WeCom and RAGFlow cards precede the built-in cards: the shell executor (`bash`), the agent loop's tool-call parallelism (`agent-loop`), subagent model selection (`subagent-model-selection`), and the DeepSeek search provider (`web-search-deepseek`).
 
 ### What appears here
 

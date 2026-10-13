@@ -99,6 +99,14 @@ const GROUP_ORDER = [
 
 const SERVICE_ROLES: ServiceRole[] = [
   {
+    key: 'enterpriseConnectors',
+    pkg: 'enterprise-connectors',
+    title: 'Standalone enterprise account lifetimes',
+    mode: 'core',
+    consumers: ['client-ui-settings-plugins'],
+    note: 'Official SDK providers resolve Host credentials, authorize remote tasks, and expose redacted status to native settings cards.',
+  },
+  {
     key: 'ragflowCatalog',
     pkg: 'tool-ragflow-connector',
     title: 'RAGFlow settings knowledge-base catalog',

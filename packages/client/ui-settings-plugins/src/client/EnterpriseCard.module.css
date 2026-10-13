@@ -1,0 +1,26 @@
+/* Enterprise account controls use the native settings colors and spacing. */
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 0;
+  font-size: 13px;
+  color: var(--dsw-alias-label-primary);
+}
+.link { display: block; padding: 8px 0; font-size: 13px; color: var(--dsw-alias-brand-primary); }
+.advanced { padding: 12px 0; font-size: 13px; }
+.advanced > summary { cursor: pointer; }
+.status { padding: 8px 0; font-size: 13px; color: var(--dsw-alias-label-secondary); }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; padding-bottom: 12px; }
+.actions > button {
+  padding: 6px 10px;
+  border: 0.5px solid var(--dsw-alias-border-l4);
+  border-radius: 8px;
+  background: var(--dsw-alias-bg-layer-3);
+  color: var(--dsw-alias-label-primary);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.actions > button:disabled { opacity: .5; cursor: default; }
+.actions > button:focus-visible { outline: 2px solid var(--dsw-alias-brand-primary); outline-offset: 2px; }

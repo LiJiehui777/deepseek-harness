@@ -895,6 +895,25 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     ],
   },
   {
+    key: 'enterpriseConnectors',
+    summary: 'Native tools, live account sections, and redacted connection status.',
+    description: 'Native tools, live account sections, and redacted connection status.',
+    methods: [
+      {
+        signature: '@Remote status(): EnterpriseConnectionStatus[]',
+        description: 'Read current authentication state and last received sender/chat IDs.',
+        parameters: [],
+        returns: 'detached, credential-free status for both accounts.',
+      },
+      {
+        signature: '@Remote async reconnect(channel: EnterpriseChannel): Promise<EnterpriseConnectionStatus[]>',
+        description: 'Re-read saved account credentials and await its bounded authentication attempt.',
+        parameters: [{ name: 'channel', description: 'the account to reconnect; unsaved browser drafts are never used.' }],
+        returns: 'credential-free status after the authentication attempt.',
+      },
+    ],
+  },
+  {
     key: 'fileReferences',
     summary: 'Host capability for cancellable file-reference discovery.',
     description: 'Host capability for cancellable file-reference discovery.',
@@ -3825,6 +3844,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export type BrandedNumber<B extends string> = number & {\n    readonly [BRAND]: B;\n};',
   },
   {
+    name: 'CapturedEnterpriseMessage',
+    declaration: 'export interface CapturedEnterpriseMessage {\n    channel: EnterpriseChannel;\n    chat_id: string;\n    sender_id: string;\n    message_id: string;\n    text: string;\n    received_at: number;\n    direction: \'incoming\' | \'outgoing\';\n}',
+  },
+  {
     name: 'ClientArtifactBaseline',
     declaration: 'export interface ClientArtifactBaseline {\n    readonly path: string;\n    readonly mtimeMs: number;\n    readonly size: number;\n}',
   },
@@ -4213,6 +4236,14 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface EncodedImageAttachment {\n    mediaType: ImageMediaType;\n    data: string;\n    name?: string;\n}',
   },
   {
+    name: 'EnterpriseChannel',
+    declaration: 'export type EnterpriseChannel = \'feishu\' | \'wecom\';',
+  },
+  {
+    name: 'EnterpriseConnectionStatus',
+    declaration: 'export interface EnterpriseConnectionStatus {\n    channel: EnterpriseChannel;\n    state: \'disabled\' | \'missing-credentials\' | \'connecting\' | \'connected\' | \'error\';\n    error: string;\n    receivedMessages: number;\n    lastSenderId: string;\n    lastChatId: string;\n}',
+  },
+  {
     name: 'EpochHeader',
     declaration: 'export interface EpochHeader {\n    config: LlmCallConfig;\n    adapterDefaults?: LlmCallConfigAdapterDefaults;\n    tools?: ToolSchema[];\n}',
   },
@@ -4383,6 +4414,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'ImageVariantId',
     declaration: 'export type ImageVariantId = Branded<\'ImageVariantId\'>;',
+  },
+  {
+    name: 'IncomingMessage',
+    declaration: 'export interface IncomingMessage {\n    message: CapturedEnterpriseMessage;\n    trigger: boolean;\n    reply: (content: string, finish: boolean) => Promise<void>;\n}',
   },
   {
     name: 'IndexInjection',

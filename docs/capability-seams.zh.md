@@ -9,9 +9,11 @@
 
 ```mermaid
 flowchart LR
+  pkg_enterprise_connectors["enterprise-connectors"]
+  svc_enterpriseConnectors["ctx.enterpriseConnectors<br/>Standalone enterprise account lifetimes"]
+  pkg_client_ui_settings_plugins["client-ui-settings-plugins"]
   pkg_tool_ragflow_connector["tool-ragflow-connector"]
   svc_ragflowCatalog["ctx.ragflowCatalog<br/>RAGFlow settings knowledge-base catalog"]
-  pkg_client_ui_settings_plugins["client-ui-settings-plugins"]
   pkg_attachment["attachment"]
   svc_attachments["ctx.attachments<br/>Durable binary attachment storage"]
   pkg_attachment_local["attachment-local"]
@@ -262,6 +264,7 @@ flowchart LR
   pkg_credentials_local --> svc_credentials
   pkg_deepseek_llm_api_extensions --> svc_deepseekLlmApiExtensions
   pkg_e2b --> svc_e2b
+  pkg_enterprise_connectors --> svc_enterpriseConnectors
   pkg_experimental_agent_team --> svc_agentTeams
   pkg_experimental_code_runtime_python --> svc_codeRuntime
   pkg_file_reference --> svc_fileReferences
@@ -378,6 +381,7 @@ flowchart LR
   svc_dynamicCordisRunner --> pkg_tool_cordis
   svc_e2b --> pkg_fs_e2b
   svc_e2b --> pkg_subprocess_e2b
+  svc_enterpriseConnectors --> pkg_client_ui_settings_plugins
   svc_fileReferences --> pkg_api_session_controller
   svc_fileUploads --> pkg_api_session_controller
   svc_fs --> pkg_tool_fs
@@ -481,6 +485,7 @@ flowchart LR
 
 | ctx 键 | 角色 | 所属包 | 实现 | 直接消费方 | 配套插件 | 说明 |
 | --- | --- | --- | --- | --- | --- | --- |
+| `ctx.enterpriseConnectors` | `core` | [`enterprise-connectors`](../packages/interaction/enterprise-connectors) | - | [`client-ui-settings-plugins`](../packages/client/ui-settings-plugins) | - | 官方 SDK 提供方解析 Host 凭据、授权远程任务，并向原生设置卡片提供脱敏状态。 |
 | `ctx.ragflowCatalog` | `core` | [`tool-ragflow-connector`](../packages/interaction/tool-ragflow-connector) | - | [`client-ui-settings-plugins`](../packages/client/ui-settings-plugins) | - | 已认证的设置目录使用 Host 保存的凭据，返回 API 授权范围内的知识库名称；模型工具仍受单独配置的知识库白名单约束。 |
 | `ctx.attachments` | `seam` | [`attachment`](../packages/attachment/attachment) | [`attachment-local`](../packages/attachment/attachment-local) | [`api-session-controller`](../packages/api/session-controller), [`tool-fs`](../packages/fs/tool-fs), [`llm-pi-ai`](../packages/llm/llm-pi-ai), [`llm-deepseek`](../packages/llm/llm-deepseek) | - | 宿主会在会话事件之前提交已接受的图片；提供方适配器将已授权的持久引用解析为提供方原生内容。 |
 | `ctx.fileUploads` | `core` | [`client-file-upload`](../packages/client/file-upload) | - | [`api-session-controller`](../packages/api/session-controller) | - | 负责流式接收、持久存储和暂存回执生命周期；Session Controller 将回执绑定到已接受的提交。 |

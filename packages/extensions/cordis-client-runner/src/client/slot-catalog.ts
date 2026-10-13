@@ -1883,6 +1883,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     slotInject: '',
     declaredBy: 'an entry in \'settings.plugins.tab\' (client-ui-settings-plugins), so it exists while that entry is mounted',
     occupants: [
+      'client-ui-settings-plugins EnterpriseCard',
       'client-ui-settings-plugins RagflowCard',
       'client-ui-settings-plugins BashCard',
       'client-ui-settings-plugins AgentLoopCard',

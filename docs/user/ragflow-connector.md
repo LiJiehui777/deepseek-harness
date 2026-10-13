@@ -30,6 +30,6 @@ Save service-address and API Key edits before loading their catalog. The setting
 
 ## Other connectors
 
-Feishu and enterprise WeChat require independent credential and authorization providers before their tools can run without the integrated RAGFlow host. The enhanced RAGFlow connector does not enable those host-dependent channel plugins. Add providers through native DH plugins, reuse the DH credential service and plugin settings, and register bounded tools for each service. Each service remains independently deployable.
+The enhanced launcher also mounts independent [Feishu and WeCom connectors](enterprise-connectors.md). Configure their own credentials and sender scopes in the same native plugin page. They can run without RAGFlow; remote tasks use RAGFlow only when its connector is separately enabled.
 
 The implementation decision is recorded in [Standalone knowledge connector](../../.agents/notes/implemented/feature/2026-10-09-standalone-ragflow-connector.md).

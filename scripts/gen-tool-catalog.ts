@@ -1,3 +1,4 @@
+import EnterpriseConnectors from '@deepseek-ai/dsh-enterprise-connectors'
 import * as ToolRagflowConnector from '@deepseek-ai/dsh-tool-ragflow-connector'
 import type CredentialProvider from '@deepseek-ai/dsh-credentials'
 /**
@@ -193,6 +194,16 @@ export interface ToolPackage {
  * guard proves it is exhaustive against the on-disk glob.
  */
 const TOOL_PACKAGES: ToolPackage[] = [
+  {
+    pkg: '@deepseek-ai/dsh-enterprise-connectors', dir: 'enterprise-connectors',
+    source: 'packages/interaction/enterprise-connectors/src/index.ts',
+    requires: ['ctx.tools', 'ctx.credentials'], writes: ['tool/call', 'tool/result'],
+    async mount(ctx) {
+      ctx.provide('credentials', { resolve: () => Promise.resolve(undefined) } as unknown as CredentialProvider)
+      await ctx.plugin(EnterpriseConnectors)
+    },
+    note: 'Independent official-SDK connections, disabled until configured. Feishu application visibility and WeCom captured-message scope apply. Proactive sends require explicit destinations and one-shot DH approval.',
+  },
   {
     pkg: '@deepseek-ai/dsh-tool-ragflow-connector', dir: 'tool-ragflow-connector',
     source: 'packages/interaction/tool-ragflow-connector/src/index.ts',

@@ -7,9 +7,11 @@ A service can be a core spine service, a swappable capability seam, or a bundle/
 
 ```mermaid
 flowchart LR
+  pkg_enterprise_connectors["enterprise-connectors"]
+  svc_enterpriseConnectors["ctx.enterpriseConnectors<br/>Standalone enterprise account lifetimes"]
+  pkg_client_ui_settings_plugins["client-ui-settings-plugins"]
   pkg_tool_ragflow_connector["tool-ragflow-connector"]
   svc_ragflowCatalog["ctx.ragflowCatalog<br/>RAGFlow settings knowledge-base catalog"]
-  pkg_client_ui_settings_plugins["client-ui-settings-plugins"]
   pkg_attachment["attachment"]
   svc_attachments["ctx.attachments<br/>Durable binary attachment storage"]
   pkg_attachment_local["attachment-local"]
@@ -260,6 +262,7 @@ flowchart LR
   pkg_credentials_local --> svc_credentials
   pkg_deepseek_llm_api_extensions --> svc_deepseekLlmApiExtensions
   pkg_e2b --> svc_e2b
+  pkg_enterprise_connectors --> svc_enterpriseConnectors
   pkg_experimental_agent_team --> svc_agentTeams
   pkg_experimental_code_runtime_python --> svc_codeRuntime
   pkg_file_reference --> svc_fileReferences
@@ -376,6 +379,7 @@ flowchart LR
   svc_dynamicCordisRunner --> pkg_tool_cordis
   svc_e2b --> pkg_fs_e2b
   svc_e2b --> pkg_subprocess_e2b
+  svc_enterpriseConnectors --> pkg_client_ui_settings_plugins
   svc_fileReferences --> pkg_api_session_controller
   svc_fileUploads --> pkg_api_session_controller
   svc_fs --> pkg_tool_fs
@@ -479,6 +483,7 @@ flowchart LR
 
 | ctx key | Role | Owner | Implementations | Direct consumers | Companion plugins | Note |
 | --- | --- | --- | --- | --- | --- | --- |
+| `ctx.enterpriseConnectors` | `core` | [`enterprise-connectors`](../packages/interaction/enterprise-connectors) | - | [`client-ui-settings-plugins`](../packages/client/ui-settings-plugins) | - | Official SDK providers resolve Host credentials, authorize remote tasks, and expose redacted status to native settings cards. |
 | `ctx.ragflowCatalog` | `core` | [`tool-ragflow-connector`](../packages/interaction/tool-ragflow-connector) | - | [`client-ui-settings-plugins`](../packages/client/ui-settings-plugins) | - | Authenticated settings discovery resolves Host credentials and returns API-authorized names; model-facing tools retain their separate configured dataset allowlist. |
 | `ctx.attachments` | `seam` | [`attachment`](../packages/attachment/attachment) | [`attachment-local`](../packages/attachment/attachment-local) | [`api-session-controller`](../packages/api/session-controller), [`tool-fs`](../packages/fs/tool-fs), [`llm-pi-ai`](../packages/llm/llm-pi-ai), [`llm-deepseek`](../packages/llm/llm-deepseek) | - | The host commits accepted images before session events; provider adapters resolve authorized durable references into provider-native content. |
 | `ctx.fileUploads` | `core` | [`client-file-upload`](../packages/client/file-upload) | - | [`api-session-controller`](../packages/api/session-controller) | - | Owns streaming intake, durable storage, and staged receipt lifetime; the Session controller binds receipts to accepted submissions. |

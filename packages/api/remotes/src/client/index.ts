@@ -17,7 +17,11 @@ import sessionRemote from '@deepseek-ai/dsh-api-session-controller/remote'
 import workspaceRemote from '@deepseek-ai/dsh-api-workspace-controller/remote'
 import workspaceFilesRemote from '@deepseek-ai/dsh-api-workspace-files/remote'
 import ragflowRemote from '@deepseek-ai/dsh-tool-ragflow-connector/remote'
+import enterpriseRemote from '@deepseek-ai/dsh-enterprise-connectors/remote'
 import type { ClientRemote } from '@deepseek-ai/dsh-api-gateway/client'
+
+export type { EnterpriseChannel, EnterpriseConnectionStatus } from '@deepseek-ai/dsh-enterprise-connectors/types'
+export type {} from '@deepseek-ai/dsh-enterprise-connectors/remote'
 
 export type { RagflowDataset, RagflowDatasetPage } from '@deepseek-ai/dsh-tool-ragflow-connector/types'
 export type {} from '@deepseek-ai/dsh-tool-ragflow-connector/remote'
@@ -157,7 +161,7 @@ export async function apply(ctx: Context): Promise<() => Promise<void>> {
     for (const contribution of [
       agentPresetsRemote, commandsRemote, settingsControllerRemote, goalsRemote, llmRemote, dynamicRemote,
       pluginInventoryRemote, messageFeedbackRemote, sessionFeedbackRemote, fileUploadsRemote, sessionReferencesRemote,
-      subagentsRemote, sessionRemote, workspaceRemote, workspaceFilesRemote, ragflowRemote,
+      subagentsRemote, sessionRemote, workspaceRemote, workspaceFilesRemote, ragflowRemote, enterpriseRemote,
     ]) {
       disposers.push(await ctx.remote.$mount(contribution))
     }

@@ -604,6 +604,82 @@ export interface Config {
 
 Source: [`packages/e2b/e2b/src/index.ts:45`](../packages/e2b/e2b/src/index.ts)
 
+<a id="deepseek-aidsh-enterprise-connectors"></a>
+
+## `@deepseek-ai/dsh-enterprise-connectors`
+
+Requires: `tools` · `credentials`
+
+```ts config-catalog
+/** Two accounts plus complete-result, queue and connection bounds. */
+export interface Config {
+  /** Independent Feishu application settings. */
+  feishu: FeishuSettings
+  /** Independent WeCom intelligent-bot settings. */
+  wecom: WecomSettings
+  /** HTTP, authentication and message-delivery deadline in milliseconds. */
+  timeoutMs: number
+  /** Maximum time to watch an admitted Agent task for its reply. */
+  taskTimeoutMs: number
+  /** Maximum complete provider response and serialized tool result bytes. */
+  maxResultBytes: number
+  /** Maximum records returned by one explicit page request. */
+  maxPageSize: number
+  /** Maximum messages retained in the process-local connection buffer. */
+  maxMessages: number
+  /** Maximum admitted and queued remote tasks across both providers. */
+  maxPendingTasks: number
+  /** UTF-8 text limit for task input, sends and provider replies. */
+  maxTextBytes: number
+  /** WeCom heartbeat interval in milliseconds. */
+  heartbeatMs: number
+  /** WeCom initial reconnect delay in milliseconds. */
+  reconnectMs: number
+  /** WeCom reconnect attempt limit. */
+  maxReconnectAttempts: number
+}
+
+/** Feishu/Lark self-built application connection. */
+export interface FeishuSettings extends AccountPolicy {
+  /** Self-built Feishu or Lark application ID. */
+  appId: string
+  /** Feishu OpenAPI origin; mainland Feishu is the default. */
+  baseURL: string
+  /** Whether application-scoped resource reads are available. */
+  readEnabled: boolean
+}
+
+/** Enterprise WeChat intelligent-bot connection. */
+export interface WecomSettings extends AccountPolicy {
+  /** Enterprise WeChat intelligent-bot ID. */
+  botId: string
+  /** Official or privately deployed intelligent-bot WebSocket endpoint. */
+  websocketURL: string
+}
+
+/** Shared account policy. Empty sender lists deny every remote task. */
+export interface AccountPolicy {
+  /** Whether the account may connect or issue tool requests. */
+  enabled: boolean
+  /** Host credential reference, never a literal provider secret. */
+  secretRef: string
+  /** Whether authorized incoming text may trigger DH tasks. */
+  receiveEnabled: boolean
+  /** Whether tools may request proactive sends after native approval. */
+  sendEnabled: boolean
+  /** Exact sender IDs admitted as remote task authors; empty denies all. */
+  allowedSenders: string[]
+  /** Optional chat scope for reads and ingress; proactive sends require explicit membership. */
+  allowedChats: string[]
+  /** Absolute remote-task workspace; empty uses a dedicated directory in the DH home. */
+  workspacePath: string
+  /** Native Agent preset used when creating remote conversations. */
+  agentPreset: string
+}
+```
+
+Source: [`packages/interaction/enterprise-connectors/src/index.ts:16`](../packages/interaction/enterprise-connectors/src/index.ts)
+
 <a id="deepseek-aidsh-experimental-agent-team"></a>
 
 ## `@deepseek-ai/dsh-experimental-agent-team`

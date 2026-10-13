@@ -1,3 +1,5 @@
+import { EnterpriseCardController } from './enterprise-card-controller.ts'
+import { EnterpriseCard } from './EnterpriseCard.tsx'
 import { RagflowCardController, RAGFLOW_NS } from './ragflow-card-controller.ts'
 import { RagflowCard } from './RagflowCard.tsx'
 /**
@@ -56,7 +58,7 @@ const NS = 'settings.plugins'
 
 /** Required services (cordis fiber inject). */
 export const inject = [
-  'slots', 'locale', 'remote', 'remote.credentials', 'remote.session', 'remote.ragflow', 'settingsScope',
+  'slots', 'locale', 'remote', 'remote.credentials', 'remote.session', 'remote.ragflow', 'remote.enterpriseConnections', 'settingsScope',
 ]
 
 /**
@@ -66,6 +68,13 @@ export const inject = [
 export function apply(ctx: ClientContext): void {
   const t = ctx.locale.bind(NS)
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'ui-settings-plugins: section dictionaries')
+
+  const enterprise = {
+    feishu: new EnterpriseCardController(ctx.settingsScope.bind({ namespace: 'feishu-connector' }), ctx, 'feishu'),
+    wecom: new EnterpriseCardController(ctx.settingsScope.bind({ namespace: 'wecom-connector' }), ctx, 'wecom'),
+  }
+  ctx.effect(() => () => { for (const controller of Object.values(enterprise)) controller.dispose() }, 'enterprise cards lifetime')
+  ctx.on('connection/reset', () => { for (const controller of Object.values(enterprise)) void controller.refresh() })
 
   const ragflow = new RagflowCardController(ctx.settingsScope.bind({ namespace: RAGFLOW_NS }), ctx)
   const bash = new BashCardController(ctx.settingsScope.bind({ namespace: SHELL_NS }))
@@ -81,7 +90,7 @@ export function apply(ctx: ClientContext): void {
   // scope publishes nothing when one is written. This is the only signal that
   // a key written on another surface reached the Host.
   ctx.effect(
-    () => ctx.remote.$on('credentials/reference-updated', (ref) => { webSearch.refreshCredential(ref); ragflow.refreshCredential(ref) }),
+    () => ctx.remote.$on('credentials/reference-updated', (ref) => { webSearch.refreshCredential(ref); ragflow.refreshCredential(ref); for (const controller of Object.values(enterprise)) controller.refreshCredential(ref) }),
     'ui-settings-plugins: credential invalidations',
   )
   ctx.effect(
@@ -171,6 +180,10 @@ export function apply(ctx: ClientContext): void {
   }, ConfigurablePluginsTab))
 
   ctx.slots.inject('settings.plugin.item', function* () {
+    for (const channel of ['feishu', 'wecom'] as const) {
+      yield ctx.slots.register({ name: 'settings.plugin.item', key: `${channel}-connector`, locale: NS,
+        inject: () => enterprise[channel].inject() }, EnterpriseCard)
+    }
     yield ctx.slots.register({ name: 'settings.plugin.item', key: RAGFLOW_NS, locale: NS, inject: () => ragflow.inject() }, RagflowCard)
     yield ctx.slots.register({
       name: 'settings.plugin.item',

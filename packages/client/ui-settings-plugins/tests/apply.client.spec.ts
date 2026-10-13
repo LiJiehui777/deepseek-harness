@@ -49,6 +49,9 @@ async function bench(served?: string[]) {
   const remote = new TestRemote(ctx, {
     credentials: { describe: describeCredentials, set: vi.fn() },
     session: { modelCatalog: models },
+    enterpriseConnections: {
+      status: vi.fn(async () => ({ ok: true, value: [] })), reconnect: vi.fn(async () => ({ ok: true, value: [] })),
+    },
     ragflow: { listDatasets: vi.fn(async () => ({ ok: true, value: { datasets: [], page: 1, has_more: false } })) },
     settings: { describe: describeSettings },
   })
@@ -72,7 +75,8 @@ describe('ui-settings-plugins apply', () => {
 
   it('declares the services it uses', () => {
     expect(inject).toEqual([
-      'slots', 'locale', 'remote', 'remote.credentials', 'remote.session', 'remote.ragflow', 'settingsScope',
+      'slots', 'locale', 'remote', 'remote.credentials', 'remote.session', 'remote.ragflow', 'remote.enterpriseConnections',
+      'settingsScope',
     ])
   })
 
@@ -133,7 +137,7 @@ describe('ui-settings-plugins apply', () => {
     await ctx.plugin({ inject: [...inject], apply }).await()
 
     expect(slots.entries('settings.plugin.item').map(entry => entry.options.key))
-      .toEqual(['ragflow-connector', 'shell', 'agent-loop', 'subagent-model-selection', 'web-search-deepseek'])
+      .toEqual(['feishu-connector', 'wecom-connector', 'ragflow-connector', 'shell', 'agent-loop', 'subagent-model-selection', 'web-search-deepseek'])
   })
 
   it('dispatches the served namespaces its cards claim, and no others', async () => {
@@ -236,7 +240,7 @@ describe('ui-settings-plugins apply', () => {
     declareRoot(slots)
     const fiber = ctx.plugin({ inject: [...inject], apply })
     await fiber.await()
-    expect(slots.entries('settings.plugin.item')).toHaveLength(5)
+    expect(slots.entries('settings.plugin.item')).toHaveLength(7)
 
     await fiber.dispose()
 

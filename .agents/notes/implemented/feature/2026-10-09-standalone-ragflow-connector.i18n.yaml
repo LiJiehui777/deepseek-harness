@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-10-09-standalone-ragflow-connector.md
-2026-10-09-standalone-ragflow-connector.md: 1718c2a551fa561f62d33862e4e2c312c88192cb
-2026-10-09-standalone-ragflow-connector.zh.md: 8589528186a32bd547af7139a4667a08c96693a5
+2026-10-09-standalone-ragflow-connector.md: fdc3ba9baa1046e1e34522b1064f2b9fda91847b
+2026-10-09-standalone-ragflow-connector.zh.md: 6432b7b54e5370b47d690eaf87622b7122326f89
