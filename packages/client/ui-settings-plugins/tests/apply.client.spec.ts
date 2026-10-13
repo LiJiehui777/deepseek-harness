@@ -49,6 +49,7 @@ async function bench(served?: string[]) {
   const remote = new TestRemote(ctx, {
     credentials: { describe: describeCredentials, set: vi.fn() },
     session: { modelCatalog: models },
+    ragflow: { listDatasets: vi.fn(async () => ({ ok: true, value: { datasets: [], page: 1, has_more: false } })) },
     settings: { describe: describeSettings },
   })
   await ctx.plugin({ inject: [...settingsInject], apply: settingsApply }).await()
@@ -71,7 +72,7 @@ describe('ui-settings-plugins apply', () => {
 
   it('declares the services it uses', () => {
     expect(inject).toEqual([
-      'slots', 'locale', 'remote', 'remote.credentials', 'remote.session', 'settingsScope',
+      'slots', 'locale', 'remote', 'remote.credentials', 'remote.session', 'remote.ragflow', 'settingsScope',
     ])
   })
 

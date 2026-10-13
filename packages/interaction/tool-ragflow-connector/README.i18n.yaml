@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/interaction/tool-ragflow-connector/README.md
-README.md: fdb88b259b5c11234582ae6481b04be0dee3e5b3
-README.zh.md: db083aa5517c3e9c263dd4cd52540944a072cb8d
+README.md: 74af6a74c8c5d0565b71e23a88279a1685fd20c9
+README.zh.md: f898409326a54a14424647b0945519c2cf10520c

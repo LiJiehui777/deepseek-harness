@@ -36,10 +36,11 @@
           - /placeholder: ""
           - text: http://localhost:9380
         - paragraph: 例如 http://localhost:9380，填写服务根地址，不含 /api/v1。
-        - text: 允许检索的知识库 ID
-        - textbox "允许检索的知识库 ID":
-          - /placeholder: ""
-        - paragraph: 多个 ID 用逗号分隔。留空时仅可列出知识库；填写后才能检索。可让 DH 列出 RAGFlow 知识库来获取 ID。
+        - text: 允许检索的知识库
+        - button "允许检索的知识库":
+          - text: 选择知识库
+          - img
+        - paragraph: 按名称选择知识库，可多选，最多 100 个。保存后生效；未选择时仅可查看知识库列表。
         - checkbox "启用 RAGFlow 连接"
         - text: 启用 RAGFlow 连接
         - button "放弃修改" [disabled]

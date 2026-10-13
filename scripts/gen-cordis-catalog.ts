@@ -116,6 +116,7 @@ export const SERVICE_PAGE: Record<string, string> = {
   tokenMeter: 'token-meter.md',
   toolResultPruner: 'compaction.md',
   tools: 'tools.md',
+  ragflowCatalog: 'tools.md',
   typert: 'typert.md',
   typertGateway: 'typert.md',
   userQuestions: 'user-questions.md',
@@ -246,6 +247,8 @@ export const EVENT_WALK_EXEMPTIONS: Record<string, string> = {
  * appear on more than one page.
  */
 export const LINK_MAP: Readonly<Record<string, string>> = {
+  RagflowDataset: 'tools.md',
+  RagflowDatasetPage: 'tools.md',
   Agent: 'core.md',
   AgentCancelCause: 'core.md',
   AgentFactory: 'core.md',

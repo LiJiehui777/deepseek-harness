@@ -3069,7 +3069,7 @@ export interface Config {
 }
 ```
 
-Source: [`packages/interaction/tool-ragflow-connector/src/index.ts:9`](../packages/interaction/tool-ragflow-connector/src/index.ts)
+Source: [`packages/interaction/tool-ragflow-connector/src/index.ts:13`](../packages/interaction/tool-ragflow-connector/src/index.ts)
 
 <a id="deepseek-aidsh-tool-ralph"></a>
 

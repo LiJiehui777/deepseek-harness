@@ -3,6 +3,8 @@
 /** Locale keys these surfaces render. */
 export type PluginsSettingsLocaleKey =
   | 'ragflowTitle' | 'ragflowDescription' | 'ragflowApiKey' | 'ragflowApiKeyHint' | 'ragflowApiKeySet' | 'ragflowApiKeyUnset' | 'ragflowBaseUrl' | 'ragflowBaseUrlHint' | 'ragflowDatasets' | 'ragflowDatasetsHint' | 'ragflowEnabled' | 'ragflowInvalidUrl' | 'ragflowInvalidDatasets'
+  | 'ragflowChooseDatasets' | 'ragflowSearchDatasets' | 'ragflowDatasetUnknown' | 'ragflowCatalogLoading'
+  | 'ragflowCatalogFailed' | 'ragflowCatalogEmpty' | 'ragflowCatalogRefresh' | 'ragflowCatalogMore' | 'ragflowCatalogSaveFirst'
   | 'nav' | 'title' | 'intro' | 'tabs' | 'configurableTab' | 'empty'
   | 'overridden' | 'reset' | 'readOnly' | 'expand' | 'collapse'
   | 'save' | 'saving' | 'discard' | 'unsaved' | 'saveFailed' | 'invalidNumber'
@@ -29,11 +31,20 @@ export const en: Record<PluginsSettingsLocaleKey, string> = {
   ragflowApiKeyUnset: 'API Key not configured.',
   ragflowBaseUrl: 'RAGFlow service address',
   ragflowBaseUrlHint: 'Example: http://localhost:9380. Enter the service base, without /api/v1.',
-  ragflowDatasets: 'Allowed knowledge base IDs',
-  ragflowDatasetsHint: 'Comma-separated IDs. Empty allows listing only; retrieval requires an explicit selection. Ask DH to list RAGFlow knowledge bases to obtain IDs.',
+  ragflowDatasets: 'Allowed knowledge bases',
+  ragflowDatasetsHint: 'Select up to 100 knowledge bases by name. Save to apply. An empty selection permits listing only.',
+  ragflowChooseDatasets: 'Choose knowledge bases',
+  ragflowSearchDatasets: 'Search loaded knowledge bases',
+  ragflowDatasetUnknown: 'Selected knowledge base; name not loaded',
+  ragflowCatalogLoading: 'Loading knowledge bases…',
+  ragflowCatalogFailed: 'Could not load knowledge bases. Check the saved connection and retry. Your selection is retained.',
+  ragflowCatalogEmpty: 'No matching knowledge bases on the loaded pages.',
+  ragflowCatalogRefresh: 'Refresh list',
+  ragflowCatalogMore: 'Load more',
+  ragflowCatalogSaveFirst: 'Save the service address and API Key before loading knowledge bases.',
   ragflowEnabled: 'Enable RAGFlow connection',
   ragflowInvalidUrl: 'Enter an HTTP(S) service base without credentials, query or fragment.',
-  ragflowInvalidDatasets: 'Enter at most 100 IDs using letters, numbers, underscores or hyphens.',
+  ragflowInvalidDatasets: 'Select at most 100 valid knowledge bases.',
 
   nav: 'Plugins',
   title: 'Plugins',
@@ -99,11 +110,20 @@ export const zh: Record<PluginsSettingsLocaleKey, string> = {
   ragflowApiKeyUnset: '尚未配置 API Key。',
   ragflowBaseUrl: 'RAGFlow 服务地址',
   ragflowBaseUrlHint: '例如 http://localhost:9380，填写服务根地址，不含 /api/v1。',
-  ragflowDatasets: '允许检索的知识库 ID',
-  ragflowDatasetsHint: '多个 ID 用逗号分隔。留空时仅可列出知识库；填写后才能检索。可让 DH 列出 RAGFlow 知识库来获取 ID。',
+  ragflowDatasets: '允许检索的知识库',
+  ragflowDatasetsHint: '按名称选择知识库，可多选，最多 100 个。保存后生效；未选择时仅可查看知识库列表。',
+  ragflowChooseDatasets: '选择知识库',
+  ragflowSearchDatasets: '搜索已加载的知识库',
+  ragflowDatasetUnknown: '已选知识库，名称尚未加载',
+  ragflowCatalogLoading: '正在加载知识库…',
+  ragflowCatalogFailed: '知识库加载失败，请检查已保存的连接后重试。原有选择已保留。',
+  ragflowCatalogEmpty: '已加载的列表中没有匹配的知识库。',
+  ragflowCatalogRefresh: '刷新列表',
+  ragflowCatalogMore: '加载更多',
+  ragflowCatalogSaveFirst: '请先保存服务地址和 API Key，再加载知识库。',
   ragflowEnabled: '启用 RAGFlow 连接',
   ragflowInvalidUrl: '请填写 HTTP(S) 服务地址，不含账号密码、查询参数或锚点。',
-  ragflowInvalidDatasets: '最多填写 100 个 ID，仅支持字母、数字、下划线和连字符。',
+  ragflowInvalidDatasets: '请选择有效的知识库，最多 100 个。',
 
   nav: '插件',
   title: '插件',

@@ -14,6 +14,8 @@ The enhanced checkout has a separate local home and Web launch entry. RAGFlow is
 
 The direct REST path serves dataset discovery and cited retrieval without a Gateway or an MCP deployment. DH remains the application owner. Feishu and WeCom require their own independent authorization providers; host-managed channel bridges do not become standalone connectors merely by installing their packages.
 
+The settings catalog has a separate authenticated Remote operation: it reads API-authorized names independently of the model-facing retrieval allowlist, so a user can add another knowledge base. The browser stages selections by ID and preserves saved IDs when metadata is missing or discovery fails. Paginated results and cancellation bound catalog work; current saved settings and credentials remain Host-owned.
+
 ## Alternatives considered
 
 Embedding DH in RAGFlow preserves host control and cannot provide independent startup. Copying knowledge into DH duplicates indexing and access policy. Reusing a conversation bridge token would retain dependence on the integrated Gateway. The public API keeps RAGFlow independently deployable and its API Key permissions authoritative.

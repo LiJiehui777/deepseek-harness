@@ -960,6 +960,9 @@ importers:
       '@deepseek-ai/dsh-subagent':
         specifier: workspace:^
         version: link:../../subagent/subagent
+      '@deepseek-ai/dsh-tool-ragflow-connector':
+        specifier: workspace:^
+        version: link:../../interaction/tool-ragflow-connector
       '@deepseek-ai/dsh-typert-protocol':
         specifier: workspace:^
         version: link:../../typert/protocol
@@ -7087,6 +7090,9 @@ importers:
       '@deepseek-ai/schemastery':
         specifier: link:../../../vendor/schemastery
         version: link:../../../vendor/schemastery
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
     devDependencies:
       '@deepseek-ai/cordis':
         specifier: workspace:^
@@ -7115,6 +7121,9 @@ importers:
       '@deepseek-ai/dsh-tools':
         specifier: workspace:^
         version: link:../../core/tools
+      '@deepseek-ai/dsh-typert-protocol':
+        specifier: workspace:^
+        version: link:../../typert/protocol
 
   packages/interaction/user-approval:
     dependencies:

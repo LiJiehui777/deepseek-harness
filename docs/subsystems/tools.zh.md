@@ -6,6 +6,8 @@
 
 源码：[`packages/core/tools/src/index.ts`](../../packages/core/tools/src/index.ts) · [`packages/core/tools/src/schema.ts`](../../packages/core/tools/src/schema.ts) · [`packages/core/tools/src/presentation.ts`](../../packages/core/tools/src/presentation.ts)
 
+可选的 [RAGFlow 连接器](../../packages/interaction/tool-ragflow-connector/README.zh.md)提供已认证的设置目录。`RagflowDataset` 包含知识库 `id` 和显示名称 `name`。`RagflowDatasetPage` 包含 `datasets: RagflowDataset[]`、从 1 开始的 `page` 和表示可能还有下一页的 `has_more`。目录读取使用 Host 已保存凭证；面向模型的检索范围单独生效。
+
 ## `ToolDefinition` — 一个已注册的工具
 
 由一个 `ToolSchema`（面向模型的字段）、必需的规范输出声明、`execute` 函数、仅供宿主使用的调度器元数据、可选的最终内容回调和可选 UI 展示函数组成。注册表持有这些定义，循环通过它们分派调用。注册表的 `schemas()` 通过显式允许列表构建面向模型的 `ToolSchema[]`；`output`/`execute`/`finalizeContent`/`timeoutMs`/`isConcurrencySafe`/`presentCall`/`presentResult` 绝不能泄漏到模型请求中。
@@ -474,6 +476,25 @@ type ObjectJsonSchema = JsonSchemaNode & { type: 'object' }
 ## Cordis API
 
 Generated from source by `scripts/gen-cordis-catalog.ts` (verified fresh by `pnpm run verify-cordis-catalog` in doc-sync; regenerate with `pnpm run gen-cordis-catalog`) — the language sides differ only in locale-specific paired document paths. Signature blocks use a `ts cordis-catalog` fence and keep the original source JSDoc; dispatch modes are defined in the [primer](../cordis-primer.zh.md#dispatch-modes), and the framework-inherited `ctx` API lives in [cordis-api/inherited.md](../cordis-api/inherited.md).
+
+<a id="ctxragflowcatalog--ragflowcatalogcontroller"></a>
+
+### `ctx.ragflowCatalog` — `RagflowCatalogController`
+
+Read-only catalog for configuring the retrieval allowlist.
+
+```ts cordis-catalog
+/**
+ * List API-authorized knowledge-base names even when agent retrieval is disabled.
+ * @param page - one-based page, at most 10000.
+ * @param signal - caller cancellation forwarded to the RAGFlow HTTP request.
+ * @returns a bounded page containing only dataset IDs and names.
+ * @throws RemoteError for an invalid page or an unavailable saved connection.
+ */
+@Remote async listDatasets(page: number, signal: AbortSignal): Promise<RagflowDatasetPage>
+```
+
+Source: [`packages/interaction/tool-ragflow-connector/src/catalog.ts`](../../packages/interaction/tool-ragflow-connector/src/catalog.ts)
 
 <a id="ctxtools--toolruntime"></a>
 

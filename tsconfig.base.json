@@ -29,6 +29,7 @@
     // under its own tsconfig boundary.
     "paths": {
       "@deepseek-ai/dsh-tool-ragflow-connector": ["./packages/interaction/tool-ragflow-connector/src/index.ts"],
+      "@deepseek-ai/dsh-tool-ragflow-connector/types": ["./packages/interaction/tool-ragflow-connector/src/types.ts"],
       "@deepseek-ai/cordis": ["./vendor/cordis/src"],
       "@deepseek-ai/cosmokit": ["./vendor/cosmokit/src"],
       "@deepseek-ai/schemastery": ["./vendor/schemastery/src"],

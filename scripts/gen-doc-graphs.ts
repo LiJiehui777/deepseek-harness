@@ -99,6 +99,14 @@ const GROUP_ORDER = [
 
 const SERVICE_ROLES: ServiceRole[] = [
   {
+    key: 'ragflowCatalog',
+    pkg: 'tool-ragflow-connector',
+    title: 'RAGFlow settings knowledge-base catalog',
+    mode: 'core',
+    consumers: ['client-ui-settings-plugins'],
+    note: 'Authenticated settings discovery resolves Host credentials and returns API-authorized names; model-facing tools retain their separate configured dataset allowlist.',
+  },
+  {
     key: 'attachments',
     pkg: 'attachment',
     title: 'Durable binary attachment storage',

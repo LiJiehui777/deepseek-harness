@@ -6,6 +6,7 @@
 
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import { SecretField, ValueField } from './fields.tsx'
+import { RagflowDatasetsField } from './RagflowDatasetsField.tsx'
 import { PluginCard } from './PluginCard.tsx'
 import type { RagflowCardFace } from './ragflow-card-controller.ts'
 import type {} from './slot-contract.ts'
@@ -60,14 +61,9 @@ export function RagflowCard(props: RagflowCardProps) {
         onEdit={(text) => { props.edit('baseURL', text) }}
         onReset={() => { props.resetField('baseURL') }}
       />
-      <ValueField
-        id="plugin-config-ragflow-datasets"
-        label={t('ragflowDatasets')}
-        hint={t('ragflowDatasetsHint')}
-        overriddenLabel={t('overridden')} resetLabel={t('reset')} invalidLabel={t('ragflowInvalidDatasets')}
-        disabled={disabled} {...state.datasetIds}
-        onEdit={(text) => { props.edit('datasetIds', text) }} onReset={() => { props.resetField('datasetIds') }}
-      />
+      <RagflowDatasetsField state={state} t={t} toggleDataset={props.toggleDataset}
+        loadDatasets={props.loadDatasets} loadMoreDatasets={props.loadMoreDatasets}
+        onReset={() => { props.resetField('datasetIds') }} />
       <label>
         <input type="checkbox" checked={state.enabled.text === 'true'} disabled={disabled}
           onChange={(event) => { props.edit('enabled', String(event.target.checked)) }} />

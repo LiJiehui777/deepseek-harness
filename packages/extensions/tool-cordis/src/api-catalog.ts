@@ -1399,6 +1399,20 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     ],
   },
   {
+    key: 'ragflowCatalog',
+    summary: 'Read-only catalog for configuring the retrieval allowlist.',
+    description: 'Read-only catalog for configuring the retrieval allowlist.',
+    methods: [
+      {
+        signature: '@Remote async listDatasets(page: number, signal: AbortSignal): Promise<RagflowDatasetPage>',
+        description: 'List API-authorized knowledge-base names even when agent retrieval is disabled.',
+        parameters: [{ name: 'page', description: 'one-based page, at most 10000.' }, { name: 'signal', description: 'caller cancellation forwarded to the RAGFlow HTTP request.' }],
+        returns: 'a bounded page containing only dataset IDs and names.',
+        throws: ['RemoteError for an invalid page or an unavailable saved connection.'],
+      },
+    ],
+  },
+  {
     key: 'sandbox',
     summary: 'Abstract process-sandbox service.',
     description: 'Abstract process-sandbox service. confine must return enforcing argv or fail closed at wrap or runner-execution time; silent unconfined passthrough is forbidden. Functional probes arbitrate multi-runner chains and may be skipped for a sole candidate, whose own refusal remains the fail-closed end.',
@@ -4861,6 +4875,14 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'PtcDispatchLog',
     declaration: 'export interface PtcDispatchLog {\n    readonly exec: ToolExecution;\n    readonly agent?: Agent;\n    readonly subCallId: ToolCallId;\n    readonly name: string;\n    readonly isError: boolean;\n    readonly content: ContentBlock[];\n}',
+  },
+  {
+    name: 'RagflowDataset',
+    declaration: 'export interface RagflowDataset {\n    id: string;\n    name: string;\n}',
+  },
+  {
+    name: 'RagflowDatasetPage',
+    declaration: 'export interface RagflowDatasetPage {\n    datasets: RagflowDataset[];\n    page: number;\n    has_more: boolean;\n}',
   },
   {
     name: 'ReadFileLine',

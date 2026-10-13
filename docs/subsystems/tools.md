@@ -6,6 +6,8 @@ The tool pipeline of [dsh-tools](../../packages/core/tools). [core.md](core.md) 
 
 Source: [`packages/core/tools/src/index.ts`](../../packages/core/tools/src/index.ts) · [`packages/core/tools/src/schema.ts`](../../packages/core/tools/src/schema.ts) · [`packages/core/tools/src/presentation.ts`](../../packages/core/tools/src/presentation.ts)
 
+The optional [RAGFlow connector](../../packages/interaction/tool-ragflow-connector/README.md) exposes an authenticated settings catalog. `RagflowDataset` contains the dataset `id` and display `name`. `RagflowDatasetPage` contains `datasets: RagflowDataset[]`, the one-based `page`, and `has_more`, which indicates a possible next page. Catalog discovery uses saved Host credentials; the model-facing retrieval allowlist remains separate.
+
 ## `ToolDefinition` — a registered tool
 
 A `ToolSchema` (the model-facing fields) plus a mandatory canonical output declaration, the `execute` function, host-only scheduler metadata, an optional final-content callback, and optional UI presenters. The registry holds these; the loop dispatches calls through them. The registry's `schemas()` builds the model-facing `ToolSchema[]` by an explicit allowlist — `output`/`execute`/`finalizeContent`/`timeoutMs`/`isConcurrencySafe`/`presentCall`/`presentResult` must never leak into a model request.
@@ -474,6 +476,25 @@ The full presentation field docs live in [`packages/core/tools/src/presentation.
 ## Cordis API
 
 Generated from source by `scripts/gen-cordis-catalog.ts` (verified fresh by `pnpm run verify-cordis-catalog` in doc-sync; regenerate with `pnpm run gen-cordis-catalog`) — the language sides differ only in locale-specific paired document paths. Signature blocks use a `ts cordis-catalog` fence and keep the original source JSDoc; dispatch modes are defined in the [primer](../cordis-primer.md#dispatch-modes), and the framework-inherited `ctx` API lives in [cordis-api/inherited.md](../cordis-api/inherited.md).
+
+<a id="ctxragflowcatalog--ragflowcatalogcontroller"></a>
+
+### `ctx.ragflowCatalog` — `RagflowCatalogController`
+
+Read-only catalog for configuring the retrieval allowlist.
+
+```ts cordis-catalog
+/**
+ * List API-authorized knowledge-base names even when agent retrieval is disabled.
+ * @param page - one-based page, at most 10000.
+ * @param signal - caller cancellation forwarded to the RAGFlow HTTP request.
+ * @returns a bounded page containing only dataset IDs and names.
+ * @throws RemoteError for an invalid page or an unavailable saved connection.
+ */
+@Remote async listDatasets(page: number, signal: AbortSignal): Promise<RagflowDatasetPage>
+```
+
+Source: [`packages/interaction/tool-ragflow-connector/src/catalog.ts`](../../packages/interaction/tool-ragflow-connector/src/catalog.ts)
 
 <a id="ctxtools--toolruntime"></a>
 

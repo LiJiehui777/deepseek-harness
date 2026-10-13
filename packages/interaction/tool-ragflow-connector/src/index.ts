@@ -4,6 +4,10 @@ import Schema from '@deepseek-ai/schemastery'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import { credentialRef } from '@deepseek-ai/dsh-credentials'
 import type {} from '@deepseek-ai/dsh-settings'
+import { RagflowCatalogController } from './catalog.ts'
+import type { RagflowDatasetPage } from './types.ts'
+
+export { RagflowCatalogController } from './catalog.ts'
 
 /** Server-owned connection settings; credentials resolve separately on every call. */
 export interface Config {
@@ -61,9 +65,11 @@ function output(value: unknown, max: number): string {
   if (Buffer.byteLength(text) > max) throw new Error('RAGFlow result is too large. Request fewer chunks or a smaller page.')
   return text
 }
-async function request(ctx: Context, config: Config, path: string, signal: AbortSignal, body?: object): Promise<Record<string, unknown>> {
+async function request(
+  ctx: Context, config: Config, path: string, signal: AbortSignal, body?: object, settingsDiscovery = false,
+): Promise<Record<string, unknown>> {
   const base = validate(config)
-  if (!config.enabled) throw new Error('RAGFlow connector is disabled. Enable it in Settings > Plugins.')
+  if (!config.enabled && !settingsDiscovery) throw new Error('RAGFlow connector is disabled. Enable it in Settings > Plugins.')
   const credential = await ctx.credentials.resolve(credentialRef(config.apiKeyEnv))
   if (!credential?.value) throw new Error('RAGFlow API Key is missing. Configure it in Settings > Plugins > RAGFlow.')
   const target = new URL(base.href)
@@ -106,6 +112,21 @@ async function request(ctx: Context, config: Config, path: string, signal: Abort
   return result
 }
 
+async function datasetPage(
+  ctx: Context, config: Config, page: number, size: number, signal: AbortSignal, settingsDiscovery = false,
+): Promise<RagflowDatasetPage> {
+  const result = await request(ctx, config, `datasets?page=${page}&page_size=${size}`, signal, undefined, settingsDiscovery)
+  if (!Array.isArray(result.data)) throw new Error('RAGFlow returned an invalid dataset list.')
+  const datasets = result.data.map((item) => {
+    const row = object(item)
+    if (typeof row.id !== 'string' || typeof row.name !== 'string') throw new Error('RAGFlow returned invalid dataset metadata.')
+    return { id: row.id, name: row.name }
+  })
+  const value = { datasets, page, has_more: result.data.length === size }
+  output(value, config.maxResultBytes)
+  return value
+}
+
 /**
  * Install native knowledge tools and live settings. Tool results are logged by the existing tool pipeline.
  * @param ctx - the independent DH composition.
@@ -119,6 +140,12 @@ export function apply(ctx: Context, config: Config): void {
       setSource: (source) => { current = source }, onChange: () => {},
     })
   })
+  ctx.plugin(RagflowCatalogController, {
+    readPage: (page, signal) => {
+      const cfg = current()
+      return datasetPage(ctx, cfg, page, cfg.maxPageSize, signal, true)
+    },
+  })
   const render = { schema: { type: 'string' as const }, render: (_args: unknown, value: string) => [{ type: 'text' as const, text: value }] }
   ctx.tools.register(defineTool({
     name: 'ragflow_list_datasets',
@@ -128,15 +155,11 @@ export function apply(ctx: Context, config: Config): void {
       const cfg = current()
       const page = integer(args.page, 1, 10000)
       const size = integer(args.page_size, Math.min(20, cfg.maxPageSize), cfg.maxPageSize)
-      const result = await request(ctx, cfg, `datasets?page=${page}&page_size=${size}`, exec.signal)
-      if (!Array.isArray(result.data)) throw new Error('RAGFlow returned an invalid dataset list.')
-      const datasets = result.data.map((item) => {
-        const row = object(item)
-        if (typeof row.id !== 'string' || typeof row.name !== 'string') throw new Error('RAGFlow returned invalid dataset metadata.')
-        return { id: row.id, name: row.name }
-      }).filter(row => !cfg.datasetIds.length || cfg.datasetIds.includes(row.id))
+      const result = await datasetPage(ctx, cfg, page, size, exec.signal)
       return output({
-        datasets, page, has_more: result.data.length === size, retrieval_enabled: cfg.datasetIds.length > 0,
+        ...result,
+        datasets: result.datasets.filter(row => !cfg.datasetIds.length || cfg.datasetIds.includes(row.id)),
+        retrieval_enabled: cfg.datasetIds.length > 0,
       }, cfg.maxResultBytes)
     },
   }))

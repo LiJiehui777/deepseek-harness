@@ -39,6 +39,8 @@ A card stages what the user types and writes it only when they save. Each contro
 
 The Subagent card stages its permission switch and exact model checkboxes together. Enabling requires at least one selected adapter route. Saving submits `enabled` and `allowedModels` in one mutation fenced by the revision where that draft began; a newer Host revision marks the draft failed instead of restoring a revoked route. Disabling retains the selected routes for later reuse. Available models are grouped by provider, while saved routes absent from the current catalog appear last and remain removable. Adapter names and model descriptions remain live directory metadata and are not stored, and the card refreshes them after adapter changes, settings commits, and reconnects.
 
+The RAGFlow card offers a scrollable multi-select catalog of knowledge-base names, with search over loaded pages, refresh and further pages. Selection stays staged until save, which stores IDs only; missing names and failed reads do not clear selected IDs. Endpoint and key changes must be saved before catalog discovery. The catalog uses the authenticated Host Remote and its saved credential; it does not return the key to the browser.
+
 ### Secret-role fields
 
 A key control starts blank, reports only whether one is configured, and writes through the credentials domain rather than the settings section; a blank draft writes nothing and keeps the stored key.

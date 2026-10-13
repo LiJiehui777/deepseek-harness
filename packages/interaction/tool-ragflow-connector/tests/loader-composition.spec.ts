@@ -155,3 +155,28 @@ it('bounds complete UTF-8 responses and forwards cancellation', async () => {
   abort.abort()
   expect((await execute(root, 'ragflow_retrieval', { question: 'q' }, abort.signal)).isError).toBe(true)
 })
+
+it('discovers all API-authorized names for settings without widening agent retrieval', async () => {
+  const root = await boot(true)
+  reply.body = { code: 0, data: [{ id: 'kb_a', name: '质量知识库', credential: 'private' }, { id: 'kb_b', name: '设备知识库' }] }
+  const result = await root.ragflowCatalog.listDatasets(1, new AbortController().signal)
+  expect(result).toEqual({ datasets: [{ id: 'kb_a', name: '质量知识库' }, { id: 'kb_b', name: '设备知识库' }], page: 1, has_more: false })
+  expect(JSON.stringify(result)).not.toContain('private')
+  expect(requests[0]?.auth).toBe('Bearer test-private-key')
+  const toolList = await execute(root, 'ragflow_list_datasets', {})
+  expect(JSON.stringify(toolList.content)).not.toContain('设备知识库')
+  expect((await execute(root, 'ragflow_retrieval', { question: 'q', dataset_ids: ['kb_b'] })).isError).toBe(true)
+  expect(requests).toHaveLength(2)
+  await root.fiber.dispose()
+  expect(root.get('ragflowCatalog')).toBeUndefined()
+})
+it('permits explicit settings discovery while retrieval is disabled and sanitizes failures', async () => {
+  const root = await boot(false, { enabled: false })
+  reply.body = { code: 0, data: [{ id: 'kb_a', name: '质量知识库' }] }
+  expect((await root.ragflowCatalog.listDatasets(1, new AbortController().signal)).datasets).toHaveLength(1)
+  expect((await execute(root)).isError).toBe(true)
+  await expect(root.ragflowCatalog.listDatasets(0, new AbortController().signal)).rejects.toThrow('Invalid RAGFlow dataset page')
+  reply = { status: 401, body: 'test-private-key' }
+  await expect(root.ragflowCatalog.listDatasets(1, new AbortController().signal)).rejects.toThrow('Check the saved service address and API Key')
+  expect(requests).toHaveLength(2)
+})

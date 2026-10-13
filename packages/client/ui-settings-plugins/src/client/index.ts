@@ -56,7 +56,7 @@ const NS = 'settings.plugins'
 
 /** Required services (cordis fiber inject). */
 export const inject = [
-  'slots', 'locale', 'remote', 'remote.credentials', 'remote.session', 'settingsScope',
+  'slots', 'locale', 'remote', 'remote.credentials', 'remote.session', 'remote.ragflow', 'settingsScope',
 ]
 
 /**
@@ -97,6 +97,9 @@ export function apply(ctx: ClientContext): void {
     'ui-settings-plugins: subagent connection generation',
   )
   ctx.effect(() => () => { subagentModelSelection.dispose() }, 'ui-settings-plugins: subagent preference')
+
+  ctx.effect(() => ctx.on('connection/reset', () => { ragflow.resetConnection() }), 'ui-settings-plugins: RAGFlow catalog generation')
+  ctx.effect(() => () => { ragflow.dispose() }, 'ui-settings-plugins: RAGFlow catalog lifetime')
 
   // The shared SettingsScope mirror updates after document commits and reconnects.
   const configurable = new ConfigurablePluginsTabController(

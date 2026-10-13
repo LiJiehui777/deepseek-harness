@@ -9,6 +9,9 @@
 
 ```mermaid
 flowchart LR
+  pkg_tool_ragflow_connector["tool-ragflow-connector"]
+  svc_ragflowCatalog["ctx.ragflowCatalog<br/>RAGFlow settings knowledge-base catalog"]
+  pkg_client_ui_settings_plugins["client-ui-settings-plugins"]
   pkg_attachment["attachment"]
   svc_attachments["ctx.attachments<br/>Durable binary attachment storage"]
   pkg_attachment_local["attachment-local"]
@@ -331,6 +334,7 @@ flowchart LR
   pkg_terminal --> svc_terminals
   pkg_terminal_bash --> svc_terminals
   pkg_token_meter --> svc_tokenMeter
+  pkg_tool_ragflow_connector --> svc_ragflowCatalog
   pkg_tool_subagent --> svc_subagentModelSelection
   pkg_tools --> svc_tools
   pkg_typert_registry --> svc_typert
@@ -388,6 +392,7 @@ flowchart LR
   svc_llm --> pkg_agent_loop
   svc_llm --> pkg_compaction_basic
   svc_lsp --> pkg_tool_lsp
+  svc_ragflowCatalog --> pkg_client_ui_settings_plugins
   svc_sandbox --> pkg_bash_sandbox
   svc_sandbox --> pkg_terminal_bash
   svc_sandboxPolicy --> pkg_bash_sandbox
@@ -476,6 +481,7 @@ flowchart LR
 
 | ctx 键 | 角色 | 所属包 | 实现 | 直接消费方 | 配套插件 | 说明 |
 | --- | --- | --- | --- | --- | --- | --- |
+| `ctx.ragflowCatalog` | `core` | [`tool-ragflow-connector`](../packages/interaction/tool-ragflow-connector) | - | [`client-ui-settings-plugins`](../packages/client/ui-settings-plugins) | - | 已认证的设置目录使用 Host 保存的凭据，返回 API 授权范围内的知识库名称；模型工具仍受单独配置的知识库白名单约束。 |
 | `ctx.attachments` | `seam` | [`attachment`](../packages/attachment/attachment) | [`attachment-local`](../packages/attachment/attachment-local) | [`api-session-controller`](../packages/api/session-controller), [`tool-fs`](../packages/fs/tool-fs), [`llm-pi-ai`](../packages/llm/llm-pi-ai), [`llm-deepseek`](../packages/llm/llm-deepseek) | - | 宿主会在会话事件之前提交已接受的图片；提供方适配器将已授权的持久引用解析为提供方原生内容。 |
 | `ctx.fileUploads` | `core` | [`client-file-upload`](../packages/client/file-upload) | - | [`api-session-controller`](../packages/api/session-controller) | - | 负责流式接收、持久存储和暂存回执生命周期；Session Controller 将回执绑定到已接受的提交。 |
 | `ctx.llm` | `seam` | [`llm`](../packages/llm/llm) | [`llm-deepseek`](../packages/llm/llm-deepseek), [`llm-pi-ai`](../packages/llm/llm-pi-ai), [`llm-replay`](../packages/test-support/llm-replay) | [`agent-loop`](../packages/core/agent-loop), [`compaction-basic`](../packages/compaction/compaction-basic) | - | 适配器注册提供方实现；agent loop（智能体循环）与压缩功能调用提供方无关的流服务。 |

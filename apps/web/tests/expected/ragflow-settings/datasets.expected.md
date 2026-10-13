@@ -1,0 +1,45 @@
+- dialog "允许检索的知识库":
+  - searchbox "搜索已加载的知识库"
+  - group "选择知识库":
+    - checkbox "质量知识库 01"
+    - text: 质量知识库 01
+    - checkbox "质量知识库 02" [checked]
+    - text: 质量知识库 02
+    - checkbox "质量知识库 03"
+    - text: 质量知识库 03
+    - checkbox "质量知识库 04"
+    - text: 质量知识库 04
+    - checkbox "质量知识库 05"
+    - text: 质量知识库 05
+    - checkbox "质量知识库 06"
+    - text: 质量知识库 06
+    - checkbox "质量知识库 07"
+    - text: 质量知识库 07
+    - checkbox "质量知识库 08"
+    - text: 质量知识库 08
+    - checkbox "质量知识库 09"
+    - text: 质量知识库 09
+    - checkbox "质量知识库 10"
+    - text: 质量知识库 10
+    - checkbox "质量知识库 11"
+    - text: 质量知识库 11
+    - checkbox "质量知识库 12"
+    - text: 质量知识库 12
+    - checkbox "质量知识库 13"
+    - text: 质量知识库 13
+    - checkbox "质量知识库 14"
+    - text: 质量知识库 14
+    - checkbox "质量知识库 15"
+    - text: 质量知识库 15
+    - checkbox "质量知识库 16"
+    - text: 质量知识库 16
+    - checkbox "质量知识库 17"
+    - text: 质量知识库 17
+    - checkbox "质量知识库 18"
+    - text: 质量知识库 18
+    - checkbox "质量知识库 19"
+    - text: 质量知识库 19
+    - checkbox "质量知识库 20"
+    - text: 质量知识库 20
+  - button "刷新列表"
+  - button "加载更多"

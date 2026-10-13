@@ -21,10 +21,12 @@ Open `http://127.0.0.1:3001`. This launcher uses its own ignored `.local/enhance
 1. Obtain an API Key from your RAGFlow account's API settings.
 2. Open DH Settings → Plugins → Plugin configuration → RAGFlow connector.
 3. Enter the RAGFlow service base URL and API Key, enable the connection, and save. The key uses DH's credential service; settings and tool results contain no saved key literal. A process-supplied `RAGFLOW_API_KEY` is also supported and is read-only in the card.
-4. Ask DH to list the RAGFlow knowledge bases. Copy the required dataset IDs into the card's allowed knowledge base IDs and save. Empty selection permits listing only. When selection is nonempty, lists and retrieval are restricted to it.
+4. Open **Allowed knowledge bases**, scroll or search the loaded names, select one or more bases, and save. **Load more** appends the next page; **Refresh list** reloads names. Empty selection permits listing only. When selection is nonempty, agent lists and retrieval are restricted to it.
 5. Ask DH: “Search the connected RAGFlow knowledge bases for the inspection requirements, and cite the document names and chunk IDs.” The native tool inspector shows the actual result. An unavailable service or invalid key produces a connector error; ordinary DH conversations can run without RAGFlow.
 
 All conversations in this independent local DH home use the current connection settings. Changing the allowlist affects subsequent calls, including calls from existing conversations. RAGFlow's own API Key permissions still apply. The connector is read-only and does not create knowledge bases or ingest documents. Dataset discovery is paginated, so ask for the next page when `has_more` is true.
+
+Save service-address and API Key edits before loading their catalog. The settings picker shows all knowledge bases authorized by the saved API Key, including bases outside the current retrieval selection. Only selected IDs are persisted. A saved ID whose name has not loaded remains selected and removable; loading failures retain the selection.
 
 ## Other connectors
 

@@ -23,6 +23,8 @@ Connect independent DH to RAGFlow's public `/api/v1/datasets` and `/api/v1/retri
 
 The server rechecks the allowlist at execution. Empty selection permits discovery only. Redirects are refused, cancellation and deadlines reach HTTP, provider errors are sanitized, and complete UTF-8 wire and rendered results are bounded. Dataset lists expose IDs and names; retrieval projects content and citation IDs. An out-of-scope returned chunk rejects the result. The native tool inspector presents the logged text; disposal removes registrations.
 
+The authenticated `ragflow.listDatasets` Remote supplies paginated IDs and names for settings, using the saved connection and credential. Explicit settings discovery works while agent retrieval is disabled and does not filter by the retrieval allowlist; RAGFlow API Key permissions still apply. It never changes the allowlist or returns credentials. `./types` exports the catalog metadata types.
+
 ## Model Experience
 
 ### Knowledge tools
