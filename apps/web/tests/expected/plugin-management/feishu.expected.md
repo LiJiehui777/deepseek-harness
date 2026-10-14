@@ -1,12 +1,20 @@
 - button "返回插件": 插件
 - heading "飞书连接器" [level=3]
 - paragraph: 读取授权消息与文档，收发消息并联动 DH 任务。
+- group "读取身份":
+  - text: 读取身份
+  - paragraph: 选择 DH 读取群聊和文档时使用谁的权限。
+  - radio "应用身份"
+  - text: 应用身份 读取机器人所在群聊和共享给应用的文档，无需个人账号登录授权。
+  - radio "用户身份" [checked]
+  - text: 用户身份 登录授权后，读取你的账号可访问的群聊和文档，范围受已授予的用户权限限制。
+- paragraph: 两种身份都需要填写下方的飞书应用凭证；用户身份还需完成个人账号授权。
 - text: App ID 已覆盖
 - button "恢复默认"
 - textbox "App ID":
   - /placeholder: ""
   - text: cli_fixture_native_plugins
-- paragraph: 在飞书开放平台创建企业自建应用，并开启机器人能力。
+- paragraph: 在飞书开放平台的应用凭证中获取 App ID 和 App Secret。需要机器人收发消息时，再启用机器人能力。
 - text: App Secret 已保存密钥。
 - textbox "App Secret"
 - paragraph: 由 DH 凭证服务保存，保存后不返回浏览器。留空保留原密钥。
@@ -16,16 +24,21 @@
 - text: 启用此连接
 - checkbox "允许读取可见群聊和文档" [checked]
 - text: 允许读取可见群聊和文档
-- checkbox "使用我的飞书账号读取" [checked]
-- text: 使用我的飞书账号读取
-- paragraph: 用户读取需要本人授权及已发布的用户权限，已获准的远程任务也可使用这份读取权限；机器人收发仍使用应用身份。
+- paragraph: 请开通并发布所需的用户权限，保存设置后在下方授权。已获准的远程任务也可使用这份读取身份。
+- heading "用户账号授权" [level=4]
 - status:
   - paragraph: 账号尚未授权
 - text: 授权回调地址
 - textbox "授权回调地址": {{origin}}/auth/feishu/callback
-- paragraph: 授权前，将这个完整地址添加到飞书应用「安全设置 → 重定向 URL」。请使用同一浏览器及访问地址。
+- paragraph: 将此地址添加到飞书应用「安全设置 → 重定向 URL」。它用于授权后自动返回，不能直接打开来授权；请在同一浏览器点击下方按钮。
 - button "授权我的飞书账号" [disabled]
 - button "解除账号授权" [disabled]
+- text: 允许的会话 ID
+- textbox "允许的会话 ID":
+  - /placeholder: ""
+- paragraph: 留空允许可见资源读取及已授权用户派任务；主动发送时，目标会话必须填写在此处。
+- heading "机器人收发消息 · 应用身份" [level=4]
+- paragraph: 接收任务和发送消息始终使用应用机器人，与上方选择的读取身份独立。
 - checkbox "接收平台消息并执行 DH 任务"
 - text: 接收平台消息并执行 DH 任务
 - paragraph: 私聊或群内 @机器人可启动 DH 任务，沿用现有模型、知识库和确认设置。
@@ -33,14 +46,11 @@
 - textbox "允许派任务的用户 ID":
   - /placeholder: ""
 - paragraph: 多个 ID 用逗号分隔；留空时拒绝所有远程任务。先给机器人发消息，再刷新状态并添加最近发送者。
-- text: 允许的会话 ID
-- textbox "允许的会话 ID":
-  - /placeholder: ""
-- paragraph: 留空允许可见资源读取及已授权用户派任务；主动发送时，目标会话必须填写在此处。
 - checkbox "允许 DH 主动发送消息"
 - text: 允许 DH 主动发送消息
 - paragraph: 模型主动发送每条消息时需要 DH 确认；已授权任务的回复返回原会话。
 - group: 高级连接设置
+- heading "机器人连接状态" [level=4]
 - status:
   - paragraph: 连接未启用
 - button "连接 / 检查已保存账号" [disabled]

@@ -3,6 +3,17 @@
 /** Locale keys these surfaces render. */
 export type PluginsSettingsLocaleKey =
   | 'feishuReadIdentity'
+  | 'feishuBotStatus'
+  | 'feishuBotMessagingHint'
+  | 'feishuBotMessaging'
+  | 'feishuUserAuthorization'
+  | 'feishuAppReadHint'
+  | 'feishuCredentialsHint'
+  | 'feishuIdentityUserHint'
+  | 'feishuIdentityUser'
+  | 'feishuIdentityAppHint'
+  | 'feishuIdentityApp'
+  | 'feishuIdentityHint'
   | 'feishuUserHint'
   | 'feishuAuthorize'
   | 'feishuRevoke'
@@ -86,8 +97,19 @@ export type PluginsSettingsLocaleKey =
 
 /** English copy. */
 export const en: Record<PluginsSettingsLocaleKey, string> = {
-  feishuReadIdentity: 'Use my Feishu account for reads',
-  feishuUserHint: 'User reads need your consent and published user permissions. Admitted remote tasks share these read permissions; bot transport and sends use app identity.',
+  feishuBotStatus: 'Bot connection status',
+  feishuBotMessagingHint: 'Receiving tasks and sending messages always use the application bot, independently of the read identity above.',
+  feishuBotMessaging: 'Bot messaging · application identity',
+  feishuUserAuthorization: 'User account authorization',
+  feishuAppReadHint: 'Enable and publish the required application read permissions. Add the bot to the target chats and share documents with the app.',
+  feishuCredentialsHint: 'Both identities need the app credentials below. User identity also requires your account authorization.',
+  feishuIdentityUserHint: 'Sign in to read chats and documents visible to your account, within the user permissions granted to this app.',
+  feishuIdentityUser: 'User identity',
+  feishuIdentityAppHint: 'Read chats the bot belongs to and documents shared with the app. No personal sign-in is required.',
+  feishuIdentityApp: 'Application identity',
+  feishuIdentityHint: 'Choose whose permissions DH uses to read chats and documents.',
+  feishuReadIdentity: 'Read identity',
+  feishuUserHint: 'Enable and publish the required user permissions, save your settings, then authorize below. Admitted remote tasks can also use this read identity.',
   feishuAuthorize: 'Authorize my Feishu account',
   feishuRevoke: 'Disconnect my account',
   feishuAuthorized: 'Account authorized',
@@ -97,7 +119,7 @@ export const en: Record<PluginsSettingsLocaleKey, string> = {
   feishuAuthCancelled: 'Authorization cancelled.',
   feishuAuthLink: 'Open Feishu authorization page',
   feishuCallback: 'Authorization callback URI',
-  feishuCallbackHint: "Copy this exact URI into your Feishu app's Security settings > Redirect URLs before authorizing. Keep the same browser and host.",
+  feishuCallbackHint: "Copy this URI into the app's Security settings > Redirect URLs. It is an automatic return address, not an authorization entry. Start with the button below in the same browser.",
   feishuRedirectURI: 'Custom callback URI',
   feishuRedirectHint: 'Leave blank for the local Web server. HTTPS deployments must use their public /auth/feishu/callback URL.',
   feishuUserScopes: 'Requested user permissions',
@@ -111,7 +133,7 @@ export const en: Record<PluginsSettingsLocaleKey, string> = {
   wecomBotId: 'Bot ID',
   feishuSecret: 'App Secret',
   wecomSecret: 'Bot Secret',
-  feishuSetupHint: 'Create a self-built app with bot capability in Feishu Open Platform.',
+  feishuSetupHint: 'Find App ID and App Secret in your Feishu application credentials. Enable bot capability if you use bot messaging.',
   wecomSetupHint: 'Create an intelligent bot in API / long-connection mode. This is not a group webhook key.',
   enterpriseSecretHint: 'Stored by DH credentials, never returned to the browser. Blank keeps the saved secret.',
   enterpriseSecretSet: 'Secret configured.',
@@ -230,8 +252,19 @@ export const en: Record<PluginsSettingsLocaleKey, string> = {
 
 /** Simplified Chinese copy. */
 export const zh: Record<PluginsSettingsLocaleKey, string> = {
-  feishuReadIdentity: '使用我的飞书账号读取',
-  feishuUserHint: '用户读取需要本人授权及已发布的用户权限，已获准的远程任务也可使用这份读取权限；机器人收发仍使用应用身份。',
+  feishuBotStatus: '机器人连接状态',
+  feishuBotMessagingHint: '接收任务和发送消息始终使用应用机器人，与上方选择的读取身份独立。',
+  feishuBotMessaging: '机器人收发消息 · 应用身份',
+  feishuUserAuthorization: '用户账号授权',
+  feishuAppReadHint: '请为应用开通并发布所需的读取权限，将机器人加入目标群聊，并将文档共享给应用。',
+  feishuCredentialsHint: '两种身份都需要填写下方的飞书应用凭证；用户身份还需完成个人账号授权。',
+  feishuIdentityUserHint: '登录授权后，读取你的账号可访问的群聊和文档，范围受已授予的用户权限限制。',
+  feishuIdentityUser: '用户身份',
+  feishuIdentityAppHint: '读取机器人所在群聊和共享给应用的文档，无需个人账号登录授权。',
+  feishuIdentityApp: '应用身份',
+  feishuIdentityHint: '选择 DH 读取群聊和文档时使用谁的权限。',
+  feishuReadIdentity: '读取身份',
+  feishuUserHint: '请开通并发布所需的用户权限，保存设置后在下方授权。已获准的远程任务也可使用这份读取身份。',
   feishuAuthorize: '授权我的飞书账号',
   feishuRevoke: '解除账号授权',
   feishuAuthorized: '账号已授权',
@@ -241,7 +274,7 @@ export const zh: Record<PluginsSettingsLocaleKey, string> = {
   feishuAuthCancelled: '已取消授权。',
   feishuAuthLink: '打开飞书授权页',
   feishuCallback: '授权回调地址',
-  feishuCallbackHint: '授权前，将这个完整地址添加到飞书应用「安全设置 → 重定向 URL」。请使用同一浏览器及访问地址。',
+  feishuCallbackHint: '将此地址添加到飞书应用「安全设置 → 重定向 URL」。它用于授权后自动返回，不能直接打开来授权；请在同一浏览器点击下方按钮。',
   feishuRedirectURI: '自定义回调地址',
   feishuRedirectHint: '本机使用留空即可；HTTPS 部署请填写公网地址，路径为 /auth/feishu/callback。',
   feishuUserScopes: '申请的用户权限',
@@ -255,7 +288,7 @@ export const zh: Record<PluginsSettingsLocaleKey, string> = {
   wecomBotId: 'Bot ID',
   feishuSecret: 'App Secret',
   wecomSecret: '机器人 Secret',
-  feishuSetupHint: '在飞书开放平台创建企业自建应用，并开启机器人能力。',
+  feishuSetupHint: '在飞书开放平台的应用凭证中获取 App ID 和 App Secret。需要机器人收发消息时，再启用机器人能力。',
   wecomSetupHint: '创建智能机器人，选择 API 模式和使用长连接；这里填写 Bot ID，不是群机器人 Webhook。',
   enterpriseSecretHint: '由 DH 凭证服务保存，保存后不返回浏览器。留空保留原密钥。',
   enterpriseSecretSet: '已保存密钥。',

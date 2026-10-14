@@ -28,12 +28,20 @@
         - 'button "Hide settings: Feishu connector" [expanded]':
           - text: Feishu connector Read authorized messages and documents; send and receive DH tasks.
           - img
+        - group "Read identity":
+          - text: Read identity
+          - paragraph: Choose whose permissions DH uses to read chats and documents.
+          - radio "Application identity" [checked]
+          - text: Application identity Read chats the bot belongs to and documents shared with the app. No personal sign-in is required.
+          - radio "User identity"
+          - text: User identity Sign in to read chats and documents visible to your account, within the user permissions granted to this app.
+        - paragraph: Both identities need the app credentials below. User identity also requires your account authorization.
         - text: App ID Overridden
         - button "Reset to default"
         - textbox "App ID":
           - /placeholder: ""
           - text: cli_0123456789abcdef
-        - paragraph: Create a self-built app with bot capability in Feishu Open Platform.
+        - paragraph: Find App ID and App Secret in your Feishu application credentials. Enable bot capability if you use bot messaging.
         - text: App Secret Secret configured.
         - textbox "App Secret"
         - paragraph: Stored by DH credentials, never returned to the browser. Blank keeps the saved secret.
@@ -43,16 +51,15 @@
         - text: Enable this connection
         - checkbox "Allow reading visible chats and documents" [checked]
         - text: Allow reading visible chats and documents
-        - checkbox "Use my Feishu account for reads"
-        - text: Use my Feishu account for reads
-        - paragraph: User reads need your consent and published user permissions. Admitted remote tasks share these read permissions; bot transport and sends use app identity.
-        - status:
-          - paragraph: Account not authorized
-        - text: Authorization callback URI
-        - textbox "Authorization callback URI"
-        - paragraph: Copy this exact URI into your Feishu app's Security settings > Redirect URLs before authorizing. Keep the same browser and host.
-        - button "Authorize my Feishu account"
-        - button "Disconnect my account"
+        - paragraph: Enable and publish the required application read permissions. Add the bot to the target chats and share documents with the app.
+        - text: Allowed chat IDs Overridden
+        - button "Reset to default"
+        - textbox "Allowed chat IDs":
+          - /placeholder: ""
+          - text: chat_a
+        - paragraph: Empty permits visible reads and authorized-sender tasks. Proactive sending requires an explicitly listed chat.
+        - heading "Bot messaging · application identity" [level=4]
+        - paragraph: Receiving tasks and sending messages always use the application bot, independently of the read identity above.
         - checkbox "Receive remote tasks from this platform" [checked]
         - text: Receive remote tasks from this platform
         - paragraph: Direct messages and bot mentions start DH tasks. Existing model, knowledge and approval settings apply.
@@ -62,16 +69,11 @@
           - /placeholder: ""
           - text: user_a
         - paragraph: Comma-separated IDs. Empty denies all remote tasks. Send a message, refresh status, then add the latest sender.
-        - text: Allowed chat IDs Overridden
-        - button "Reset to default"
-        - textbox "Allowed chat IDs":
-          - /placeholder: ""
-          - text: chat_a
-        - paragraph: Empty permits visible reads and authorized-sender tasks. Proactive sending requires an explicitly listed chat.
         - checkbox "Allow DH to send messages" [checked]
         - text: Allow DH to send messages
         - paragraph: Every model-requested send requires DH approval. Authorized task replies return to their original conversation.
         - group: Advanced connection settings
+        - heading "Bot connection status" [level=4]
         - status:
           - paragraph: Connected
         - button "Connect / check saved account"
@@ -119,8 +121,8 @@
         - group: Advanced connection settings
         - status:
           - paragraph: Connected
-        - button "Connecting…" [disabled]
-        - button "Refresh status" [disabled]
+        - button "Connect / check saved account"
+        - button "Refresh status"
         - button "Add latest sender" [disabled]
         - button "Add latest chat" [disabled]
         - button "Discard" [disabled]

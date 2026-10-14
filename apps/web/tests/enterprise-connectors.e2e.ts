@@ -146,6 +146,7 @@ it('saves both native accounts without secrets in settings, then runs a WeCom ta
   await wecom.getByRole('button', { name: 'Show settings: WeCom connector', exact: true }).click()
   await wecom.getByRole('button', { name: 'Connect / check saved account' }).click()
   await wecom.getByText('Connected', { exact: true }).waitFor()
+  await wecom.getByRole('button', { name: 'Connect / check saved account', exact: true }).waitFor()
   expect(await wecom.getByLabel('Bot Secret', { exact: true }).inputValue()).toBe('')
   const document = await readFile(join(scaffold.harnessHome, 'settings.yaml'), 'utf8')
   expect(document).toContain('feishu-connector:')

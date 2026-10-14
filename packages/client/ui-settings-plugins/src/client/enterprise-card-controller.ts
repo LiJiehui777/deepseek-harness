@@ -76,8 +76,8 @@ export class EnterpriseCardController {
     const booleans = ['enabled', 'receiveEnabled', 'sendEnabled', ...(channel === 'feishu' ? ['readEnabled'] : [])]
     this.fields = [id, url, ...(channel === 'feishu' ? ['readIdentity', 'redirectURI', 'userScopes'] : []), 'workspacePath', 'agentPreset', 'allowedSenders', 'allowedChats', ...booleans]
     this.form = new CardForm(scope, [textField(id), ...(channel === 'feishu' ? [textField('redirectURI'),
-      { field: 'readIdentity', format: (value: unknown) => String(value === 'user'),
-        parse: (value: string) => ({ kind: 'set' as const, value: value === 'true' ? 'user' : 'app' }) },
+      { field: 'readIdentity', format: (value: unknown) => value === 'user' ? 'user' : 'app',
+        parse: (value: string) => value === 'app' || value === 'user' ? { kind: 'set' as const, value } : undefined },
       { field: 'userScopes', format: (value: unknown) => Array.isArray(value) ? value.join(', ') : '',
         parse: (value: string) => { const scopes = [...new Set(value.split(/[,\s]+/).filter(Boolean))]
           return scopes.length > 0 && scopes.length <= 30 && scopes.every(item => /^[a-zA-Z0-9_:.-]{1,128}$/.test(item))

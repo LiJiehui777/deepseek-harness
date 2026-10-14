@@ -41,7 +41,7 @@ The Subagent card stages its permission switch and exact model checkboxes togeth
 
 The RAGFlow card offers a scrollable multi-select catalog of knowledge-base names, with search over loaded pages, refresh and further pages. Selection stays staged until save, which stores IDs only; missing names and failed reads do not clear selected IDs. Endpoint and key changes must be saved before catalog discovery. The catalog uses the authenticated Host Remote and its saved credential; it does not return the key to the browser.
 
-The Feishu card selects app or user reads and displays the exact OAuth callback URI, requested user permissions, consent status and user name. Authorize opens a browser-bound consent flow; disconnect removes the saved local user grant. Tokens never enter the card snapshot. The [enterprise connector guide](../../../docs/user/enterprise-connectors.md#authorize-your-feishu-account) owns platform setup.
+The Feishu card offers mutually exclusive Application identity and User identity radio choices for resource reads. Both require application credentials. Only User identity exposes the OAuth callback URI, requested user permissions, consent status and user name; Application identity explains bot membership and document sharing. Switching identity stages a setting without revoking the saved grant or changing bot switches. Bot messaging is separately labeled as application identity. Authorize opens a browser-bound consent flow; disconnect removes the saved local user grant. Tokens never enter the card snapshot. The [enterprise connector guide](../../../docs/user/enterprise-connectors.md#authorize-your-feishu-account) owns platform setup.
 
 ### Secret-role fields
 

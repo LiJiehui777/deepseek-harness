@@ -25,7 +25,7 @@ afterEach(async () => {
       scaffold = undefined
       if (server) {
         server.closeAllConnections()
-        await new Promise<void>((resolve, reject) => { server!.close(error => error ? reject(error) : resolve()) })
+        await new Promise<void>((resolve, reject) => { server!.close((error) => { if (error) reject(error); else resolve() }) })
       }
       server = undefined
       if (directory) await rm(directory, { recursive: true, force: true })
@@ -92,7 +92,7 @@ it('authorizes in the same browser, reads as the user, rotates one refresh token
   await feishu.getByLabel('App ID', { exact: true }).fill('cli_0123456789abcdef')
   await feishu.getByLabel('App Secret', { exact: true }).fill('fixture-oauth-secret')
   await feishu.getByRole('checkbox', { name: 'Enable this connection', exact: true }).check()
-  await feishu.getByRole('checkbox', { name: 'Use my Feishu account for reads', exact: true }).check()
+  await feishu.getByRole('radio', { name: 'User identity', exact: true }).check()
   await feishu.getByRole('button', { name: 'Save', exact: true }).click()
   await feishu.getByRole('button', { name: 'Show settings: Feishu connector', exact: true }).click()
   const execute = (name: string, args: unknown = {}) => scaffold!.ctx.tools.execute({ name,
@@ -124,6 +124,18 @@ it('authorizes in the same browser, reads as the user, rotates one refresh token
   expect((await context.request.get(callback, { maxRedirects: 0 })).status()).toBe(400)
   expect((await execute('feishu_read_messages', { chat_id: 'chat_a' })).isError).toBe(false)
   expect(reads.at(-1)?.auth).toBe('Bearer fixture-user-token')
+  await feishu.getByRole('radio', { name: 'Application identity', exact: true }).check()
+  expect(await feishu.getByRole('button', { name: 'Authorize my Feishu account', exact: true }).count()).toBe(0)
+  await feishu.getByRole('button', { name: 'Save', exact: true }).click()
+  await feishu.getByRole('button', { name: 'Show settings: Feishu connector', exact: true }).click()
+  expect((await scaffold.ctx.enterpriseConnectors.feishuAuthorization()).state).toBe('authorized')
+  expect((await execute('feishu_list_chats')).isError).toBe(false)
+  expect(reads.at(-1)?.auth).toBe('Bearer fixture-app-token')
+  await feishu.getByRole('radio', { name: 'User identity', exact: true }).check()
+  await feishu.getByRole('button', { name: 'Save', exact: true }).click()
+  await feishu.getByRole('button', { name: 'Show settings: Feishu connector', exact: true }).click()
+  await feishu.getByText('Account authorized: Quality fixture user', { exact: true }).waitFor()
+
   const key = credentialKey('enterprise-connectors', 'feishu-user')
   await scaffold.ctx.credentials.modifyRecord(key, (record) => {
     if (record?.kind !== 'grant' || typeof record.payload !== 'object' || record.payload === null) throw new Error('Missing fixture grant')
@@ -143,11 +155,12 @@ it('authorizes in the same browser, reads as the user, rotates one refresh token
   expect(publicStatus).not.toContain('fixture-refresh')
   const fullGrant = await scaffold.ctx.credentials.readRecord(key)
   if (fullGrant?.kind !== 'grant' || typeof fullGrant.payload !== 'object' || fullGrant.payload === null) throw new Error('Missing saved grant')
-  await scaffold.ctx.credentials.modifyRecord(key, () => Promise.resolve({ kind: 'grant', payload: { ...fullGrant.payload, scopes: ['im:chat:read'] } }))
+  const grantPayload = fullGrant.payload
+  await scaffold.ctx.credentials.modifyRecord(key, () => Promise.resolve({ kind: 'grant', payload: { ...grantPayload, scopes: ['im:chat:read'] } }))
   const countBeforeMissingScope = reads.length
   expect((await execute('feishu_read_messages', { chat_id: 'chat_a' })).isError).toBe(true)
   expect(reads).toHaveLength(countBeforeMissingScope)
-  await scaffold.ctx.credentials.modifyRecord(key, () => Promise.resolve({ kind: 'grant', payload: { ...fullGrant.payload, expiresAt: 0 } }))
+  await scaffold.ctx.credentials.modifyRecord(key, () => Promise.resolve({ kind: 'grant', payload: { ...grantPayload, expiresAt: 0 } }))
   expired = true
   const expiredRead = await execute('feishu_list_chats')
   expect(expiredRead.isError).toBe(true)
