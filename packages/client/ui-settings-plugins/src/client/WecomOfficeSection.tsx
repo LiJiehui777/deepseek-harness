@@ -27,6 +27,7 @@ export function WecomOfficeSection({ state, actions, t }: Props) {
   if (!state.available) return null
   const pending = state.status?.state === 'pending'
   const connected = state.status?.state === 'authorized'
+  const extended = ['contacts', 'meetings', 'mail', 'messages'].every(field => state.fields[field]?.text === 'true')
   const disabled = !state.writable || state.saving || state.busy || pending
   const blocked = state.dirty || disabled
   const status: PluginsSettingsLocaleKey = connected ? 'wecomOfficeAuthorized'
@@ -41,6 +42,10 @@ export function WecomOfficeSection({ state, actions, t }: Props) {
       {state.requestFailed ? <p className={fields.invalid}>{t('wecomOfficeConnectionFailed')}</p> : null}
       {state.status?.error ? <p className={fields.invalid}>{t(failures[state.status.error])}</p> : null}
     </div>
+    {connected && !extended ? <div>
+      <p className={fields.hint}>{t('wecomOfficeExtendHint')}</p>
+      <button type="button" disabled={blocked} onClick={actions.extend}>{t('wecomOfficeExtend')}</button>
+    </div> : null}
     {pending ? <div className={css.officeQr}>
       {state.status?.qrImage ? <img src={state.status.qrImage} alt={t('wecomOfficeQrAlt')} /> : <p>{t('wecomOfficePreparingQr')}</p>}
       <p className={fields.hint}>{t('wecomOfficeQrHint')}</p>

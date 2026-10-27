@@ -20,6 +20,7 @@ import SubprocessLocal from '@deepseek-ai/dsh-subprocess-local'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { MemoryCredentials } from '../../../credentials/credentials/tests/memory.ts'
 import Enterprise from '../src/index.ts'
+import Approval from '@deepseek-ai/dsh-user-approval'
 import { officeRequest } from '../src/wecom-office/operations.ts'
 
 let socketServer: WebSocketServer | undefined
@@ -35,7 +36,7 @@ afterEach(async () => {
     socketServer = undefined
     if (directory) await rm(directory, { recursive: true, force: true }); directory = undefined }
 })
-async function boot(options: Record<string, unknown> = {}): Promise<Context> {
+async function boot(options: Record<string, unknown> = {}, approval = false): Promise<Context> {
   directory = await mkdtemp(join(tmpdir(), 'wecom-office-loader-'))
   socketServer = new WebSocketServer({ host: '127.0.0.1', port: 0 })
   socketServer.on('connection', (socket) => { socket.on('message', (raw) => {
@@ -51,14 +52,14 @@ async function boot(options: Record<string, unknown> = {}): Promise<Context> {
   root.loader.builtins.include = Include
   const modules = new Map<string, unknown>([
     ['settings', MemorySettings], ['agents', Agents], ['system-prompt', SystemPrompt], ['tools', Tools], ['authorization', Authorization],
-    ['subprocess', SubprocessLocal], ['enterprise', Enterprise],
+    ['subprocess', SubprocessLocal], ['enterprise', Enterprise], ['approval', Approval],
     ['credentials', { apply(ctx: Context) { ctx.plugin(MemoryCredentials, {}) } }],
   ])
   root.loader.internal = { version: 'v2', import(name: string) { return Promise.resolve(modules.get(name)) } } as unknown as NonNullable<typeof root.loader.internal>
   const config = { wecom: { websocketURL: `ws://127.0.0.1:${address.port}` }, wecomOffice: { enabled: true, documents: true, files: true, calendar: true, todos: true },
     wecomOfficeRuntime: { directory: join(directory, 'account'), command: [process.execPath, fixture, directory] }, timeoutMs: 10000, ...options }
   const file = join(directory, 'cordis.yml')
-  await writeFile(file, '- name: settings\n- name: agents\n- name: system-prompt\n- name: tools\n- name: credentials\n- name: authorization\n- name: subprocess\n- name: enterprise\n  config: '+JSON.stringify(config)+'\n')
+  await writeFile(file, (approval ? '- name: approval\n' : '') + '- name: settings\n- name: agents\n- name: system-prompt\n- name: tools\n- name: credentials\n- name: authorization\n- name: subprocess\n- name: enterprise\n  config: '+JSON.stringify(config)+'\n')
   await root.loader.create({ name: 'cordis:include', config: { path: pathToFileURL(file).href } })
   await root.loader.await()
   return root
@@ -88,7 +89,8 @@ describe('managed office CLI composition', { timeout: 30000 }, () => {
     await authorize(ctx)
     const status = await ctx.enterpriseConnectors.checkWecomOffice()
     expect(status.authorizerName).toBe('Quality user')
-    expect(status.capabilities.every(row => row.state === 'discoverable')).toBe(true)
+    expect(status.capabilities.filter(row => ['documents', 'files', 'calendar', 'todos'].includes(row.id)).every(row => row.state === 'discoverable')).toBe(true)
+    expect(status.capabilities.find(row => row.id === 'mail')?.state).toBe('unknown')
     expect(JSON.stringify(status)).not.toContain('fixture-secret')
     expect(ctx.enterpriseConnectors.status()[1]?.state).toBe('connected')
     const cases: Array<[string, unknown, string]> = [
@@ -250,4 +252,114 @@ describe('managed office CLI composition', { timeout: 30000 }, () => {
     expect(await readFile(join(directory!, 'calls.ndjson'), 'utf8')).toBe(before)
   })
 
+})
+
+
+describe('office capability dispatch through the Loader', { timeout: 30000 }, () => {
+  function call(ctx: Context, mode: 'describe' | 'read' | 'write', method: string, payload: unknown, session?: Session) {
+    session ??= Session.create(SessionId('office-api-local'), [], { ...Session.create(SessionId('office-api-local')).header, cwd: directory! })
+    const agent = { session } as Agent
+    return ctx.tools.execute({ name: `wecom_office_${mode}`, callId: ToolCallId(`api-${method}`),
+      arguments: { method, ...(mode === 'describe' ? {} : { arguments_json: JSON.stringify(payload) }) },
+      agent, signal: new AbortController().signal })
+  }
+  const settings = { enabled: true, documents: true, files: true, calendar: true, todos: true,
+    contacts: true, meetings: true, mail: true, messages: true }
+  it('describes and reads contacts, meetings, mail, sheets and downloaded workspace files', async () => {
+    const ctx = await boot({ wecomOffice: settings })
+    await authorize(ctx)
+    const description = await call(ctx, 'describe', 'contact.users.search', {})
+    expect(description.isError, JSON.stringify(description)).toBe(false)
+    expect(JSON.stringify(description)).toContain('keywords')
+    const cases: Array<[string, unknown, string]> = [
+      ['contact.users.search', { keywords: ['Reviewer'], search_mode: 'list' }, 'reviewer_two'],
+      ['meeting.list', { begin_time: '2026-10-28 00:00:00', end_time: '2026-10-29 00:00:00', limit: 10 }, 'Inspection review'],
+      ['meeting.original.get', { meeting_id: 'meeting_one' }, 'retain the inspection evidence'],
+      ['mail.get', { mail_ids: ['mail_one'] }, 'incoming quality inspection passed'],
+      ['sheet.cells.get', { docid: 'sheet_quality', range: 'A1:B2' }, 'passed'],
+      ['disk.files.download', { file_id: 'quality_file' }, 'batch,result'],
+    ]
+    for (const [method, payload, expected] of cases) {
+      const value = await call(ctx, 'read', method, payload)
+      expect(value.isError, JSON.stringify(value)).toBe(false)
+      expect(JSON.stringify(value)).toContain(expected)
+      expect(JSON.stringify(value)).not.toContain('fixture-secret')
+      expect(JSON.stringify(value)).not.toContain('Ignore rules')
+    }
+    const outside = await call(ctx, 'read', 'disk.files.download', { file_id: 'outside' })
+    expect(outside.isError).toBe(true)
+    const remote = await call(ctx, 'read', 'contact.users.search', { keywords: ['Reviewer'] }, Session.create(SessionId('enterprise-untrusted')))
+    expect(remote.isError).toBe(true)
+    const denied = await call(ctx, 'read', 'mail.send', {})
+    expect(denied.isError).toBe(true)
+    await writeFile(join(directory!, 'expired'), '')
+    expect((await call(ctx, 'read', 'contact.users.search', { keywords: ['Reviewer'] })).isError).toBe(true)
+    expect((await ctx.enterpriseConnectors.wecomOfficeStatus()).state).toBe('unauthorized')
+  })
+  it('blocks mutations without approval, then uses audited one-shot consent and immutable upload bytes', async () => {
+    const ctx = await boot({ wecomOffice: settings }, true)
+    await authorize(ctx)
+    const session = Session.create(SessionId('office-write-local'), [], { ...Session.create(SessionId('office-write-local')).header, cwd: directory! })
+    session.append('turn/start', { turn: 1 })
+    const denied = await call(ctx, 'write', 'doc.contents.append', { docid: 'doc_quality', content: 'Approved inspection evidence.' }, session)
+    expect(denied.isError).toBe(true)
+    await expect(readFile(join(directory!, 'office-effects.ndjson'))).rejects.toThrow()
+    await writeFile(join(directory!, 'upload.csv'), 'batch,result\nA,passed\n')
+    ctx.on('approval/request', async () => {
+      await writeFile(join(directory!, 'upload.csv'), 'changed after snapshot')
+      return 'allowed-once' as const
+    })
+    const appended = await call(ctx, 'write', 'doc.contents.append', { docid: 'doc_quality', content: 'Approved inspection evidence.' }, session)
+    expect(appended.isError, JSON.stringify(appended)).toBe(false)
+    expect(await readFile(join(directory!, 'document-state.txt'), 'utf8')).toBe('Approved inspection evidence.')
+    await writeFile(join(directory!, 'upload.csv'), 'batch,result\nA,passed\n')
+    const uploaded = await call(ctx, 'write', 'media.upload', { file_path: 'upload.csv', type: 'file' }, session)
+    expect(uploaded.isError, JSON.stringify(uploaded)).toBe(false)
+    expect(await readFile(join(directory!, 'uploaded-file'), 'utf8')).toBe('batch,result\nA,passed\n')
+    const todo = await call(ctx, 'write', 'todo.create', { items: [{ title: 'Review inspection evidence.' }] }, session)
+    expect(todo.isError, JSON.stringify(todo)).toBe(false)
+    expect(JSON.stringify(todo)).toContain('todo_created')
+    const audit = session.snapshotEvents().filter(event => event.type === 'approval/decided')
+    expect(audit).toHaveLength(4)
+    expect(JSON.stringify(audit)).toContain('allowed-once')
+    const invisible = await call(ctx, 'write', 'message.aibot.send', { chat_id: 'outside', msg_type: 'markdown', markdown: { content: 'Never send.' } }, session)
+    expect(invisible.isError).toBe(true)
+  })
+  it('rechecks a category revoked during confirmation and never submits the mutation', async () => {
+    const ctx = await boot({ wecomOffice: settings }, true)
+    await authorize(ctx)
+    const base = Session.create(SessionId('office-revoked-local'))
+    const session = Session.create(base.id, [], { ...base.header, cwd: directory! })
+    session.append('turn/start', { turn: 1 })
+    ctx.on('approval/request', async () => {
+      await ctx.settings.update('wecom-office-connector', { documents: false })
+      return 'allowed-once' as const
+    })
+    const denied = await call(ctx, 'write', 'doc.contents.append', { docid: 'doc_quality', content: 'Never submit.' }, session)
+    expect(denied.isError).toBe(true)
+    await expect(readFile(join(directory!, 'office-effects.ndjson'))).rejects.toThrow()
+  })
+  it('does not retry an uncertain write and does not expose raw provider diagnostics', async () => {
+    const ctx = await boot({ wecomOffice: settings }, true)
+    await authorize(ctx)
+    const base = Session.create(SessionId('office-uncertain-local'))
+    const session = Session.create(base.id, [], { ...base.header, cwd: directory! })
+    session.append('turn/start', { turn: 1 })
+    ctx.on('approval/request', () => Promise.resolve('allowed-once' as const))
+    await writeFile(join(directory!, 'uncertain-write'), '')
+    const uncertain = await call(ctx, 'write', 'doc.contents.append', { docid: 'doc_quality', content: 'Only once.' }, session)
+    expect(uncertain.isError).toBe(true)
+    expect(JSON.stringify(uncertain)).toContain('outcome is uncertain')
+    expect(JSON.stringify(uncertain)).not.toContain('fixture-secret')
+    expect((await readFile(join(directory!, 'office-effects.ndjson'), 'utf8')).trim().split('\n')).toHaveLength(1)
+    expect(await readFile(join(directory!, 'document-state.txt'), 'utf8')).toBe('Only once.')
+  })
+  it('keeps new categories disabled for existing accounts until explicitly enabled', async () => {
+    const ctx = await boot()
+    await authorize(ctx)
+    const before = await readFile(join(directory!, 'calls.ndjson'), 'utf8')
+    const denied = await call(ctx, 'read', 'contact.users.search', { keywords: ['Reviewer'] })
+    expect(denied.isError).toBe(true)
+    expect(await readFile(join(directory!, 'calls.ndjson'), 'utf8')).toBe(before)
+  })
 })

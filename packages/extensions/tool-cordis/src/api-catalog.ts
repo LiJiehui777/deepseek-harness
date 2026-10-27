@@ -6724,7 +6724,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'WecomOfficeCapability',
-    declaration: 'export type WecomOfficeCapability = \'documents\' | \'files\' | \'calendar\' | \'todos\';',
+    declaration: 'export type WecomOfficeCapability = \'documents\' | \'files\' | \'calendar\' | \'todos\' | \'contacts\' | \'meetings\' | \'mail\' | \'messages\';',
   },
   {
     name: 'WecomOfficeCapabilityStatus',

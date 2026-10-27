@@ -13,6 +13,10 @@ import type { WecomOfficeCapability, WecomOfficeCapabilityStatus, WecomOfficeErr
 import type { WecomOfficeSettings } from './config.ts'
 import { OFFICE_CAPABILITIES, OFFICE_METHODS, OFFICE_OPERATIONS, officeProjection, officeRequest } from './operations.ts'
 import type { OfficeOperation } from './operations.ts'
+import { OFFICE_API_METHODS } from './methods.ts'
+import { OfficeFiles } from './files.ts'
+import { approveOfficeWrite, officeApiRequest, officeApiSchema } from './api.ts'
+import type { OfficeApiRequest } from './api.ts'
 import { readQrBot } from './bot.ts'
 import { OfficeError, OfficeRuntime, officeJson } from './runtime.ts'
 import { result, text } from '../limits.ts'
@@ -332,6 +336,89 @@ export class WecomOffice {
         this.setCapability(capability, code === 'unavailable' ? 'unavailable' : code === 'permission-denied' ? 'permission-denied' : 'error')
         if (error instanceof OfficeError) throw error
         throw new OfficeError(deadline.aborted ? 'cancelled' : 'invalid-result')
+      } finally { await rm(directory, { recursive: true, force: true }) }
+    })
+  }
+
+  /**
+   * List the fixed office methods and saved category permissions without reading business data.
+   * @param input - optional permission category filter.
+   * @param exec - trusted local caller.
+   * @returns bounded method inventory; listed methods still require provider access.
+   */
+  async catalog(input: unknown, exec: ToolRunContext): Promise<string> {
+    await requireLocalOfficeConversation(this.ctx, exec.agent, exec.signal)
+    const args = z.object({ capability: z.enum(OFFICE_CAPABILITIES).optional() }).strict().parse(input)
+    const settings = this.settings()
+    if (!settings.enabled || this.closing) throw new OfficeError('permission-denied')
+    return result({ channel: 'wecom-office', reference_only: true,
+      methods: Object.entries(OFFICE_API_METHODS).filter(([, spec]) => !args.capability || args.capability === spec.capability)
+        .map(([method, spec]) => ({ method, ...spec, enabled: settings[spec.capability] })) }, this.config.maxResultBytes)
+  }
+
+  /**
+   * Describe or execute one fixed office method; mutations require approval inside this executor.
+   * @param mode - native tool's read, write or discovery mode.
+   * @param input - bounded untrusted method arguments.
+   * @param exec - local caller identity and cancellation.
+   * @returns schema reference, projected business result, and workspace artifacts.
+   */
+  async api(mode: OfficeApiRequest['mode'], input: unknown, exec: ToolRunContext): Promise<string> {
+    await requireLocalOfficeConversation(this.ctx, exec.agent, exec.signal)
+    const request = officeApiRequest(mode, input, this.config.wecomOfficeRuntime.maxArgumentBytes)
+    const capability = request.spec.capability
+    const lifetime = this.lifetime.signal
+    return this.sequential(async () => {
+      const permitted = () => this.settings().enabled && this.settings()[capability] && !this.closing
+      if (!permitted()) throw new OfficeError('permission-denied')
+      const binding = await this.binding()
+      if (!binding) throw new OfficeError('not-authorized')
+      const signal = AbortSignal.any([exec.signal, lifetime])
+      signal.throwIfAborted()
+      const directory = await mkdtemp(join(binding, 'operation-'))
+      const limits = this.config.wecomOfficeRuntime
+      const files = new OfficeFiles(exec.agent?.session.header.cwd, directory,
+        [this.directory, process.env.DSH_HOME ?? join(homedir(), '.dsh')],
+        limits.maxFileBytes, limits.maxFiles, limits.maxTextBytes, signal)
+      let submitted = false
+      try {
+        const credentials = join(binding, 'credentials')
+        const call = async (args: string[]) => {
+          const deadline = AbortSignal.any([signal, AbortSignal.timeout(this.config.timeoutMs)])
+          await this.runtime.checkVersion(directory, credentials, deadline)
+          return officeJson(await this.runtime.run(args, directory, credentials, deadline))
+        }
+        const schema = await officeApiSchema(request.method, call)
+        if (mode === 'describe') return result({ channel: 'wecom-office', method: request.method,
+          mode: request.spec.mode, request_schema: schema.describe(), reference_only: true }, this.config.maxResultBytes)
+        const payload = schema.arguments(request.arguments)
+        const staged = await schema.project(payload, 'request', this.config.maxPageSize, limits.maxTextBytes,
+          (path, direction) => files.transfer(path, direction))
+        if (['message.aibot.send', 'message.send'].includes(request.method)) {
+          const recent = await call(['message', 'aibot', 'sessions', 'list'])
+          const sessions = z.array(z.object({ chat_id: z.string() })).max(20).default([]).parse(recent.sessions)
+          if (!sessions.some(row => row.chat_id === payload.chat_id)) throw new OfficeError('permission-denied')
+        }
+        await approveOfficeWrite(this.ctx, request, exec, signal)
+        signal.throwIfAborted()
+        if (!permitted() || await this.binding() !== binding) throw new OfficeError('cancelled')
+        submitted = true
+        const data = await call([...request.method.split('.'), '--json', JSON.stringify(staged.value), '--output-dir', directory])
+        const projected = await schema.project(data, 'response', this.config.maxPageSize, limits.maxTextBytes,
+          (path, direction) => files.transfer(path, direction))
+        signal.throwIfAborted()
+        if (!permitted() || await this.binding() !== binding) throw new OfficeError('cancelled')
+        const output = result({ channel: 'wecom-office', method: request.method, data: projected.value,
+          artifacts: files.artifacts, truncated: projected.truncated, reference_only: true }, this.config.maxResultBytes)
+        this.setCapability(capability, 'verified')
+        return output
+      } catch (error) {
+        if (error instanceof OfficeError && error.code === 'not-authorized') this.error = error.code
+        await files.rollback()
+        if (submitted && mode === 'write') throw new Error('WeCom operation failed or its outcome is uncertain. Inspect the resource before retrying; it may already have changed.')
+        if (error instanceof OfficeError) throw error
+        if (error instanceof Error && error.message.startsWith('Invalid WeCom arguments')) throw error
+        throw new OfficeError(signal.aborted ? 'cancelled' : 'invalid-result')
       } finally { await rm(directory, { recursive: true, force: true }) }
     })
   }

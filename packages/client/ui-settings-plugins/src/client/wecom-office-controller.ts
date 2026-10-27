@@ -13,6 +13,10 @@ export interface OfficeSettings {
   files?: boolean
   calendar?: boolean
   todos?: boolean
+  contacts?: boolean
+  meetings?: boolean
+  mail?: boolean
+  messages?: boolean
 }
 /** One office subsection's saved-state projection and transient interaction state. */
 export interface WecomOfficeCardState extends CardShell {
@@ -24,6 +28,7 @@ export interface WecomOfficeCardState extends CardShell {
 /** Plain callbacks consumed by the native office subsection. */
 export interface WecomOfficeActions extends CardActions {
   scan: () => void
+  extend: () => void
   check: () => void
   cancel: () => void
   disconnect: () => void
@@ -41,7 +46,7 @@ export class WecomOfficeCardController {
   private generation = 0
   private poll: ReturnType<typeof setTimeout> | undefined
   private readonly unsubscribe: () => void
-  private readonly fields = ['enabled', 'documents', 'files', 'calendar', 'todos'] as const
+  private readonly fields = ['enabled', 'documents', 'files', 'calendar', 'todos', 'contacts', 'meetings', 'mail', 'messages'] as const
 
   /**
    * @param scope - independent office settings namespace.
@@ -87,27 +92,28 @@ export class WecomOfficeCardController {
       if (this.current(generation)) { this.requestFailed = true; this.publish() }
     }
   }
-  private async action(kind: 'scan' | 'check' | 'cancel' | 'disconnect'): Promise<void> {
+  private async action(kind: 'scan' | 'extend' | 'check' | 'cancel' | 'disconnect'): Promise<void> {
     if (this.disposed || this.busy || this.form.shell().dirty || !this.form.shell().writable) return
     clearTimeout(this.poll)
     const generation = ++this.generation
     this.busy = true; this.requestFailed = false; this.publish()
     try {
-      if (kind === 'scan') {
+      if (kind === 'scan' || kind === 'extend') {
         const snapshot = this.scope.getSnapshot()
         const value = snapshot.value
         const operations: Array<{ op: 'set'; path: string[]; value: boolean }> = []
-        for (const field of this.fields) if (!value?.[field]) operations.push({ op: 'set', path: [field], value: true })
+        const selected = kind === 'scan' ? this.fields : ['contacts', 'meetings', 'mail', 'messages'] as const
+        for (const field of selected) if (!value?.[field]) operations.push({ op: 'set', path: [field], value: true })
         if (operations.length) {
           await this.scope.mutate(operations, snapshot.revision)
           const saved = this.scope.getSnapshot().value
-          if (!this.fields.every(field => saved?.[field])) throw new Error('Office connection settings were not saved.')
+          if (!selected.every(field => saved?.[field])) throw new Error('Office connection settings were not saved.')
         }
       }
       if (!this.current(generation)) return
       const remote = this.ctx.remote.enterpriseConnections
       const response = kind === 'scan' ? await remote.authorizeWecomOffice()
-        : kind === 'check' ? await remote.checkWecomOffice()
+        : kind === 'check' || kind === 'extend' ? await remote.checkWecomOffice()
           : kind === 'cancel' ? await remote.cancelWecomOffice() : await remote.disconnectWecomOffice()
       if (!this.current(generation)) return
       this.requestFailed = !response.ok
@@ -123,7 +129,7 @@ export class WecomOfficeCardController {
    * @returns the subsection's complete action face.
    */
   actions(): WecomOfficeActions {
-    return { ...this.form.actions(), scan: () => { void this.action('scan') }, check: () => { void this.action('check') },
+    return { ...this.form.actions(), extend: () => { void this.action('extend') }, scan: () => { void this.action('scan') }, check: () => { void this.action('check') },
       cancel: () => { void this.action('cancel') }, disconnect: () => { void this.action('disconnect') } }
   }
   /** Stop polling and reject responses from an obsolete native page. */

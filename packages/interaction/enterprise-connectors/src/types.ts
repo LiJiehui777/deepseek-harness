@@ -33,8 +33,8 @@ export interface FeishuAuthorizationStatus {
   userName: string
 }
 
-/** Independently enabled read-only office categories. */
-export type WecomOfficeCapability = 'documents' | 'files' | 'calendar' | 'todos'
+/** Independently enabled office categories. */
+export type WecomOfficeCapability = 'documents' | 'files' | 'calendar' | 'todos' | 'contacts' | 'meetings' | 'mail' | 'messages'
 /** Sanitized failure categories shared by the Host and native settings card. */
 export type WecomOfficeError = 'runtime-unavailable' | 'version-mismatch' | 'not-authorized'
   | 'permission-denied' | 'unavailable' | 'invalid-result' | 'too-large' | 'timeout' | 'cancelled' | 'connection-failed'

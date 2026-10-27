@@ -58,6 +58,9 @@
     },
     {
       "path": "../../session-query/session-query"
+    },
+    {
+      "path": "../user-approval"
     }
   ]
 }

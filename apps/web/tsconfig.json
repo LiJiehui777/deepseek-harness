@@ -47,6 +47,7 @@
     "tests/enterprise-connectors.e2e.ts",
     "tests/feishu-user-authorization.e2e.ts",
     "tests/wecom-office.e2e.ts",
+    "tests/wecom-office-operations.e2e.ts",
     "tests/ztt-brand.e2e.ts",
     "tests/settings-chrome.e2e.ts",
     "tests/models-settings.e2e.ts",

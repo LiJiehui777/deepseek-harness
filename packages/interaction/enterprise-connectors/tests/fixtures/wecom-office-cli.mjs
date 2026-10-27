@@ -3,6 +3,7 @@ import { createCipheriv, randomBytes } from 'node:crypto'
 import { appendFileSync } from 'node:fs'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
+import { apiSchema, apiResult } from './office-api.mjs'
 import { setTimeout } from 'node:timers/promises'
 
 const [control, ...args] = process.argv.slice(2)
@@ -33,10 +34,15 @@ if (args[0] === 'auth' && args[1] === 'init') {
   await writeFile(join(credentials, 'credentials.enc'), encrypted, { mode: 0o600 })
   process.exit(0)
 }
+if (await exists(join(control, 'expired'))) emit({ error: { code: 853004, message: 'fixture-secret' } })
 if (await exists(join(control, 'fail'))) { emit({ error: { code: 853006, message: 'fixture-secret must not escape' } }) }
 if (args[0] === 'identity') emit({ authorizer: { name: 'Quality user', userid: 'fixture-user-id' }, corporation: { name: 'Quality organization' }, token: 'fixture-secret' })
+if (args[0] === 'schema' && apiSchema(args[2])) emit(apiSchema(args[2]))
 if (args[0] === 'schema') emit({ method: args[2], request: { type: 'object' }, response: { type: 'object' }, schemas: {} })
 const payload = args.includes('--json') ? JSON.parse(args[args.indexOf('--json') + 1]) : {}
+const method = args.slice(0, args.indexOf('--json') < 0 ? args.length : args.indexOf('--json')).join('.')
+const business = await apiResult(method, payload, control)
+if (business !== undefined) emit(business)
 if (args[0] === 'message' && args[2] === 'sessions' && await exists(join(control, 'empty-chats'))) emit({ sessions_count: 0 })
 if (args[0] === 'message' && args[2] === 'sessions') emit({ sessions: [{ chat_id: 'qr_chat', chat_name: 'Quality bot group', chat_type: 'group', last_msg_time: '2026-10-27 09:00:00', secret: 'fixture-secret' }] })
 if (args[0] === 'message' && args[2] === 'send') emit({ success: true })

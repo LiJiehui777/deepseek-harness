@@ -7,13 +7,17 @@ import { OfficeError, readOfficeFile } from './runtime.ts'
 export type OfficeOperation = 'search_documents' | 'read_document' | 'search_files' | 'get_file_info'
   | 'list_calendar' | 'get_calendar_item' | 'list_todos' | 'get_todo'
 /** Fixed category ownership for both settings checks and tool execution. */
-export const OFFICE_CAPABILITIES = ['documents', 'files', 'calendar', 'todos'] as const
+export const OFFICE_CAPABILITIES = ['documents', 'files', 'calendar', 'todos', 'contacts', 'meetings', 'mail', 'messages'] as const
 /** Each fixed method inspected by the settings connection check. */
 export const OFFICE_METHODS: Record<WecomOfficeCapability, readonly string[]> = {
   documents: ['doc.search', 'doc.contents.get', 'smartpage.pages.get'],
   files: ['disk.files.search', 'disk.files.get'],
   calendar: ['calendar.schedules.list', 'calendar.schedules.get'],
   todos: ['todo.list', 'todo.get'],
+  contacts: ['contact.users.search'],
+  meetings: ['meeting.list', 'meeting.get'],
+  mail: ['mail.search', 'mail.get'],
+  messages: ['message.aibot.sessions.list'],
 }
 /** Ownership of every exposed read operation. */
 export const OFFICE_OPERATIONS: Record<OfficeOperation, WecomOfficeCapability> = {
@@ -107,6 +111,7 @@ function record(value: unknown): Record<string, unknown> {
   return value as Record<string, unknown>
 }
 function rows(value: unknown): Record<string, unknown>[] {
+  if (value === undefined) return []
   if (!Array.isArray(value)) throw new OfficeError('invalid-result')
   return value.map(record)
 }

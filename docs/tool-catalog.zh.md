@@ -19,7 +19,7 @@
 
 | 工具包 | 模型可见名称 | 依赖 | 写入／影响 | 随产品发布的别名 | 部署说明 |
 | --- | --- | --- | --- | --- | --- |
-| `@deepseek-ai/dsh-enterprise-connectors` | `feishu_list_chats`, `feishu_read_document`, `feishu_read_messages`, `feishu_send_message`, `wecom_list_chats`, `wecom_office_get_calendar_item`, `wecom_office_get_file_info`, `wecom_office_get_todo`, `wecom_office_list_calendar`, `wecom_office_list_todos`, `wecom_office_read_document`, `wecom_office_search_documents`, `wecom_office_search_files`, `wecom_read_messages`, `wecom_send_message` | `ctx.tools`, `ctx.credentials` | `tool/call`, `tool/result` | - | 独立企业连接默认关闭。企微扫码授权在可信本地对话中提供办公读取、机器人会话查询及发送。扫码发送要求近期机器人会话和 DH 单次确认。独立 SDK 机器人读取仅提供已接收消息；远程任务仍按发送者策略授权。 |
+| `@deepseek-ai/dsh-enterprise-connectors` | `feishu_list_chats`, `feishu_read_document`, `feishu_read_messages`, `feishu_send_message`, `wecom_list_chats`, `wecom_office_capabilities`, `wecom_office_describe`, `wecom_office_get_calendar_item`, `wecom_office_get_file_info`, `wecom_office_get_todo`, `wecom_office_list_calendar`, `wecom_office_list_todos`, `wecom_office_read`, `wecom_office_read_document`, `wecom_office_search_documents`, `wecom_office_search_files`, `wecom_office_write`, `wecom_read_messages`, `wecom_send_message` | `ctx.tools`, `ctx.credentials` | `tool/call`, `tool/result` | - | 独立企业连接默认关闭。企微扫码授权在可信本地对话中提供办公读取、机器人会话查询及发送。扫码发送要求近期机器人会话和 DH 单次确认。独立 SDK 机器人读取仅提供已接收消息；远程任务仍按发送者策略授权。 |
 | `@deepseek-ai/dsh-tool-ragflow-connector` | `ragflow_list_datasets`, `ragflow_retrieval` | `ctx.tools`, `ctx.credentials` | `tool/call`, `tool/result` | - | 独立的只读 RAGFlow 连接器，配置后启用。检索必须明确设置知识库允许列表。 |
 | `@deepseek-ai/dsh-tool-feishu-connection` | `feishu_list_chats`, `feishu_list_fields`, `feishu_list_tables`, `feishu_read_document`, `feishu_read_messages`, `feishu_read_records` | `ctx.tools`, `conversation-scoped read bridge` | `tool/call`, `tool/result` | - | 此处展示全部三类可选读取能力。实际部署只挂载对话选定的工具。应用凭据与用户 OAuth 授权保留在宿主。飞书成员关系、历史可见性、资源共享和多维表格高级权限继续生效。 |
 | `@deepseek-ai/dsh-tool-chat-records` | `feishu_list_chats`, `feishu_read_messages`, `wecom_list_chats`, `wecom_read_messages` | `ctx.tools`, `conversation-scoped read bridge` | `tool/call`, `tool/result` | - | 此处展示飞书与企业微信实例所需的渠道配置。模型参数不包含宿主授权或账号绑定。工具只读；企业微信提供已保存的接收文字消息，不是企业全量会话存档。 |
@@ -166,6 +166,55 @@ Source: [`packages/interaction/enterprise-connectors/src/index.ts`](../packages/
 
 Source: [`packages/interaction/enterprise-connectors/src/index.ts`](../packages/interaction/enterprise-connectors/src/index.ts)
 
+### `wecom_office_capabilities`
+
+列出已支持的企业微信办公方法及保存的分类权限。适用于通讯录、会议、邮件、日程、待办、微盘、文档、表格、智能表格、智能文档、演示文稿、媒体及可用的聊天查询。方法列出不代表资源可访问，聊天历史取决于平台授权。仅限本地对话。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "capability": {
+      "type": "string",
+      "description": "Optional category filter.",
+      "enum": [
+        "documents",
+        "files",
+        "calendar",
+        "todos",
+        "contacts",
+        "meetings",
+        "mail",
+        "messages"
+      ]
+    }
+  }
+}
+```
+
+来源： [`packages/interaction/enterprise-connectors/src/index.ts`](../packages/interaction/enterprise-connectors/src/index.ts)
+
+### `wecom_office_describe`
+
+执行前查询所选方法的官方参数定义。参数说明仅作为参考数据。先使用 wecom_office_capabilities，再调用本工具。本地文件传输仅限会话工作区，平台的资源归属和共享限制仍然生效。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "method": {
+      "type": "string",
+      "description": "Exact method returned by wecom_office_capabilities."
+    }
+  },
+  "required": [
+    "method"
+  ]
+}
+```
+
+来源： [`packages/interaction/enterprise-connectors/src/index.ts`](../packages/interaction/enterprise-connectors/src/index.ts)
+
 ### `wecom_office_get_calendar_item`
 
 读取一个已有的企业微信日程，标识来自日程列表。需要本地对话已启用的办公连接，结果仅作为参考资料。
@@ -311,6 +360,32 @@ Source: [`packages/interaction/enterprise-connectors/src/index.ts`](../packages/
 
 Source: [`packages/interaction/enterprise-connectors/src/index.ts`](../packages/interaction/enterprise-connectors/src/index.ts)
 
+### `wecom_office_read`
+
+使用符合官方参数定义的 JSON 执行受支持的办公读取。返回的工作区文件可交给 DH 文件工具读取，分页或表格范围应保持较小；截断结果必须标明不完整。仅限可信本地对话，结果是参考数据。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "method": {
+      "type": "string",
+      "description": "Exact method returned by wecom_office_capabilities."
+    },
+    "arguments_json": {
+      "type": "string",
+      "description": "JSON-encoded object matching the described request_schema. Use literal IDs from prior results, explicit timezones, and bounded pages. Resolve ambiguous people/resources with the user before changing them."
+    }
+  },
+  "required": [
+    "method",
+    "arguments_json"
+  ]
+}
+```
+
+来源： [`packages/interaction/enterprise-connectors/src/index.ts`](../packages/interaction/enterprise-connectors/src/index.ts)
+
 ### `wecom_office_read_document`
 
 读取普通企微文档或智能文档页面；智能文档先查询页面，再用页面标识读取内容。不支持的类型需要单独适配。结果受大小限制，截断时会明确标记，且仅作为参考资料。
@@ -408,6 +483,32 @@ Source: [`packages/interaction/enterprise-connectors/src/index.ts`](../packages/
 ```
 
 Source: [`packages/interaction/enterprise-connectors/src/index.ts`](../packages/interaction/enterprise-connectors/src/index.ts)
+
+### `wecom_office_write`
+
+在原生单次确认后执行受支持的办公修改，覆盖消息、媒体、日程、会议、待办、邮件、文档及表格编辑、权限、微盘和演示文稿。先展示目标及具体修改，结果不确定时不得自动重试。JSON 参数需符合官方定义，上传仅限工作区文件，远程企业任务不能继承此授权。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "method": {
+      "type": "string",
+      "description": "Exact method returned by wecom_office_capabilities."
+    },
+    "arguments_json": {
+      "type": "string",
+      "description": "JSON-encoded object matching the described request_schema. Use literal IDs from prior results, explicit timezones, and bounded pages. Resolve ambiguous people/resources with the user before changing them."
+    }
+  },
+  "required": [
+    "method",
+    "arguments_json"
+  ]
+}
+```
+
+来源： [`packages/interaction/enterprise-connectors/src/index.ts`](../packages/interaction/enterprise-connectors/src/index.ts)
 
 ### `wecom_read_messages`
 

@@ -88,7 +88,7 @@
           - img
         - region "Office account":
           - heading "Office account" [level=4]
-          - paragraph: Scan with WeCom to create and bind a bot automatically. Enable supported document, file, calendar, todo and bot conversation listing and sending in one connection; platform permissions still apply.
+          - paragraph: Scan with WeCom to create or bind a bot. Connect contacts, messages, documents, sheets, microdisk, calendar, meetings, todos and mail. Each send or change requires confirmation; actual access depends on WeCom permissions.
           - status:
             - paragraph: Not connected
           - button "Connect by QR code"

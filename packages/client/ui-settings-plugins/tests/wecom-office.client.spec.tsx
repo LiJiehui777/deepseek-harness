@@ -64,14 +64,18 @@ it.each([en, zh])('connects with one QR action and enables all supported capabil
   expect(screen.queryByAltText(dictionary.wecomOfficeQrAlt)).toBeNull()
 })
 
-it('shows one disconnect action for a connected account without manual permission controls', async () => {
-  const { View, status, controller } = bench()
+it('requires an explicit action before enabling new categories on an existing account', async () => {
+  const { View, status, controller, host } = bench()
   await controller.refresh()
   status({ state: 'authorized', authorizerName: 'Quality user' })
   await controller.refresh()
   render(<View />)
   await screen.findByText('Quality user')
-  expect(screen.getAllByRole('button')).toHaveLength(1)
+  expect(screen.getAllByRole('button')).toHaveLength(2)
+  expect(host.scope.getSnapshot().value?.mail).not.toBe(true)
+  fireEvent.click(screen.getByRole('button', { name: en.wecomOfficeExtend }))
+  await vi.waitFor(() => { expect(screen.getAllByRole('button')).toHaveLength(1) })
+  expect(host.scope.getSnapshot().value).toMatchObject({ contacts: true, meetings: true, mail: true, messages: true })
   expect(screen.getByRole('button', { name: en.wecomOfficeDisconnect })).toBeDefined()
   expect(screen.queryByRole('checkbox')).toBeNull()
 })

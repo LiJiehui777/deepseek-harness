@@ -695,14 +695,22 @@ export interface WecomSettings extends AccountPolicy {
 export interface WecomOfficeSettings {
   /** Enable the office account and its local-conversation tools. */
   enabled: boolean
-  /** Permit document discovery and text reads. */
+  /** Permit document and spreadsheet operations. */
   documents: boolean
-  /** Permit file metadata discovery, without downloading file contents. */
+  /** Permit microdisk and media operations. */
   files: boolean
-  /** Permit calendar list and detail reads. */
+  /** Permit calendar operations. */
   calendar: boolean
-  /** Permit existing todo list and detail reads. */
+  /** Permit todo operations. */
   todos: boolean
+  /** Permit directory lookup after explicit opt-in. */
+  contacts: boolean
+  /** Permit meeting operations and available transcripts after opt-in. */
+  meetings: boolean
+  /** Permit mail operations after explicit opt-in. */
+  mail: boolean
+  /** Permit available chat queries and approved messages after opt-in. */
+  messages: boolean
 }
 
 /** Host-owned execution configuration, separate from browser account settings. */
@@ -715,6 +723,12 @@ export interface WecomOfficeRuntimeConfig {
   maxOutputBytes: number
   /** Maximum document text bytes projected into a tool result. */
   maxTextBytes: number
+  /** Maximum serialized method arguments. */
+  maxArgumentBytes: number
+  /** Maximum bytes in one transferred file. */
+  maxFileBytes: number
+  /** Maximum files transferred by one operation. */
+  maxFiles: number
   /** Process-tree termination grace in milliseconds. */
   graceMs: number
   /** Browser polling delay while a QR attempt is pending. */

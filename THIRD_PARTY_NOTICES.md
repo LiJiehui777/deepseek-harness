@@ -62,6 +62,7 @@ External packages installed for runtime use or distributed inside the prebuilt b
 | [`@xterm/headless`](https://github.com/xtermjs/xterm.js) | MIT |
 | [`@yarnpkg/parsers`](https://github.com/yarnpkg/berry) | BSD-2-Clause |
 | [`acorn`](https://github.com/acornjs/acorn) | MIT |
+| [`ajv`](https://github.com/ajv-validator/ajv) | MIT |
 | [`anser`](https://github.com/IonicaBizau/anser) | MIT |
 | [`axios`](https://github.com/axios/axios) | MIT |
 | [`buffer`](https://github.com/feross/buffer) | MIT |

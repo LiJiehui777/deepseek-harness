@@ -16,6 +16,8 @@ export type PluginsSettingsLocaleKey =
   | 'wecomOfficeSave'
   | 'wecomOfficeSaveFirst'
   | 'wecomOfficeLocalOnly'
+  | 'wecomOfficeExtend'
+  | 'wecomOfficeExtendHint'
   | 'wecomOfficeScan'
   | 'wecomOfficeCheck'
   | 'wecomOfficeCancel'
@@ -144,7 +146,7 @@ export const en: Record<PluginsSettingsLocaleKey, string> = {
   wecomOfficeAdvanced: 'Read permissions and advanced settings',
   wecomOfficeReconnect: 'Scan again',
   wecomOfficeTitle: 'Office account',
-  wecomOfficeHint: 'Scan with WeCom to create and bind a bot automatically. Enable supported document, file, calendar, todo and bot conversation listing and sending in one connection; platform permissions still apply.',
+  wecomOfficeHint: 'Scan with WeCom to create or bind a bot. Connect contacts, messages, documents, sheets, microdisk, calendar, meetings, todos and mail. Each send or change requires confirmation; actual access depends on WeCom permissions.',
   wecomOfficeEnabled: 'Enable office access',
   wecomOfficeCapabilities: 'Read-only capabilities',
   wecomOfficeDocuments: 'Search and read documents',
@@ -153,7 +155,9 @@ export const en: Record<PluginsSettingsLocaleKey, string> = {
   wecomOfficeTodos: 'Read existing todos',
   wecomOfficeSave: 'Save office settings',
   wecomOfficeSaveFirst: 'Save office settings before connecting or checking the account.',
-  wecomOfficeLocalOnly: 'Office access is available to local DH conversations. Enterprise remote tasks cannot use this authorization. File discovery returns metadata; arbitrary file contents and chat archives are not included.',
+  wecomOfficeLocalOnly: 'Office access is limited to local DH conversations. Enterprise remote tasks cannot use this account. Downloads stay in the conversation workspace; available chat-history access depends on WeCom.',
+  wecomOfficeExtend: 'Enable office extensions',
+  wecomOfficeExtendHint: 'Enable contacts, meetings, mail and available chat queries for this connected account. Sending, edits, deletions and sharing require confirmation for each operation.',
   wecomOfficeScan: 'Connect by QR code',
   wecomOfficeCheck: 'Check office account and capabilities',
   wecomOfficeCancel: 'Cancel',
@@ -342,7 +346,7 @@ export const zh: Record<PluginsSettingsLocaleKey, string> = {
   wecomOfficeAdvanced: '读取范围与高级设置',
   wecomOfficeReconnect: '重新扫码',
   wecomOfficeTitle: '办公账号',
-  wecomOfficeHint: '使用企业微信扫码，按提示创建并绑定机器人。连接后自动启用已支持的文档、微盘、日程、待办和机器人会话查询与发送，实际访问范围以企微授权为准。',
+  wecomOfficeHint: '使用企业微信扫码创建或绑定机器人，连接通讯录、消息、文档、表格、微盘、日程、会议、待办和邮件。发送与修改需逐次确认，实际访问范围以企微权限为准。',
   wecomOfficeEnabled: '启用办公能力',
   wecomOfficeCapabilities: '只读办公能力',
   wecomOfficeDocuments: '搜索与读取文档',
@@ -351,7 +355,9 @@ export const zh: Record<PluginsSettingsLocaleKey, string> = {
   wecomOfficeTodos: '查询已有待办',
   wecomOfficeSave: '保存办公设置',
   wecomOfficeSaveFirst: '请先保存办公设置，再扫码连接或检查账号。',
-  wecomOfficeLocalOnly: '办公授权仅供本地 DH 对话使用，企微、飞书远程任务不能使用。微盘定位只返回文件信息，暂不包含任意文件正文或聊天存档。',
+  wecomOfficeLocalOnly: '办公授权仅供本地 DH 对话使用，远程任务不能使用。下载文件保留在对话工作区，聊天历史是否可读以企微实际授权为准。',
+  wecomOfficeExtend: '启用办公扩展',
+  wecomOfficeExtendHint: '为当前连接启用通讯录、会议、邮件和可用的聊天查询。发送、修改、删除和共享仍需逐次确认。',
   wecomOfficeScan: '扫码连接',
   wecomOfficeCheck: '检查办公账号与能力',
   wecomOfficeCancel: '取消',
