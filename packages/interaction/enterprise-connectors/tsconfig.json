@@ -52,6 +52,12 @@
     },
     {
       "path": "../../client/connection/tsconfig.host.json"
+    },
+    {
+      "path": "../../subprocess/subprocess"
+    },
+    {
+      "path": "../../session-query/session-query"
     }
   ]
 }

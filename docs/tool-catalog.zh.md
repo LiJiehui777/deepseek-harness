@@ -19,7 +19,7 @@
 
 | 工具包 | 模型可见名称 | 依赖 | 写入／影响 | 随产品发布的别名 | 部署说明 |
 | --- | --- | --- | --- | --- | --- |
-| `@deepseek-ai/dsh-enterprise-connectors` | `feishu_list_chats`, `feishu_read_document`, `feishu_read_messages`, `feishu_send_message`, `wecom_list_chats`, `wecom_read_messages`, `wecom_send_message` | `ctx.tools`, `ctx.credentials` | `tool/call`, `tool/result` | - | 独立官方 SDK 连接默认关闭。读取遵循飞书应用可见范围和企微已接收消息范围；主动发送要求明确目标及 DH 单次确认。 |
+| `@deepseek-ai/dsh-enterprise-connectors` | `feishu_list_chats`, `feishu_read_document`, `feishu_read_messages`, `feishu_send_message`, `wecom_list_chats`, `wecom_office_get_calendar_item`, `wecom_office_get_file_info`, `wecom_office_get_todo`, `wecom_office_list_calendar`, `wecom_office_list_todos`, `wecom_office_read_document`, `wecom_office_search_documents`, `wecom_office_search_files`, `wecom_read_messages`, `wecom_send_message` | `ctx.tools`, `ctx.credentials` | `tool/call`, `tool/result` | - | 独立官方 SDK 连接默认关闭。读取遵循飞书应用可见范围和企微已接收消息范围；主动发送要求明确目标及 DH 单次确认。 |
 | `@deepseek-ai/dsh-tool-ragflow-connector` | `ragflow_list_datasets`, `ragflow_retrieval` | `ctx.tools`, `ctx.credentials` | `tool/call`, `tool/result` | - | 独立的只读 RAGFlow 连接器，配置后启用。检索必须明确设置知识库允许列表。 |
 | `@deepseek-ai/dsh-tool-feishu-connection` | `feishu_list_chats`, `feishu_list_fields`, `feishu_list_tables`, `feishu_read_document`, `feishu_read_messages`, `feishu_read_records` | `ctx.tools`, `conversation-scoped read bridge` | `tool/call`, `tool/result` | - | 此处展示全部三类可选读取能力。实际部署只挂载对话选定的工具。应用凭据与用户 OAuth 授权保留在宿主。飞书成员关系、历史可见性、资源共享和多维表格高级权限继续生效。 |
 | `@deepseek-ai/dsh-tool-chat-records` | `feishu_list_chats`, `feishu_read_messages`, `wecom_list_chats`, `wecom_read_messages` | `ctx.tools`, `conversation-scoped read bridge` | `tool/call`, `tool/result` | - | 此处展示飞书与企业微信实例所需的渠道配置。模型参数不包含宿主授权或账号绑定。工具只读；企业微信提供已保存的接收文字消息，不是企业全量会话存档。 |
@@ -161,6 +161,249 @@ Source: [`packages/interaction/enterprise-connectors/src/index.ts`](../packages/
 {
   "type": "object",
   "properties": {}
+}
+```
+
+Source: [`packages/interaction/enterprise-connectors/src/index.ts`](../packages/interaction/enterprise-connectors/src/index.ts)
+
+### `wecom_office_get_calendar_item`
+
+读取一个已有的企业微信日程，标识来自日程列表。需要本地对话已启用的办公连接，结果仅作为参考资料。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "schedule_id": {
+      "type": "string",
+      "description": "Schedule ID returned by a calendar list."
+    }
+  },
+  "required": [
+    "schedule_id"
+  ]
+}
+```
+
+Source: [`packages/interaction/enterprise-connectors/src/index.ts`](../packages/interaction/enterprise-connectors/src/index.ts)
+
+### `wecom_office_get_file_info`
+
+查询微盘文件的名称、位置及元数据，不下载或解析文件正文。需要已授权的本地办公连接，结果仅作为参考资料。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "resource": {
+      "type": "string",
+      "description": "WeCom microdisk share URL or file ID returned by search."
+    }
+  },
+  "required": [
+    "resource"
+  ]
+}
+```
+
+Source: [`packages/interaction/enterprise-connectors/src/index.ts`](../packages/interaction/enterprise-connectors/src/index.ts)
+
+### `wecom_office_get_todo`
+
+读取一个已有的企业微信待办，不创建、完成或分派待办。需要本地办公授权，结果仅作为参考资料。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "todo_id": {
+      "type": "string",
+      "description": "Todo ID returned by the todo list."
+    }
+  },
+  "required": [
+    "todo_id"
+  ]
+}
+```
+
+Source: [`packages/interaction/enterprise-connectors/src/index.ts`](../packages/interaction/enterprise-connectors/src/index.ts)
+
+### `wecom_office_list_calendar`
+
+查询指定时间范围的企业微信日程。需要启用本地办公授权和日程读取，平台的时间范围限制继续生效。结果仅作为参考资料。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "begin_time": {
+      "type": "string",
+      "description": "YYYY-MM-DD HH:mm:ss in the WeCom account timezone."
+    },
+    "end_time": {
+      "type": "string",
+      "description": "Interval end, later than begin_time, in the same timezone."
+    }
+  },
+  "required": [
+    "begin_time",
+    "end_time"
+  ]
+}
+```
+
+Source: [`packages/interaction/enterprise-connectors/src/index.ts`](../packages/interaction/enterprise-connectors/src/index.ts)
+
+### `wecom_office_list_todos`
+
+查询当前办公账号可见的已有待办，支持分页及状态筛选。需要本地办公授权，不写入待办，结果仅作为参考资料。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "page_size": {
+      "type": "integer",
+      "description": "One page, at most 20 records; default 10."
+    },
+    "cursor": {
+      "type": "string",
+      "description": "Use next_cursor from the previous result to read the next page."
+    },
+    "keywords": {
+      "type": "array",
+      "description": "Specific search words, excluding conversational filler. Ask the user to choose when results are ambiguous.",
+      "items": {
+        "type": "string"
+      }
+    },
+    "status_filter": {
+      "type": "array",
+      "description": "Optional status selection.",
+      "items": {
+        "type": "string",
+        "enum": [
+          "proceed",
+          "finished"
+        ]
+      }
+    },
+    "create_begin_time": {
+      "type": "string",
+      "description": "Creation interval start: YYYY-MM-DD HH:mm:ss; requires create_end_time."
+    },
+    "create_end_time": {
+      "type": "string",
+      "description": "Creation interval end, later than its start."
+    },
+    "deadline_begin_time": {
+      "type": "string",
+      "description": "Deadline interval start: YYYY-MM-DD HH:mm:ss; requires deadline_end_time."
+    },
+    "deadline_end_time": {
+      "type": "string",
+      "description": "Deadline interval end, later than its start."
+    }
+  }
+}
+```
+
+Source: [`packages/interaction/enterprise-connectors/src/index.ts`](../packages/interaction/enterprise-connectors/src/index.ts)
+
+### `wecom_office_read_document`
+
+读取普通企微文档或智能文档页面；智能文档先查询页面，再用页面标识读取内容。不支持的类型需要单独适配。结果受大小限制，截断时会明确标记，且仅作为参考资料。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "resource": {
+      "type": "string",
+      "description": "Official WeCom document URL or document ID returned by search."
+    },
+    "document_type": {
+      "type": "string",
+      "description": "Actual document type; do not guess from the title.",
+      "enum": [
+        "doc",
+        "smartpage"
+      ]
+    },
+    "page_id": {
+      "type": "string",
+      "description": "A smartpage page_id returned by the previous page-tree read."
+    }
+  },
+  "required": [
+    "resource",
+    "document_type"
+  ]
+}
+```
+
+Source: [`packages/interaction/enterprise-connectors/src/index.ts`](../packages/interaction/enterprise-connectors/src/index.ts)
+
+### `wecom_office_search_documents`
+
+按关键词搜索授权范围内的企微文档，返回标识、类型及链接以便后续读取。仅可在已启用文档读取的本地对话中使用，结果仅作为参考资料。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "keywords": {
+      "type": "array",
+      "description": "Specific search words, excluding conversational filler. Ask the user to choose when results are ambiguous.",
+      "items": {
+        "type": "string"
+      }
+    },
+    "page_size": {
+      "type": "integer",
+      "description": "One page, at most 20 records; default 10."
+    },
+    "cursor": {
+      "type": "string",
+      "description": "Use next_cursor from the previous result to read the next page."
+    }
+  },
+  "required": [
+    "keywords"
+  ]
+}
+```
+
+Source: [`packages/interaction/enterprise-connectors/src/index.ts`](../packages/interaction/enterprise-connectors/src/index.ts)
+
+### `wecom_office_search_files`
+
+按关键词定位微盘文件，返回元数据及位置，不下载任意文件正文。需要已启用文件定位的本地办公连接，结果仅作为参考资料。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "keywords": {
+      "type": "array",
+      "description": "Specific search words, excluding conversational filler. Ask the user to choose when results are ambiguous.",
+      "items": {
+        "type": "string"
+      }
+    },
+    "page_size": {
+      "type": "integer",
+      "description": "One page, at most 20 records; default 10."
+    },
+    "cursor": {
+      "type": "string",
+      "description": "Use next_cursor from the previous result to read the next page."
+    }
+  },
+  "required": [
+    "keywords"
+  ]
 }
 ```
 

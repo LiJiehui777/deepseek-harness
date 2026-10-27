@@ -1,0 +1,75 @@
+- dialog "Settings":
+  - navigation:
+    - text: Settings
+    - button "General":
+      - img
+      - text: General
+    - button "Models":
+      - img
+      - text: Models
+    - button "Plugins":
+      - img
+      - text: Plugins
+    - button "Agent presets":
+      - img
+      - text: Agent presets
+  - button "Open configuration file"
+  - button "Close":
+    - img
+    - text: Close
+  - heading "Plugins" [level=2]
+  - paragraph: Configure and inspect the plugins installed in this deployment.
+  - tablist "Plugin views":
+    - tab "Plugin configuration" [selected]
+    - tab "Plugin list"
+  - tabpanel "Plugin configuration":
+    - list:
+      - listitem:
+        - 'button "Show settings: Feishu connector"':
+          - text: Feishu connector Read authorized messages and documents; send and receive DH tasks.
+          - img
+      - listitem:
+        - 'button "Hide settings: WeCom connector" [expanded]':
+          - text: WeCom connector Connect office access by QR code and an optional message robot.
+          - img
+        - region "Office account":
+          - heading "Office account" [level=4]
+          - paragraph: Connect by scanning with WeCom. The first connection enables authorized document reads; adjust other capabilities in Advanced settings.
+          - status:
+            - paragraph: Office account connected
+            - paragraph: Quality user · Quality organization
+          - button "Scan again"
+          - button "Disconnect"
+          - group:
+            - text: Read permissions and advanced settings
+            - checkbox "Enable office access" [checked]
+            - text: Enable office access
+            - group "Read-only capabilities":
+              - text: Read-only capabilities
+              - checkbox "Search and read documents" [checked]
+              - text: Search and read documents Interface found; resource access not verified
+              - checkbox "Locate microdisk files"
+              - text: Locate microdisk files Not checked
+              - checkbox "Read calendar schedules"
+              - text: Read calendar schedules Not checked
+              - checkbox "Read existing todos"
+              - text: Read existing todos Not checked
+            - paragraph: Office access is available to local DH conversations. Enterprise remote tasks cannot use this authorization. File discovery returns metadata; arbitrary file contents and chat archives are not included.
+            - button "Check office account and capabilities"
+        - group: Message robot connection
+      - listitem:
+        - 'button "Show settings: Shell"':
+          - text: Shell Limits every command the agent runs.
+          - img
+      - listitem:
+        - 'button "Show settings: Agent loop"':
+          - text: Agent loop How the agent dispatches tool calls.
+          - img
+      - listitem:
+        - 'button "Show settings: Subagent"':
+          - text: Subagent Control which models agents may choose for subagents.
+          - img
+      - listitem:
+        - 'button "Show settings: Web search"':
+          - text: Web search The DeepSeek search provider.
+          - img

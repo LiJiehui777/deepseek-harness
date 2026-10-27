@@ -928,6 +928,36 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         description: 'Remove the saved user grant from this DH home. Feishu consent is managed separately.',
         parameters: [],
       },
+      {
+        signature: '@Remote async wecomOfficeStatus(): Promise<WecomOfficeStatus>',
+        description: 'Read office metadata and a pending private QR image.',
+        parameters: [],
+        returns: 'current credential-free office status.',
+      },
+      {
+        signature: '@Remote async authorizeWecomOffice(): Promise<WecomOfficeStatus>',
+        description: 'Start one office QR binding.',
+        parameters: [],
+        returns: 'pending office status; subsequent reads expose the QR image.',
+      },
+      {
+        signature: '@Remote async cancelWecomOffice(): Promise<WecomOfficeStatus>',
+        description: 'Cancel pending office consent and await cleanup.',
+        parameters: [],
+        returns: 'saved account status.',
+      },
+      {
+        signature: '@Remote async checkWecomOffice(): Promise<WecomOfficeStatus>',
+        description: 'Inspect the saved account and read interfaces.',
+        parameters: [],
+        returns: 'independent capability discovery results.',
+      },
+      {
+        signature: '@Remote async disconnectWecomOffice(): Promise<WecomOfficeStatus>',
+        description: 'Stop office access and remove its local binding.',
+        parameters: [],
+        returns: 'disconnected office status.',
+      },
     ],
   },
   {
@@ -6691,6 +6721,22 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'WebUpgradeRoute',
     declaration: 'export interface WebUpgradeRoute {\n    path: string;\n    handler: (req: IncomingMessage, socket: Duplex, head: Buffer) => void | Promise<void>;\n}',
+  },
+  {
+    name: 'WecomOfficeCapability',
+    declaration: 'export type WecomOfficeCapability = \'documents\' | \'files\' | \'calendar\' | \'todos\';',
+  },
+  {
+    name: 'WecomOfficeCapabilityStatus',
+    declaration: 'export interface WecomOfficeCapabilityStatus {\n    id: WecomOfficeCapability;\n    state: \'unknown\' | \'discoverable\' | \'verified\' | \'unavailable\' | \'permission-denied\' | \'error\';\n}',
+  },
+  {
+    name: 'WecomOfficeError',
+    declaration: 'export type WecomOfficeError = \'runtime-unavailable\' | \'version-mismatch\' | \'not-authorized\' | \'permission-denied\' | \'unavailable\' | \'invalid-result\' | \'too-large\' | \'timeout\' | \'cancelled\' | \'connection-failed\';',
+  },
+  {
+    name: 'WecomOfficeStatus',
+    declaration: 'export interface WecomOfficeStatus {\n    state: \'disabled\' | \'unauthorized\' | \'pending\' | \'authorized\' | \'checking\';\n    error: WecomOfficeError | \'\';\n    authorizerName: string;\n    corporationName: string;\n    qrImage: string;\n    expiresAt: number;\n    pollIntervalMs: number;\n    capabilities: WecomOfficeCapabilityStatus[];\n}',
   },
   {
     name: 'WorkflowAgentEndInfo',

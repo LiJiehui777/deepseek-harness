@@ -58,6 +58,7 @@ External packages installed for runtime use or distributed inside the prebuilt b
 | [`@tanstack/react-virtual`](https://github.com/TanStack/virtual) | MIT |
 | [`@vscode/ripgrep`](https://github.com/microsoft/vscode-ripgrep) | MIT |
 | [`@wecom/aibot-node-sdk`](https://github.com/WecomTeam/aibot-node-sdk) | MIT |
+| [`@wecom/cli`](https://github.com/WecomTeam/wecom-cli) | MIT |
 | [`@xterm/headless`](https://github.com/xtermjs/xterm.js) | MIT |
 | [`@yarnpkg/parsers`](https://github.com/yarnpkg/berry) | BSD-2-Clause |
 | [`acorn`](https://github.com/acornjs/acorn) | MIT |

@@ -5,6 +5,7 @@ import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-cli
 import type { EnterpriseCardFace } from './enterprise-card-controller.ts'
 import type { PluginsSettingsLocaleKey } from './locales.ts'
 import { SecretField, ValueField } from './fields.tsx'
+import { WecomOfficeSection } from './WecomOfficeSection.tsx'
 import { PluginCard } from './PluginCard.tsx'
 import css from './fields.module.css'
 import enterpriseCss from './EnterpriseCard.module.css'
@@ -39,8 +40,7 @@ export function EnterpriseCard(props: EnterpriseCardProps) {
     <label key={name} className={enterpriseCss.toggle}><input type="checkbox" disabled={disabled} checked={state.fields[name]?.text === 'true'}
       onChange={(event) => { props.edit(name, String(event.target.checked)) }} />{t(label)}</label>
   )
-  return <PluginCard standalone={props.view === 'page'} t={t} titleKey={feishu ? 'feishuTitle' : 'wecomTitle'} descriptionKey={feishu ? 'feishuDescription' : 'wecomDescription'}
-    state={state} onSave={props.save} onDiscard={props.discard}>
+  const controls = <>
     {feishu ? <>
       <fieldset className={enterpriseCss.identity} disabled={disabled}>
         <legend>{t('feishuReadIdentity')}</legend>
@@ -129,5 +129,14 @@ export function EnterpriseCard(props: EnterpriseCardProps) {
       <button type="button" disabled={disabled || !state.status?.lastChatId} onClick={() => { props.allowLatest('chat') }}>{t('enterpriseAllowChat')}</button>
     </div>
     {state.dirty ? <p className={css.hint}>{t('enterpriseSaveFirst')}</p> : null}
+  </>
+  return <PluginCard standalone={props.view === 'page'} t={t} titleKey={feishu ? 'feishuTitle' : 'wecomTitle'} descriptionKey={feishu ? 'feishuDescription' : 'wecomDescription'}
+    state={state} showActions={feishu || state.dirty || state.failed} onSave={props.save} onDiscard={props.discard}>
+    {!feishu && state.office && props.officeActions
+      ? <WecomOfficeSection state={state.office} actions={props.officeActions} t={t} /> : null}
+    {feishu ? controls : <details className={enterpriseCss.advanced}>
+      <summary>{t('wecomBotMessaging')}</summary>
+      {controls}
+    </details>}
   </PluginCard>
 }

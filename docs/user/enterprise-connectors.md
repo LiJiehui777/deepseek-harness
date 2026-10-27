@@ -35,11 +35,19 @@ Default consent requests group reading and `offline_access` for automatic token 
 
 The WeCom read tools list chats and messages captured by this bot connection in the current process. They cannot fetch arbitrary earlier history or enterprise conversation archives. Reconnecting clears this bounded message buffer; executed tasks remain in native DH Session history.
 
+## Connect office access by QR code
+
+In the WeCom connector, select **Connect by QR code** and scan with enterprise WeChat. No Bot ID, Secret or separate Save step is needed for office access. Confirm the account and permissions shown by the platform. The first connection enables authorized document reads; **Read permissions and advanced settings** lets you change read capabilities. The separate message-robot settings remain collapsed until you open them.
+
+DH checks account identity and the fixed read interfaces after confirmation. **Interface found; resource access not verified** means discovery succeeded, not that every document is readable. In a local DH conversation, try “Search my WeCom documents for quality inspection requirements”, then ask DH to read a returned ordinary document or smart-document page. Other switches permit microdisk file discovery, calendar queries and existing-todo queries. File discovery returns metadata, not arbitrary file contents. A successful read changes that capability to **A resource read succeeded**. Unsupported types, missing permissions and unavailable interfaces return failures without sample content.
+
+One DH home shares one office binding. This is the official WeCom CLI authorization model, not Feishu-style personal OAuth or unrestricted account access. WeCom controls actual visibility. Enterprise remote tasks and their descendants cannot use this grant. If a code expires, cancel and start another scan. **Disconnect local office account** stops owned calls and removes the local binding; manage platform consent separately in WeCom. Writes and chat archives are outside this office connector. A real account scan and permitted document read remain necessary to confirm a particular enterprise's access.
+
 ## Execution and troubleshooting
 
 Each provider/account/chat/sender combination uses a separate persistent DH conversation. Tasks from that binding are queued in order and use the configured Agent preset and workspace. View execution and approve tools in DH. The bot acknowledges a task and returns the latest assistant text from the task receipt until the whole Agent becomes idle; local follow-ups during that interval can contribute to the reply. Media transfer and approval buttons inside IM are not implemented.
 
-**Connected** confirms transport/account authentication, not every resource permission. If no task runs, refresh status and check the sender/chat lists, receive switch, bot membership, Feishu mention and event subscription. A full queue is reported in status; retry after existing tasks finish. If execution fails, inspect the model configuration and DH conversation. If a resource read fails, check the application's scopes and sharing. Base/calendar actions and enterprise archive access require additional providers.
+**Connected** confirms transport/account authentication, not every resource permission. If no task runs, refresh status and check the sender/chat lists, receive switch, bot membership, Feishu mention and event subscription. A full queue is reported in status; retry after existing tasks finish. If execution fails, inspect the model configuration and DH conversation. If a resource read fails, check the application's scopes and sharing. Feishu Base/calendar actions and enterprise archive access require additional providers.
 
 ## Open-source basis
 

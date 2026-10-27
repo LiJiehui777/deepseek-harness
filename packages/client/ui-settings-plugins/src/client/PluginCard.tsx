@@ -37,6 +37,8 @@ export interface PluginCardProps {
   onDiscard: () => void
   /** Render an always-open form under the native plugin page header. */
   standalone?: boolean
+  /** Hide unused form actions when the card exposes a separate connection flow. */
+  showActions?: boolean
   /** The plugin's controls. */
   children: ReactNode
 }
@@ -87,7 +89,7 @@ export function PluginCard(props: PluginCardProps) {
           <div className={css.body}>
             {!state.writable ? <p className={css.readOnly} role="status">{props.t('readOnly')}</p> : null}
             {props.children}
-            <div className={css.footer}>
+            {props.showActions !== false ? <div className={css.footer}>
               {state.failed ? <p className={css.failed} role="status">{props.t('saveFailed')}</p> : null}
               <button
                 type="button"
@@ -105,7 +107,7 @@ export function PluginCard(props: PluginCardProps) {
               >
                 {props.t(state.saving ? 'saving' : 'save')}
               </button>
-            </div>
+            </div> : null}
           </div>
         )
         : null}

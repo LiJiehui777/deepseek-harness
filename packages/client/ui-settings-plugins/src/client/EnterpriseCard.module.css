@@ -39,3 +39,13 @@
 .identityTitle { font-size: 13px; font-weight: 600; color: var(--dsw-alias-label-primary); }
 .identityHint { font-size: 12px; line-height: 1.6; color: var(--dsw-alias-label-secondary); }
 .sectionTitle { margin: 16px 0 6px; font-size: 13px; font-weight: 600; color: var(--dsw-alias-label-primary); }
+
+.office { margin-bottom: 16px; padding-bottom: 12px; border-bottom: 0.5px solid var(--dsw-alias-border-l4); }
+.officeCapabilities { border: 0; margin: 8px 0; padding: 0; min-width: 0; }
+.officeCapabilities > legend { font-size: 13px; color: var(--dsw-alias-label-primary); }
+.officeCapability { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.officeCapability > span { font-size: 12px; color: var(--dsw-alias-label-secondary); }
+.officeQr { display: grid; justify-items: start; gap: 10px; padding: 12px 0; }
+.officeQr > img { width: 220px; max-width: 100%; height: auto; border-radius: 8px; }
+.officeQr > button { padding: 6px 10px; border: 0.5px solid var(--dsw-alias-border-l4); border-radius: 8px; background: var(--dsw-alias-bg-layer-3); color: var(--dsw-alias-label-primary); font: inherit; cursor: pointer; }
+.officeQr > button:focus-visible { outline: 2px solid var(--dsw-alias-brand-primary); outline-offset: 2px; }

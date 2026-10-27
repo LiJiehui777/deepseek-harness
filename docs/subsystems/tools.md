@@ -473,6 +473,8 @@ The optional [enterprise connectors](../../packages/interaction/enterprise-conne
 
 `FeishuAuthorizationStatus` contains `identity` (`app` or `user`), `state` (`pending`, `authorized`, `unauthorized`), sanitized `error` (`cancelled`, `expired`, `failed`, or empty), `redirectURI`, `requestedScopes`, `grantedScopes` and `userName`. It never exposes OAuth codes or tokens.
 
+`WecomOfficeStatus` describes a separate office binding: `state` (`disabled`, `unauthorized`, `pending`, `authorized`, `checking`), sanitized `error`, optional identity text in `authorizerName`/`corporationName`, pending `qrImage`, `expiresAt`, `pollIntervalMs`, and `capabilities`. A capability has `id` (`documents`, `files`, `calendar`, `todos`) and a discovery/read state; `discoverable` proves interface discovery while `verified` requires a successful resource read. These browser-only values never contain credentials; the pending QR image is consent material and does not enter model results.
+
 <!-- BEGIN GENERATED cordis-surface (gen-cordis-catalog.ts) — do not edit between markers -->
 
 <a id="cordis-surface"></a>
@@ -515,6 +517,36 @@ Native tools, live account sections, and redacted connection status.
 
 /** Remove the saved user grant from this DH home. Feishu consent is managed separately. */
 @Remote async revokeFeishu(): Promise<void>
+
+/**
+ * Read office metadata and a pending private QR image.
+ * @returns current credential-free office status.
+ */
+@Remote async wecomOfficeStatus(): Promise<WecomOfficeStatus>
+
+/**
+ * Start one office QR binding.
+ * @returns pending office status; subsequent reads expose the QR image.
+ */
+@Remote async authorizeWecomOffice(): Promise<WecomOfficeStatus>
+
+/**
+ * Cancel pending office consent and await cleanup.
+ * @returns saved account status.
+ */
+@Remote async cancelWecomOffice(): Promise<WecomOfficeStatus>
+
+/**
+ * Inspect the saved account and read interfaces.
+ * @returns independent capability discovery results.
+ */
+@Remote async checkWecomOffice(): Promise<WecomOfficeStatus>
+
+/**
+ * Stop office access and remove its local binding.
+ * @returns disconnected office status.
+ */
+@Remote async disconnectWecomOffice(): Promise<WecomOfficeStatus>
 ```
 
 Source: [`packages/interaction/enterprise-connectors/src/index.ts`](../../packages/interaction/enterprise-connectors/src/index.ts)

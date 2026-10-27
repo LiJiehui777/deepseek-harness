@@ -159,6 +159,7 @@ export class CardForm<T> {
   private readonly secretSpecs: Map<string, CardSecretSpec>
   private readonly staged = new Map<string, StagedEdit>()
   private readonly listeners = new Set<() => void>()
+  private readonly unsubscribe: () => void
   private saving = false
   private failed = false
 
@@ -174,7 +175,7 @@ export class CardForm<T> {
   ) {
     this.specs = new Map(specs.map(spec => [spec.field, spec]))
     this.secretSpecs = new Map(secrets.map(spec => [spec.field, spec]))
-    scope.subscribe(() => { this.publish() })
+    this.unsubscribe = scope.subscribe(() => { this.publish() })
   }
 
   /**
@@ -272,6 +273,9 @@ export class CardForm<T> {
     this.failed = !landed
     this.publish()
   }
+
+  /** Release this form's settings observer and projection subscriptions. */
+  dispose(): void { this.unsubscribe(); this.listeners.clear() }
 
   /**
    * Every staged edit a save would write. An entry whose draft is not a value

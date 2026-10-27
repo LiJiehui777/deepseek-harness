@@ -1,0 +1,8 @@
+version: 1
+scenario: wecom-office
+profile: web
+composition: web-default
+recording: authored
+header:
+  class: wecom-office
+  pin: true

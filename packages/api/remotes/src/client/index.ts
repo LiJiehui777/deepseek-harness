@@ -23,7 +23,7 @@ import ragflowRemote from '@deepseek-ai/dsh-tool-ragflow-connector/remote'
 import enterpriseRemote from '@deepseek-ai/dsh-enterprise-connectors/remote'
 import type { ClientRemote } from '@deepseek-ai/dsh-api-gateway/client'
 
-export type { EnterpriseChannel, EnterpriseConnectionStatus, FeishuAuthorizationStatus } from '@deepseek-ai/dsh-enterprise-connectors/types'
+export type { EnterpriseChannel, EnterpriseConnectionStatus, FeishuAuthorizationStatus, WecomOfficeCapability, WecomOfficeCapabilityStatus, WecomOfficeError, WecomOfficeStatus } from '@deepseek-ai/dsh-enterprise-connectors/types'
 export type {} from '@deepseek-ai/dsh-enterprise-connectors/remote'
 
 export type { RagflowDataset, RagflowDatasetPage } from '@deepseek-ai/dsh-tool-ragflow-connector/types'

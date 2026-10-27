@@ -82,6 +82,8 @@ These pages cover the settings base, the inventory tab, and the durable seams be
 
 -----
 
+The WeCom card offers one QR connection action and collapses read permissions and robot credentials. The first connection atomically enables office access and document reads when no read capability is selected; it verifies the settings read-back before starting consent. Advanced permission edits stay staged until Save. Opening the page never begins consent. Polling stops on disposal and rejects obsolete responses; discovery and successful resource access have distinct labels.
+
 <a id="model-experience"></a>
 ## Model Experience
 

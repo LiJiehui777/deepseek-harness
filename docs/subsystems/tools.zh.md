@@ -473,6 +473,8 @@ type ObjectJsonSchema = JsonSchemaNode & { type: 'object' }
 
 `FeishuAuthorizationStatus` 包含 `identity`（`app` 或 `user`）、`state`（`pending`、`authorized`、`unauthorized`）、脱敏的 `error`（`cancelled`、`expired`、`failed` 或空字符串）、`redirectURI`、`requestedScopes`、`grantedScopes` 和 `userName`，不会暴露 OAuth 授权码或令牌。
 
+`WecomOfficeStatus` 描述独立办公绑定，包含 `state`（`disabled`、`unauthorized`、`pending`、`authorized`、`checking`）、已脱敏的 `error`、`authorizerName`/`corporationName` 身份文本、等待扫码时的 `qrImage`、`expiresAt`、`pollIntervalMs` 和 `capabilities`。每项能力包含 `id`（`documents`、`files`、`calendar`、`todos`）及发现/读取状态；`discoverable` 仅证明接口发现，`verified` 要求成功读取实际资源。这些浏览器状态不含凭据，等待确认的二维码属于授权材料，不进入模型结果。
+
 <!-- BEGIN GENERATED cordis-surface (gen-cordis-catalog.ts) — do not edit between markers -->
 
 <a id="cordis-surface"></a>
@@ -515,6 +517,36 @@ Native tools, live account sections, and redacted connection status.
 
 /** Remove the saved user grant from this DH home. Feishu consent is managed separately. */
 @Remote async revokeFeishu(): Promise<void>
+
+/**
+ * Read office metadata and a pending private QR image.
+ * @returns current credential-free office status.
+ */
+@Remote async wecomOfficeStatus(): Promise<WecomOfficeStatus>
+
+/**
+ * Start one office QR binding.
+ * @returns pending office status; subsequent reads expose the QR image.
+ */
+@Remote async authorizeWecomOffice(): Promise<WecomOfficeStatus>
+
+/**
+ * Cancel pending office consent and await cleanup.
+ * @returns saved account status.
+ */
+@Remote async cancelWecomOffice(): Promise<WecomOfficeStatus>
+
+/**
+ * Inspect the saved account and read interfaces.
+ * @returns independent capability discovery results.
+ */
+@Remote async checkWecomOffice(): Promise<WecomOfficeStatus>
+
+/**
+ * Stop office access and remove its local binding.
+ * @returns disconnected office status.
+ */
+@Remote async disconnectWecomOffice(): Promise<WecomOfficeStatus>
 ```
 
 Source: [`packages/interaction/enterprise-connectors/src/index.ts`](../../packages/interaction/enterprise-connectors/src/index.ts)

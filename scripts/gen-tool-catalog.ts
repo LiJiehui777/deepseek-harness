@@ -200,9 +200,11 @@ const TOOL_PACKAGES: ToolPackage[] = [
     requires: ['ctx.tools', 'ctx.credentials'], writes: ['tool/call', 'tool/result'],
     async mount(ctx) {
       ctx.provide('credentials', { resolve: () => Promise.resolve(undefined) } as unknown as CredentialProvider)
-      await ctx.plugin(EnterpriseConnectors)
+      const config = EnterpriseConnectors.Config({} as never)
+      config.wecomOffice.enabled = true
+      await ctx.plugin(EnterpriseConnectors, config)
     },
-    note: 'Independent official-SDK connections, disabled until configured. Feishu application visibility and WeCom captured-message scope apply. Proactive sends require explicit destinations and one-shot DH approval.',
+    note: 'Independent official-SDK connections, disabled until configured. Feishu application visibility and WeCom captured-message scope apply. Office tools require independent QR consent, saved read switches and a trusted local conversation. Proactive sends require explicit destinations and one-shot DH approval.',
   },
   {
     pkg: '@deepseek-ai/dsh-tool-ragflow-connector', dir: 'tool-ragflow-connector',

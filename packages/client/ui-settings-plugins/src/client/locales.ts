@@ -2,6 +2,48 @@
 
 /** Locale keys these surfaces render. */
 export type PluginsSettingsLocaleKey =
+  | 'wecomOfficeReconnect'
+  | 'wecomOfficeAdvanced'
+  | 'wecomOfficeTitle'
+  | 'wecomOfficeHint'
+  | 'wecomOfficeEnabled'
+  | 'wecomOfficeCapabilities'
+  | 'wecomOfficeDocuments'
+  | 'wecomOfficeFiles'
+  | 'wecomOfficeCalendar'
+  | 'wecomOfficeTodos'
+  | 'wecomOfficeSave'
+  | 'wecomOfficeSaveFirst'
+  | 'wecomOfficeLocalOnly'
+  | 'wecomOfficeScan'
+  | 'wecomOfficeCheck'
+  | 'wecomOfficeCancel'
+  | 'wecomOfficeDisconnect'
+  | 'wecomOfficeAuthorized'
+  | 'wecomOfficeDisabled'
+  | 'wecomOfficeNotAuthorized'
+  | 'wecomOfficePending'
+  | 'wecomOfficeChecking'
+  | 'wecomOfficePreparingQr'
+  | 'wecomOfficeQrAlt'
+  | 'wecomOfficeQrHint'
+  | 'wecomOfficeAuthorizer'
+  | 'wecomOfficeCorporation'
+  | 'wecomOfficeIdentityUnknown'
+  | 'wecomOfficeCapabilityUnknown'
+  | 'wecomOfficeCapabilityDiscoverable'
+  | 'wecomOfficeCapabilityVerified'
+  | 'wecomOfficeCapabilityError'
+  | 'wecomOfficeRuntimeUnavailable'
+  | 'wecomOfficeVersionMismatch'
+  | 'wecomOfficePermissionDenied'
+  | 'wecomOfficeUnavailable'
+  | 'wecomOfficeInvalidResult'
+  | 'wecomOfficeTooLarge'
+  | 'wecomOfficeTimeout'
+  | 'wecomOfficeCancelled'
+  | 'wecomOfficeConnectionFailed'
+  | 'wecomBotMessaging'
   | 'feishuReadIdentity'
   | 'feishuBotStatus'
   | 'feishuBotMessagingHint'
@@ -97,6 +139,48 @@ export type PluginsSettingsLocaleKey =
 
 /** English copy. */
 export const en: Record<PluginsSettingsLocaleKey, string> = {
+  wecomOfficeAdvanced: 'Read permissions and advanced settings',
+  wecomOfficeReconnect: 'Scan again',
+  wecomOfficeTitle: 'Office account',
+  wecomOfficeHint: 'Connect by scanning with WeCom. The first connection enables authorized document reads; adjust other capabilities in Advanced settings.',
+  wecomOfficeEnabled: 'Enable office access',
+  wecomOfficeCapabilities: 'Read-only capabilities',
+  wecomOfficeDocuments: 'Search and read documents',
+  wecomOfficeFiles: 'Locate microdisk files',
+  wecomOfficeCalendar: 'Read calendar schedules',
+  wecomOfficeTodos: 'Read existing todos',
+  wecomOfficeSave: 'Save office settings',
+  wecomOfficeSaveFirst: 'Save office settings before connecting or checking the account.',
+  wecomOfficeLocalOnly: 'Office access is available to local DH conversations. Enterprise remote tasks cannot use this authorization. File discovery returns metadata; arbitrary file contents and chat archives are not included.',
+  wecomOfficeScan: 'Connect by QR code',
+  wecomOfficeCheck: 'Check office account and capabilities',
+  wecomOfficeCancel: 'Cancel',
+  wecomOfficeDisconnect: 'Disconnect',
+  wecomOfficeAuthorized: 'Office account connected',
+  wecomOfficeDisabled: 'Not connected',
+  wecomOfficeNotAuthorized: 'Office account needs authorization. Connect by QR code.',
+  wecomOfficePending: 'Waiting for WeCom QR confirmation',
+  wecomOfficeChecking: 'Checking office access',
+  wecomOfficePreparingQr: 'Preparing the authorization QR code…',
+  wecomOfficeQrAlt: 'Scan with WeCom to connect office access',
+  wecomOfficeQrHint: 'Scan and confirm in WeCom. If the code expires, cancel this attempt and start again.',
+  wecomOfficeAuthorizer: 'Authorized by',
+  wecomOfficeCorporation: 'Organization',
+  wecomOfficeIdentityUnknown: 'The connection is saved. Check the account to retrieve the authorizer name if WeCom provides it.',
+  wecomOfficeCapabilityUnknown: 'Not checked',
+  wecomOfficeCapabilityDiscoverable: 'Interface found; resource access not verified',
+  wecomOfficeCapabilityVerified: 'A resource read succeeded',
+  wecomOfficeCapabilityError: 'Check failed; retry the account check',
+  wecomOfficeRuntimeUnavailable: 'The official WeCom runtime is unavailable. Check this deployment.',
+  wecomOfficeVersionMismatch: 'This connector requires the pinned WeCom CLI 1.3.4.',
+  wecomOfficePermissionDenied: 'WeCom denied this capability or resource. Check the account permissions and sharing.',
+  wecomOfficeUnavailable: 'This operation is not available for the current connection.',
+  wecomOfficeInvalidResult: 'The office response is not compatible with this connector. Check the resource type or update the deployment.',
+  wecomOfficeTooLarge: 'The result is too large. Request a smaller page or one document page.',
+  wecomOfficeTimeout: 'Office authorization or the request timed out. Retry the connection.',
+  wecomOfficeCancelled: 'This office authorization was cancelled.',
+  wecomOfficeConnectionFailed: 'Office connection failed. Check network access and try again.',
+  wecomBotMessaging: 'Message robot connection',
   feishuBotStatus: 'Bot connection status',
   feishuBotMessagingHint: 'Receiving tasks and sending messages always use the application bot, independently of the read identity above.',
   feishuBotMessaging: 'Bot messaging · application identity',
@@ -128,7 +212,7 @@ export const en: Record<PluginsSettingsLocaleKey, string> = {
   feishuTitle: 'Feishu connector',
   wecomTitle: 'WeCom connector',
   feishuDescription: 'Read authorized messages and documents; send and receive DH tasks.',
-  wecomDescription: 'Connect an intelligent bot for messages and DH tasks.',
+  wecomDescription: 'Connect office access by QR code and an optional message robot.',
   feishuAppId: 'App ID',
   wecomBotId: 'Bot ID',
   feishuSecret: 'App Secret',
@@ -252,6 +336,48 @@ export const en: Record<PluginsSettingsLocaleKey, string> = {
 
 /** Simplified Chinese copy. */
 export const zh: Record<PluginsSettingsLocaleKey, string> = {
+  wecomOfficeAdvanced: '读取范围与高级设置',
+  wecomOfficeReconnect: '重新扫码',
+  wecomOfficeTitle: '办公账号',
+  wecomOfficeHint: '使用企业微信扫码即可连接。首次默认开启授权范围内的文档读取，其他能力可在高级设置中调整。',
+  wecomOfficeEnabled: '启用办公能力',
+  wecomOfficeCapabilities: '只读办公能力',
+  wecomOfficeDocuments: '搜索与读取文档',
+  wecomOfficeFiles: '定位微盘文件',
+  wecomOfficeCalendar: '查询日程',
+  wecomOfficeTodos: '查询已有待办',
+  wecomOfficeSave: '保存办公设置',
+  wecomOfficeSaveFirst: '请先保存办公设置，再扫码连接或检查账号。',
+  wecomOfficeLocalOnly: '办公授权仅供本地 DH 对话使用，企微、飞书远程任务不能使用。微盘定位只返回文件信息，暂不包含任意文件正文或聊天存档。',
+  wecomOfficeScan: '扫码连接',
+  wecomOfficeCheck: '检查办公账号与能力',
+  wecomOfficeCancel: '取消',
+  wecomOfficeDisconnect: '断开连接',
+  wecomOfficeAuthorized: '办公账号已连接',
+  wecomOfficeDisabled: '未连接',
+  wecomOfficeNotAuthorized: '办公账号尚未授权或授权已失效，请扫码连接。',
+  wecomOfficePending: '等待企业微信扫码确认',
+  wecomOfficeChecking: '正在检查办公连接',
+  wecomOfficePreparingQr: '正在获取授权二维码…',
+  wecomOfficeQrAlt: '使用企业微信扫描此二维码，连接办公能力',
+  wecomOfficeQrHint: '请使用企业微信扫码并确认。二维码过期后，取消本次扫码再重新连接。',
+  wecomOfficeAuthorizer: '授权人',
+  wecomOfficeCorporation: '企业',
+  wecomOfficeIdentityUnknown: '连接已保存；可检查账号获取授权人姓名。平台未提供时不会推测身份。',
+  wecomOfficeCapabilityUnknown: '尚未检查',
+  wecomOfficeCapabilityDiscoverable: '接口可用，资源权限待验证',
+  wecomOfficeCapabilityVerified: '已成功读取资源',
+  wecomOfficeCapabilityError: '检查失败，请重试',
+  wecomOfficeRuntimeUnavailable: '企业微信办公运行组件不可用，请检查部署。',
+  wecomOfficeVersionMismatch: '办公连接器需要配套的企业微信 CLI 1.3.4。',
+  wecomOfficePermissionDenied: '当前能力或资源无权访问，请检查企微授权与共享范围。',
+  wecomOfficeUnavailable: '当前连接暂不提供此项操作。',
+  wecomOfficeInvalidResult: '办公接口返回内容不兼容，请检查资源类型或更新部署。',
+  wecomOfficeTooLarge: '结果过大，请缩小查询范围或指定文档页面。',
+  wecomOfficeTimeout: '办公授权或请求超时，请重新连接。',
+  wecomOfficeCancelled: '本次办公授权已取消。',
+  wecomOfficeConnectionFailed: '办公连接失败，请检查网络后重试。',
+  wecomBotMessaging: '机器人消息连接',
   feishuBotStatus: '机器人连接状态',
   feishuBotMessagingHint: '接收任务和发送消息始终使用应用机器人，与上方选择的读取身份独立。',
   feishuBotMessaging: '机器人收发消息 · 应用身份',
@@ -283,7 +409,7 @@ export const zh: Record<PluginsSettingsLocaleKey, string> = {
   feishuTitle: '飞书连接器',
   wecomTitle: '企业微信连接器',
   feishuDescription: '读取授权消息与文档，收发消息并联动 DH 任务。',
-  wecomDescription: '通过智能机器人长连接收发消息并联动 DH 任务。',
+  wecomDescription: '扫码连接办公能力，并按需启用机器人消息与 DH 任务。',
   feishuAppId: 'App ID',
   wecomBotId: 'Bot ID',
   feishuSecret: 'App Secret',

@@ -13,12 +13,19 @@ import { connectFeishu, connectWecom, feishuClient, readFeishu } from './provide
 import type { IncomingMessage, ProviderConnection } from './providers.ts'
 import { cancellable, identifier, pageSize, result, text } from './limits.ts'
 import { runRemoteTask } from './tasks.ts'
+import { WecomOffice } from './wecom-office/authorization.ts'
+import { WecomOfficeSettings, WecomOfficeRuntimeConfig } from './wecom-office/config.ts'
+import type { WecomOfficeStatus } from './types.ts'
 /** Two accounts plus complete-result, queue and connection bounds. */
 export interface Config {
   /** Independent Feishu application settings. */
   feishu: FeishuSettings
   /** Independent WeCom intelligent-bot settings. */
   wecom: WecomSettings
+  /** Independent read-only office account policy. */
+  wecomOffice: WecomOfficeSettings
+  /** Official CLI execution and private storage bounds. */
+  wecomOfficeRuntime: WecomOfficeRuntimeConfig
   /** HTTP, authentication and message-delivery deadline in milliseconds. */
   timeoutMs: number
   /** Maximum time to watch an admitted Agent task for its reply. */
@@ -46,7 +53,7 @@ export interface Config {
 }
 /** Defaults leave both connections disabled and make no external request. */
 export const Config: Schema<Config> = Schema.object({
-  feishu: FeishuSettings, wecom: WecomSettings,
+  feishu: FeishuSettings, wecom: WecomSettings, wecomOffice: WecomOfficeSettings, wecomOfficeRuntime: WecomOfficeRuntimeConfig,
   timeoutMs: Schema.natural().min(1000).max(120000).default(30000),
   taskTimeoutMs: Schema.natural().min(1000).max(3600000).default(180000),
   maxResultBytes: Schema.natural().min(1024).max(1048576).default(262144),
@@ -86,6 +93,8 @@ export class EnterpriseConnectors extends TypertRemoteService {
   private readonly captured: CapturedEnterpriseMessage[] = []
   private readonly tasks = new Map<string, Promise<void>>()
   private readonly activeTasks = new Set<Promise<void>>()
+  private readonly office: WecomOffice
+  private officeSettings: () => WecomOfficeSettings
   private closing = false
   private authorization: FeishuAuthorization | undefined
 
@@ -97,6 +106,8 @@ export class EnterpriseConnectors extends TypertRemoteService {
     super(ctx, 'enterpriseConnectors', { namespace: 'enterpriseConnections' })
     this.feishu = () => config.feishu
     this.wecom = () => config.wecom
+    this.officeSettings = () => config.wecomOffice
+    this.office = new WecomOffice(ctx, () => this.officeSettings(), config)
     const state = (channel: EnterpriseChannel): ConnectionState => ({ abort: new AbortController(), pending: Promise.resolve(),
       status: { channel, state: 'disabled', error: '', receivedMessages: 0, lastSenderId: '', lastChatId: '' } })
     this.states = { feishu: state('feishu'), wecom: state('wecom') }
@@ -104,6 +115,10 @@ export class EnterpriseConnectors extends TypertRemoteService {
       scope.settings.installSection(ctx, 'feishu-connector', FeishuSettings, config.feishu, {
         setSource: (read) => { this.feishu = read }, onChange: () => { void this.configure('feishu') },
       })
+      scope.settings.installSection(ctx, 'wecom-office-connector', WecomOfficeSettings, config.wecomOffice, {
+        setSource: (read) => { this.officeSettings = read }, onChange: () => { this.office.configure() },
+      })
+      this.office.configure()
       scope.settings.installSection(ctx, 'wecom-connector', WecomSettings, config.wecom, {
         setSource: (read) => { this.wecom = read }, onChange: () => { void this.configure('wecom') },
       })
@@ -125,6 +140,7 @@ export class EnterpriseConnectors extends TypertRemoteService {
       scope.effect(() => () => { if (this.authorization === authorization) this.authorization = undefined }, 'feishu.authorization-owner')
     })
     this.registerTools(ctx)
+    this.office.configure()
     void this.configure('feishu')
     void this.configure('wecom')
   }
@@ -174,6 +190,36 @@ export class EnterpriseConnectors extends TypertRemoteService {
     if (!this.authorization) throw new Error('Install the Feishu authorization plugin from the enterprise connector bundle.')
     return this.authorization
   }
+  /**
+   * Read office metadata and a pending private QR image.
+   * @returns current credential-free office status.
+   */
+  @Remote
+  async wecomOfficeStatus(): Promise<WecomOfficeStatus> { return this.office.status() }
+  /**
+   * Start one office QR binding.
+   * @returns pending office status; subsequent reads expose the QR image.
+   */
+  @Remote
+  async authorizeWecomOffice(): Promise<WecomOfficeStatus> { return this.office.begin() }
+  /**
+   * Cancel pending office consent and await cleanup.
+   * @returns saved account status.
+   */
+  @Remote
+  async cancelWecomOffice(): Promise<WecomOfficeStatus> { return this.office.cancel() }
+  /**
+   * Inspect the saved account and read interfaces.
+   * @returns independent capability discovery results.
+   */
+  @Remote
+  async checkWecomOffice(): Promise<WecomOfficeStatus> { return this.office.check() }
+  /**
+   * Stop office access and remove its local binding.
+   * @returns disconnected office status.
+   */
+  @Remote
+  async disconnectWecomOffice(): Promise<WecomOfficeStatus> { return this.office.disconnect() }
   private account(channel: EnterpriseChannel): AccountPolicy {
     return channel === 'feishu' ? this.feishu() : this.wecom()
   }

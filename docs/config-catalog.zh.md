@@ -637,6 +637,10 @@ export interface Config {
   feishu: FeishuSettings
   /** Independent WeCom intelligent-bot settings. */
   wecom: WecomSettings
+  /** Independent read-only office account policy. */
+  wecomOffice: WecomOfficeSettings
+  /** Official CLI execution and private storage bounds. */
+  wecomOfficeRuntime: WecomOfficeRuntimeConfig
   /** HTTP, authentication and message-delivery deadline in milliseconds. */
   timeoutMs: number
   /** Maximum time to watch an admitted Agent task for its reply. */
@@ -687,6 +691,36 @@ export interface WecomSettings extends AccountPolicy {
   websocketURL: string
 }
 
+/** Saved office permissions; the message robot keeps its own settings. */
+export interface WecomOfficeSettings {
+  /** Enable the office account and its local-conversation tools. */
+  enabled: boolean
+  /** Permit document discovery and text reads. */
+  documents: boolean
+  /** Permit file metadata discovery, without downloading file contents. */
+  files: boolean
+  /** Permit calendar list and detail reads. */
+  calendar: boolean
+  /** Permit existing todo list and detail reads. */
+  todos: boolean
+}
+
+/** Host-owned execution configuration, separate from browser account settings. */
+export interface WecomOfficeRuntimeConfig {
+  /** Absolute private storage root; empty uses the current DH home's office directory. */
+  directory: string
+  /** Explicit CLI executable and prefix arguments; empty uses the pinned dependency. */
+  command: string[]
+  /** Complete stdout byte bound, including authentication and discovery output. */
+  maxOutputBytes: number
+  /** Maximum document text bytes projected into a tool result. */
+  maxTextBytes: number
+  /** Process-tree termination grace in milliseconds. */
+  graceMs: number
+  /** Browser polling delay while a QR attempt is pending. */
+  pollIntervalMs: number
+}
+
 /** Shared account policy. Empty sender lists deny every remote task. */
 export interface AccountPolicy {
   /** Whether the account may connect or issue tool requests. */
@@ -708,7 +742,7 @@ export interface AccountPolicy {
 }
 ```
 
-Source: [`packages/interaction/enterprise-connectors/src/index.ts:17`](../packages/interaction/enterprise-connectors/src/index.ts)
+Source: [`packages/interaction/enterprise-connectors/src/index.ts:20`](../packages/interaction/enterprise-connectors/src/index.ts)
 
 <a id="deepseek-aidsh-experimental-agent-team"></a>
 

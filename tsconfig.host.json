@@ -38,6 +38,7 @@
     "apps/web/tests/ragflow-settings.e2e.ts",
     "apps/web/tests/enterprise-connectors.e2e.ts",
     "apps/web/tests/feishu-user-authorization.e2e.ts",
+    "apps/web/tests/wecom-office.e2e.ts",
     "apps/web/tests/ztt-brand.e2e.ts",
     "apps/web/tests/settings-chrome.e2e.ts",
     "apps/web/tests/models-settings.e2e.ts",

@@ -3,6 +3,8 @@ import type { Context } from '@deepseek-ai/cordis'
 import type { EnterpriseChannel, EnterpriseConnectionStatus, FeishuAuthorizationStatus } from '@deepseek-ai/dsh-api-remotes/client'
 import type { SnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { SettingsScope } from '@deepseek-ai/dsh-client-ui-settings/client'
+import { WecomOfficeCardController } from './wecom-office-controller.ts'
+import type { WecomOfficeActions, WecomOfficeCardState } from './wecom-office-controller.ts'
 import { CardForm, textField, type CardActions, type CardFieldState, type CardShell } from './card-form.ts'
 
 /** Public settings only; provider secrets never enter this object. */
@@ -35,6 +37,7 @@ export interface EnterpriseCardState extends CardShell {
   authorization?: FeishuAuthorizationStatus
   authorizationFailed: boolean
   authorizationURL: string
+  office?: WecomOfficeCardState
   checking: boolean
 }
 /** Actions injected into either account's card. */
@@ -43,6 +46,7 @@ export interface EnterpriseCardFace extends CardActions {
   revoke: () => void
   reconnect: () => void
   refresh: () => void
+  officeActions: WecomOfficeActions | null
   allowLatest: (kind: 'sender' | 'chat') => void
   hooks: { enterpriseCard: SnapshotStore<EnterpriseCardState> }
 }
@@ -52,6 +56,8 @@ export class EnterpriseCardController {
   private readonly store: SnapshotStore<EnterpriseCardState>
   private readonly fields: string[]
   private readonly unsubscribe: () => void
+  private readonly office: WecomOfficeCardController | undefined
+  private readonly officeOff: (() => void) | undefined
   private configured = false
   private writable = true
   private status: EnterpriseConnectionStatus | undefined
@@ -109,6 +115,9 @@ export class EnterpriseCardController {
       return this.configured
     } }])
     this.store = this.form.bind(() => this.projection())
+    this.office = channel === 'wecom' ? new WecomOfficeCardController(ctx.settingsScope.bind({ namespace: 'wecom-office-connector' }), ctx) : undefined
+    this.officeOff = this.office?.source.subscribe(() => { if (!this.disposed) this.store.set(this.projection()) })
+    this.store.set(this.projection())
     this.unsubscribe = scope.subscribe(() => { void this.refresh() })
     void this.refresh()
   }
@@ -121,6 +130,7 @@ export class EnterpriseCardController {
       fields: Object.fromEntries(this.fields.map(field => [field, this.form.field(field)])), secret: this.form.field('secret'),
       secretConfigured: this.configured, secretWritable: this.writable, checking: this.checking,
       authorizationURL: this.authorizationURL, authorizationFailed: this.authorizationFailed,
+      ...(this.office ? { office: this.office.source.getSnapshot() } : {}),
       ...(this.authorization === undefined ? {} : { authorization: this.authorization }),
       ...(this.status === undefined ? {} : { status: this.status }) }
   }
@@ -130,6 +140,7 @@ export class EnterpriseCardController {
    */
   async refresh(): Promise<void> {
     if (this.isDisposed() || !this.form.shell().available) return
+    void this.office?.refresh()
     const generation = ++this.generation
     const ref = this.reference()
     try {
@@ -168,7 +179,7 @@ export class EnterpriseCardController {
    * @returns a plain injected face, with no service objects or credentials.
    */
   inject(): EnterpriseCardFace {
-    return { ...this.form.actions(), hooks: { enterpriseCard: this.store },
+    return { ...this.form.actions(), hooks: { enterpriseCard: this.store }, officeActions: this.office?.actions() ?? null,
       authorize: () => { this.authorize() },
       revoke: () => { void this.revoke() },
       refresh: () => { void this.refresh() },
@@ -231,5 +242,8 @@ export class EnterpriseCardController {
     }
   }
   /** Release this card's subscriptions and reject late metadata publication. */
-  dispose(): void { this.disposed = true; clearTimeout(this.poll); this.popup?.close(); this.generation++; this.unsubscribe() }
+  dispose(): void {
+    this.officeOff?.(); this.office?.dispose(); this.disposed = true
+    clearTimeout(this.poll); this.popup?.close(); this.generation++; this.unsubscribe()
+  }
 }
