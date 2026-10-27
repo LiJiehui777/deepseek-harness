@@ -202,9 +202,10 @@ const TOOL_PACKAGES: ToolPackage[] = [
       ctx.provide('credentials', { resolve: () => Promise.resolve(undefined) } as unknown as CredentialProvider)
       const config = EnterpriseConnectors.Config({} as never)
       config.wecomOffice.enabled = true
+      config.wecom.enabled = true
       await ctx.plugin(EnterpriseConnectors, config)
     },
-    note: 'Independent official-SDK connections, disabled until configured. Feishu application visibility and WeCom captured-message scope apply. Office tools require independent QR consent, saved read switches and a trusted local conversation. Proactive sends require explicit destinations and one-shot DH approval.',
+    note: 'Independent enterprise connections, disabled until configured. WeCom QR consent enables office reads and bot session listing/sending in trusted local conversations. QR sends require a recent bot conversation and one-shot DH approval. Separate SDK bot reads expose only captured messages; remote-task sender policies remain independent.',
   },
   {
     pkg: '@deepseek-ai/dsh-tool-ragflow-connector', dir: 'tool-ragflow-connector',

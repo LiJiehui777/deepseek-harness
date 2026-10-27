@@ -1,4 +1,5 @@
 /** External CLI fixture: the real DH subprocess owner still runs and cancels every command. */
+import { createCipheriv, randomBytes } from 'node:crypto'
 import { appendFileSync } from 'node:fs'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
@@ -23,13 +24,22 @@ if (args[0] === 'auth' && args[1] === 'init') {
   console.log('fixture authorization output contains fixture-secret and is never returned to the browser')
   while (!await exists(join(control, 'approve'))) await setTimeout(20)
   await mkdir(credentials, { recursive: true })
-  await writeFile(join(credentials, 'credentials.enc'), 'fixture-encrypted-account')
+  const key = randomBytes(32)
+  const nonce = randomBytes(12)
+  const cipher = createCipheriv('aes-256-gcm', key, nonce)
+  const body = Buffer.from(JSON.stringify({ bot: { id: 'bot_fixture', secret: 'fixture-wecom-secret' }, token: 'fixture-token' }))
+  const encrypted = Buffer.concat([nonce, cipher.update(body), cipher.final(), cipher.getAuthTag()])
+  await writeFile(join(credentials, '.encryption_key'), key.toString('base64'), { mode: 0o600 })
+  await writeFile(join(credentials, 'credentials.enc'), encrypted, { mode: 0o600 })
   process.exit(0)
 }
 if (await exists(join(control, 'fail'))) { emit({ error: { code: 853006, message: 'fixture-secret must not escape' } }) }
 if (args[0] === 'identity') emit({ authorizer: { name: 'Quality user', userid: 'fixture-user-id' }, corporation: { name: 'Quality organization' }, token: 'fixture-secret' })
 if (args[0] === 'schema') emit({ method: args[2], request: { type: 'object' }, response: { type: 'object' }, schemas: {} })
 const payload = args.includes('--json') ? JSON.parse(args[args.indexOf('--json') + 1]) : {}
+if (args[0] === 'message' && args[2] === 'sessions' && await exists(join(control, 'empty-chats'))) emit({ sessions_count: 0 })
+if (args[0] === 'message' && args[2] === 'sessions') emit({ sessions: [{ chat_id: 'qr_chat', chat_name: 'Quality bot group', chat_type: 'group', last_msg_time: '2026-10-27 09:00:00', secret: 'fixture-secret' }] })
+if (args[0] === 'message' && args[2] === 'send') emit({ success: true })
 if (args[0] === 'doc' && args[1] === 'search') emit({ docs: [
   { docid: 'doc_quality', doc_name: 'Quality inspection requirements', doc_type: 'doc', url: 'https://doc.weixin.qq.com/doc/doc_quality', secret: 'fixture-secret' },
   { docid: 'a1_quality', doc_name: 'Quality smart document', doc_type: 'smartpage', url: 'https://doc.weixin.qq.com/smartpage/a1_quality' },

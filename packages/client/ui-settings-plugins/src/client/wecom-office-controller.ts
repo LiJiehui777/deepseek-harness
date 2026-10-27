@@ -46,8 +46,10 @@ export class WecomOfficeCardController {
   /**
    * @param scope - independent office settings namespace.
    * @param ctx - authenticated native enterprise Remote namespace.
+   * @param connected - refresh parent message status after QR connection completes.
    */
-  constructor(private readonly scope: SettingsScope<OfficeSettings>, private readonly ctx: Context) {
+  constructor(private readonly scope: SettingsScope<OfficeSettings>, private readonly ctx: Context,
+    private readonly connected?: () => void) {
     this.form = new CardForm(scope, this.fields.map(field => ({ field,
       format: (value: unknown) => String(value === true), parse: (value: string) => ({ kind: 'set' as const, value: value === 'true' }),
     })), [])
@@ -80,7 +82,7 @@ export class WecomOfficeCardController {
       const completed = this.status?.state === 'pending' && response.ok && response.value.state === 'authorized'
       if (response.ok) this.status = response.value
       this.publish(); this.pollPending()
-      if (completed) await this.action('check')
+      if (completed) { await this.action('check'); if (this.current(generation + 1)) this.connected?.() }
     } catch {
       if (this.current(generation)) { this.requestFailed = true; this.publish() }
     }
@@ -95,12 +97,11 @@ export class WecomOfficeCardController {
         const snapshot = this.scope.getSnapshot()
         const value = snapshot.value
         const operations: Array<{ op: 'set'; path: string[]; value: boolean }> = []
-        if (!value?.enabled) operations.push({ op: 'set', path: ['enabled'], value: true })
-        if (!this.fields.slice(1).some(field => value?.[field])) operations.push({ op: 'set', path: ['documents'], value: true })
+        for (const field of this.fields) if (!value?.[field]) operations.push({ op: 'set', path: [field], value: true })
         if (operations.length) {
           await this.scope.mutate(operations, snapshot.revision)
           const saved = this.scope.getSnapshot().value
-          if (!saved?.enabled || !this.fields.slice(1).some(field => saved[field])) throw new Error('Office connection settings were not saved.')
+          if (!this.fields.every(field => saved?.[field])) throw new Error('Office connection settings were not saved.')
         }
       }
       if (!this.current(generation)) return

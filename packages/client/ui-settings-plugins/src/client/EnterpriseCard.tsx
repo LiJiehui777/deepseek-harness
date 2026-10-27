@@ -23,6 +23,7 @@ export function EnterpriseCard(props: EnterpriseCardProps) {
   const state = props.useEnterpriseCard(snapshot => snapshot)
   const { t } = props
   const feishu = state.channel === 'feishu'
+  const qr = !feishu && state.office?.status?.state === 'authorized'
   const userReads = state.fields.readIdentity?.text === 'user'
   if (props.view === 'summary') return <>{t(feishu ? 'feishuDescription' : 'wecomDescription')}</>
   const disabled = !state.writable || state.saving
@@ -65,13 +66,15 @@ export function EnterpriseCard(props: EnterpriseCardProps) {
       </fieldset>
       <p className={css.hint}>{t('feishuCredentialsHint')}</p>
     </> : null}
-    {field(feishu ? 'appId' : 'botId', feishu ? 'feishuAppId' : 'wecomBotId', feishu ? 'feishuSetupHint' : 'wecomSetupHint')}
-    <SecretField id={`enterprise-${state.channel}-secret`} label={t(feishu ? 'feishuSecret' : 'wecomSecret')}
-      hint={t('enterpriseSecretHint')} configured={state.secretConfigured} disabled={!state.secretWritable || state.saving}
-      text={state.secret.text} stateLabel={t(state.secretConfigured ? 'enterpriseSecretSet' : 'enterpriseMissingSecret')}
-      onEdit={(value) => { props.edit('secret', value) }} />
-    <a className={enterpriseCss.link} href={feishu ? 'https://open.feishu.cn/app' : 'https://work.weixin.qq.com/'} target="_blank" rel="noreferrer">{t('enterpriseOpenConsole')}</a>
-    {toggle('enabled', 'enterpriseEnable')}
+    {!qr ? <>
+      {field(feishu ? 'appId' : 'botId', feishu ? 'feishuAppId' : 'wecomBotId', feishu ? 'feishuSetupHint' : 'wecomSetupHint')}
+      <SecretField id={`enterprise-${state.channel}-secret`} label={t(feishu ? 'feishuSecret' : 'wecomSecret')}
+        hint={t('enterpriseSecretHint')} configured={state.secretConfigured} disabled={!state.secretWritable || state.saving}
+        text={state.secret.text} stateLabel={t(state.secretConfigured ? 'enterpriseSecretSet' : 'enterpriseMissingSecret')}
+        onEdit={(value) => { props.edit('secret', value) }} />
+      <a className={enterpriseCss.link} href={feishu ? 'https://open.feishu.cn/app' : 'https://work.weixin.qq.com/'} target="_blank" rel="noreferrer">{t('enterpriseOpenConsole')}</a>
+      {toggle('enabled', 'enterpriseEnable')}
+    </> : null}
     {feishu ? toggle('readEnabled', 'enterpriseRead') : <p className={css.hint}>{t('wecomHistoryHint')}</p>}
     {feishu ? <p className={css.hint}>{t(userReads ? 'feishuUserHint' : 'feishuAppReadHint')}</p> : null}
     {feishu && userReads ? <>
@@ -98,20 +101,20 @@ export function EnterpriseCard(props: EnterpriseCardProps) {
       <h4 className={enterpriseCss.sectionTitle}>{t('feishuBotMessaging')}</h4>
       <p className={css.hint}>{t('feishuBotMessagingHint')}</p>
     </> : null}
-    {toggle('receiveEnabled', 'enterpriseReceive')}
+    {!qr ? toggle('receiveEnabled', 'enterpriseReceive') : null}
     <p className={css.hint}>{t('enterpriseReceiveHint')}</p>
     {field('allowedSenders', 'enterpriseSenders', 'enterpriseSendersHint')}
     {!feishu ? field('allowedChats', 'enterpriseChats', 'enterpriseChatsHint') : null}
-    {toggle('sendEnabled', 'enterpriseSend')}
-    <p className={css.hint}>{t('enterpriseSendHint')}</p>
-    <details className={enterpriseCss.advanced}>
+    {!qr ? toggle('sendEnabled', 'enterpriseSend') : null}
+    {!qr ? <p className={css.hint}>{t('enterpriseSendHint')}</p> : null}
+    {!qr ? <details className={enterpriseCss.advanced}>
       <summary>{t('enterpriseAdvanced')}</summary>
       {field(feishu ? 'baseURL' : 'websocketURL', 'enterpriseEndpoint', feishu ? 'feishuEndpointHint' : 'wecomEndpointHint')}
       {feishu && userReads ? field('redirectURI', 'feishuRedirectURI', 'feishuRedirectHint') : null}
       {feishu && userReads ? field('userScopes', 'feishuUserScopes', 'feishuUserScopesHint') : null}
       {field('workspacePath', 'enterpriseWorkspace', 'enterpriseWorkspaceHint')}
       {field('agentPreset', 'enterprisePreset', 'enterprisePresetHint')}
-    </details>
+    </details> : null}
     {feishu ? <h4 className={enterpriseCss.sectionTitle}>{t('feishuBotStatus')}</h4> : null}
     <div role="status" className={enterpriseCss.status}>
       <p>{t(status)}</p>
@@ -121,9 +124,9 @@ export function EnterpriseCard(props: EnterpriseCardProps) {
       {state.status?.lastChatId ? <p>{t('enterpriseLastChat')}: {state.status.lastChatId}</p> : null}
     </div>
     <div className={enterpriseCss.actions}>
-      <button type="button" disabled={disabled || state.dirty || state.checking} onClick={props.reconnect}>
+      {!qr ? <button type="button" disabled={disabled || state.dirty || state.checking} onClick={props.reconnect}>
         {t(state.checking ? 'enterpriseConnecting' : 'enterpriseReconnect')}
-      </button>
+      </button> : null}
       <button type="button" disabled={state.checking} onClick={props.refresh}>{t('enterpriseRefresh')}</button>
       <button type="button" disabled={disabled || !state.status?.lastSenderId} onClick={() => { props.allowLatest('sender') }}>{t('enterpriseAllowSender')}</button>
       <button type="button" disabled={disabled || !state.status?.lastChatId} onClick={() => { props.allowLatest('chat') }}>{t('enterpriseAllowChat')}</button>
@@ -135,7 +138,7 @@ export function EnterpriseCard(props: EnterpriseCardProps) {
     {!feishu && state.office && props.officeActions
       ? <WecomOfficeSection state={state.office} actions={props.officeActions} t={t} /> : null}
     {feishu ? controls : <details className={enterpriseCss.advanced}>
-      <summary>{t('wecomBotMessaging')}</summary>
+      <summary>{t(qr ? 'wecomTaskAccess' : 'wecomBotMessaging')}</summary>
       {controls}
     </details>}
   </PluginCard>

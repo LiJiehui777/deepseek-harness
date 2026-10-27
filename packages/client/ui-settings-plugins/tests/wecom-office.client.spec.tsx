@@ -44,33 +44,36 @@ function bench() {
   return { host, controller, actions, remote, View, status: (next: Partial<WecomOfficeStatus>) => { status = { ...status, ...next } } }
 }
 
-it.each([en, zh])('connects with one QR action and keeps permission controls collapsed in either language', async (dictionary) => {
+it.each([en, zh])('connects with one QR action and enables all supported capabilities in either language', async (dictionary) => {
   const { View, host, remote } = bench()
   render(<View dictionary={dictionary} />)
   await vi.waitFor(() => { expect(remote.wecomOfficeStatus).toHaveBeenCalledOnce() })
   expect(remote.authorizeWecomOffice).not.toHaveBeenCalled()
-  expect(screen.getByText(dictionary.wecomOfficeAdvanced).closest('details')?.open).toBe(false)
+  expect(screen.queryByText(dictionary.wecomOfficeAdvanced)).toBeNull()
+  expect(screen.getAllByRole('button')).toHaveLength(1)
+  expect(screen.queryByRole('checkbox')).toBeNull()
   expect(screen.queryByRole('button', { name: dictionary.wecomOfficeSave })).toBeNull()
   const scan = screen.getByRole<HTMLButtonElement>('button', { name: dictionary.wecomOfficeScan })
   expect(scan.disabled).toBe(false)
   fireEvent.click(scan)
   await screen.findByAltText(dictionary.wecomOfficeQrAlt)
-  expect(host.scope.getSnapshot().value).toMatchObject({ enabled: true, documents: true, calendar: false, files: false, todos: false })
+  expect(host.scope.getSnapshot().value).toMatchObject({ enabled: true, documents: true, calendar: true, files: true, todos: true })
   expect(host.set).not.toHaveBeenCalled()
   fireEvent.click(screen.getByRole('button', { name: dictionary.wecomOfficeCancel }))
   await screen.findByText(dictionary.wecomOfficeDisabled)
   expect(screen.queryByAltText(dictionary.wecomOfficeQrAlt)).toBeNull()
 })
 
-it('stages advanced capability edits until explicit save', async () => {
-  const { View, host, remote } = bench()
+it('shows one disconnect action for a connected account without manual permission controls', async () => {
+  const { View, status, controller } = bench()
+  await controller.refresh()
+  status({ state: 'authorized', authorizerName: 'Quality user' })
+  await controller.refresh()
   render(<View />)
-  fireEvent.click(screen.getByText(en.wecomOfficeAdvanced))
-  fireEvent.click(screen.getByLabelText(en.wecomOfficeCalendar))
-  expect(host.set).not.toHaveBeenCalled()
-  expect(remote.authorizeWecomOffice).not.toHaveBeenCalled()
-  fireEvent.click(screen.getByRole('button', { name: en.wecomOfficeSave }))
-  await vi.waitFor(() => { expect(host.set).toHaveBeenCalledWith('calendar', true) })
+  await screen.findByText('Quality user')
+  expect(screen.getAllByRole('button')).toHaveLength(1)
+  expect(screen.getByRole('button', { name: en.wecomOfficeDisconnect })).toBeDefined()
+  expect(screen.queryByRole('checkbox')).toBeNull()
 })
 
 it('keeps a mutation busy across settings refreshes and discards responses after disposal', async () => {

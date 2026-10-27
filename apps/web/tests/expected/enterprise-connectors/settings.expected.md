@@ -88,11 +88,10 @@
           - img
         - region "Office account":
           - heading "Office account" [level=4]
-          - paragraph: Connect by scanning with WeCom. The first connection enables authorized document reads; adjust other capabilities in Advanced settings.
+          - paragraph: Scan with WeCom to create and bind a bot automatically. Enable supported document, file, calendar, todo and bot conversation listing and sending in one connection; platform permissions still apply.
           - status:
             - paragraph: Not connected
           - button "Connect by QR code"
-          - group: Read permissions and advanced settings
         - group:
           - text: Message robot connection Bot ID Overridden
           - button "Reset to default"

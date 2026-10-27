@@ -1,5 +1,8 @@
 /** Real Loader and native subprocess composition with a deterministic external CLI fixture. */
 import { mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises'
+import { once } from 'node:events'
+import { WebSocketServer } from 'ws'
+import { MemorySettings } from '../../../settings/settings/tests/memory.ts'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
@@ -19,28 +22,43 @@ import { MemoryCredentials } from '../../../credentials/credentials/tests/memory
 import Enterprise from '../src/index.ts'
 import { officeRequest } from '../src/wecom-office/operations.ts'
 
+let socketServer: WebSocketServer | undefined
 let root: Context | undefined
 let directory: string | undefined
 const fixture = fileURLToPath(new URL('./fixtures/wecom-office-cli.mjs', import.meta.url))
 afterEach(async () => {
   try { await root?.fiber.dispose() }
-  finally { root = undefined; if (directory) await rm(directory, { recursive: true, force: true }); directory = undefined }
+  finally {
+    root = undefined
+    for (const socket of socketServer?.clients ?? []) socket.terminate()
+    if (socketServer) await new Promise<void>((resolve) => { socketServer!.close(() => { resolve() }) })
+    socketServer = undefined
+    if (directory) await rm(directory, { recursive: true, force: true }); directory = undefined }
 })
 async function boot(options: Record<string, unknown> = {}): Promise<Context> {
   directory = await mkdtemp(join(tmpdir(), 'wecom-office-loader-'))
+  socketServer = new WebSocketServer({ host: '127.0.0.1', port: 0 })
+  socketServer.on('connection', (socket) => { socket.on('message', (raw) => {
+    const bytes = Array.isArray(raw) ? Buffer.concat(raw) : raw instanceof ArrayBuffer ? Buffer.from(raw) : raw
+    const frame = JSON.parse(bytes.toString()) as { headers: unknown }
+    socket.send(JSON.stringify({ headers: frame.headers, errcode: 0, errmsg: 'ok' }))
+  }) })
+  await once(socketServer, 'listening')
+  const address = socketServer.address()
+  if (!address || typeof address !== 'object') throw new Error('Missing SDK fixture port')
   root = new Context()
   await root.plugin(Loader)
   root.loader.builtins.include = Include
   const modules = new Map<string, unknown>([
-    ['agents', Agents], ['system-prompt', SystemPrompt], ['tools', Tools], ['authorization', Authorization],
+    ['settings', MemorySettings], ['agents', Agents], ['system-prompt', SystemPrompt], ['tools', Tools], ['authorization', Authorization],
     ['subprocess', SubprocessLocal], ['enterprise', Enterprise],
     ['credentials', { apply(ctx: Context) { ctx.plugin(MemoryCredentials, {}) } }],
   ])
   root.loader.internal = { version: 'v2', import(name: string) { return Promise.resolve(modules.get(name)) } } as unknown as NonNullable<typeof root.loader.internal>
-  const config = { wecomOffice: { enabled: true, documents: true, files: true, calendar: true, todos: true },
+  const config = { wecom: { websocketURL: `ws://127.0.0.1:${address.port}` }, wecomOffice: { enabled: true, documents: true, files: true, calendar: true, todos: true },
     wecomOfficeRuntime: { directory: join(directory, 'account'), command: [process.execPath, fixture, directory] }, timeoutMs: 10000, ...options }
   const file = join(directory, 'cordis.yml')
-  await writeFile(file, '- name: agents\n- name: system-prompt\n- name: tools\n- name: credentials\n- name: authorization\n- name: subprocess\n- name: enterprise\n  config: '+JSON.stringify(config)+'\n')
+  await writeFile(file, '- name: settings\n- name: agents\n- name: system-prompt\n- name: tools\n- name: credentials\n- name: authorization\n- name: subprocess\n- name: enterprise\n  config: '+JSON.stringify(config)+'\n')
   await root.loader.create({ name: 'cordis:include', config: { path: pathToFileURL(file).href } })
   await root.loader.await()
   return root
@@ -65,11 +83,14 @@ describe('managed office CLI composition', { timeout: 30000 }, () => {
   it('exposes a private QR, preserves account isolation, reads reference data and unregisters on unload', async () => {
     const ctx = await boot()
     expect((await ctx.enterpriseConnectors.wecomOfficeStatus()).state).toBe('unauthorized')
+    expect(ctx.tools.get('wecom_read_messages')).toBeDefined()
+    expect(ctx.tools.get('wecom_list_chats')).toBeDefined()
     await authorize(ctx)
     const status = await ctx.enterpriseConnectors.checkWecomOffice()
     expect(status.authorizerName).toBe('Quality user')
     expect(status.capabilities.every(row => row.state === 'discoverable')).toBe(true)
     expect(JSON.stringify(status)).not.toContain('fixture-secret')
+    expect(ctx.enterpriseConnectors.status()[1]?.state).toBe('connected')
     const cases: Array<[string, unknown, string]> = [
       ['search_documents', { keywords: ['inspection'] }, 'Quality inspection requirements'],
       ['read_document', { resource: 'doc_quality', document_type: 'doc' }, 'Inspect every incoming batch'],
@@ -94,6 +115,58 @@ describe('managed office CLI composition', { timeout: 30000 }, () => {
     const tools = ctx.tools
     await ctx.fiber.dispose()
     expect(tools.schemas().some(row => row.name.startsWith('wecom_office_'))).toBe(false)
+  })
+
+  it('uses one QR grant for bot sessions and approved sends without manual robot credentials', async () => {
+    const ctx = await boot()
+    await authorize(ctx)
+    const session = Session.create(SessionId('qr-bot-local'))
+    const exec = { agent: { session } as Agent, signal: new AbortController().signal }
+    const list = ctx.tools.get('wecom_list_chats')!
+    const chats = await list.execute({}, exec as never)
+    expect(JSON.stringify(chats)).toContain('qr_bound_bot_recent_sessions')
+    expect(JSON.stringify(chats)).toContain('Quality bot group')
+    expect(JSON.stringify(chats)).not.toContain('fixture-secret')
+    await writeFile(join(directory!, 'empty-chats'), '')
+    expect(await list.execute({}, exec as never)).toContain('"items":[]')
+    await rm(join(directory!, 'empty-chats'))
+    const send = ctx.tools.get('wecom_send_message')!
+    const denied = await ctx.tools.execute({ name: 'wecom_send_message', callId: ToolCallId('qr-no-approval'),
+      arguments: { chat_id: 'qr_chat', text: 'Quality update' }, ...exec })
+    expect(denied.isError).toBe(true)
+    const before = await readFile(join(directory!, 'calls.ndjson'), 'utf8')
+    expect(before).not.toContain('"send"')
+    await expect(Promise.resolve().then(() => send.execute({ chat_id: 'not_visible', text: 'Do not send' }, exec as never))).rejects.toThrow()
+    expect(await readFile(join(directory!, 'calls.ndjson'), 'utf8')).not.toContain('"send"')
+    // The native pipeline denies a missing approval above; exercise the approved executor separately.
+    const sent = await send.execute({ chat_id: 'qr_chat', text: 'Quality update' }, exec as never)
+    expect(sent).toContain('"accepted":true')
+    expect((await readFile(join(directory!, 'calls.ndjson'), 'utf8')).split('\n').filter(line => line.includes('"send"'))).toHaveLength(1)
+    const remote = { ...exec, agent: { session: Session.create(SessionId('enterprise-untrusted')) } as Agent }
+    await expect(Promise.resolve().then(() => list.execute({}, remote as never))).rejects.toThrow('permission-denied')
+  })
+
+  it('automatically receives the QR bot but admits messages only from explicitly approved members', async () => {
+    const ctx = await boot()
+    await authorize(ctx)
+    const socket = [...socketServer!.clients][0]!
+    const send = (id: string) => { socket.send(JSON.stringify({ cmd: 'aibot_msg_callback', headers: { req_id: id }, body: {
+      msgid: id, aibotid: 'bot_fixture', chattype: 'group', chatid: 'qr_sdk_group', from: { userid: 'approved_member' },
+      msgtype: 'text', text: { content: 'Inspection reference' },
+    } })) }
+    send('not-approved')
+    await expect.poll(() => ctx.enterpriseConnectors.status()[1]?.lastSenderId).toBe('approved_member')
+    expect(ctx.enterpriseConnectors.status()[1]?.receivedMessages).toBe(0)
+    await ctx.settings.update('wecom-connector', { allowedSenders: ['approved_member'] })
+    await ctx.enterpriseConnectors.reconnect('wecom')
+    const current = [...socketServer!.clients].find(client => client.readyState === 1)!
+    current.send(JSON.stringify({ cmd: 'aibot_msg_callback', headers: { req_id: 'approved' }, body: {
+      msgid: 'approved', aibotid: 'bot_fixture', chattype: 'group', chatid: 'qr_sdk_group', from: { userid: 'approved_member' },
+      msgtype: 'text', text: { content: 'Inspection reference' },
+    } }))
+    await expect.poll(() => ctx.enterpriseConnectors.status()[1]?.receivedMessages).toBe(1)
+    await ctx.enterpriseConnectors.disconnectWecomOffice()
+    expect(ctx.enterpriseConnectors.status()[1]?.state).toBe('missing-credentials')
   })
 
   it('denies direct calls without a trusted local owner and enterprise remote conversations', async () => {
@@ -165,7 +238,7 @@ describe('managed office CLI composition', { timeout: 30000 }, () => {
     await ctx.enterpriseConnectors.authorizeWecomOffice()
     await vi.waitFor(async () => { expect((await ctx.enterpriseConnectors.wecomOfficeStatus()).error).toBe('timeout') }, { timeout: 10000 })
     await writeFile(join(directory!, 'approve'), '')
-    expect((await ctx.enterpriseConnectors.wecomOfficeStatus()).state).toBe('unauthorized')
+    await vi.waitFor(async () => { expect((await ctx.enterpriseConnectors.wecomOfficeStatus()).state).toBe('unauthorized') }, { timeout: 10000 })
     expect(await readdir(join(directory!, 'account'))).toEqual([])
   })
 

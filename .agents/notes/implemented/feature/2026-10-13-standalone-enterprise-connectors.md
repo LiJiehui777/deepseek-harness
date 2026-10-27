@@ -16,7 +16,7 @@ An optional native bundle uses the official Feishu and WeCom SDKs. Independent s
 
 Remote inputs enter the public SessionController prompt pipeline with provider-derived request IDs. Sender-scoped chat bindings retain native persistence, presets, tools and approvals. The connector owns SDK connections, bounded ingress queues and receipt-to-whole-Agent-idle reply watchers. It cancels its watchers on reconfiguration without taking over the Agent lifecycle. Replies use the latest assistant text in that interval, so local follow-ups can contribute; this is not per-message causal attribution.
 
-Feishu application scopes and resource sharing authorize chat history and Docx/Wiki reads. WeCom intelligent-bot reads expose only the bounded process-local received-message buffer. Reconnection clears the buffer. Complete tool results are size bounded; HTTP reads reject redirects and obey cancellation. Provider failures expose sanitized messages, and ambiguous delivery never automatically retries.
+Feishu application scopes and resource sharing authorize chat history and Docx/Wiki reads. WeCom intelligent-bot reads expose only the bounded process-local received-message buffer. Its message schemas follow either enabled WeCom connection. QR authorization supplies the bound bot automatically while the sender allowlist remains authoritative; disabled executors still reject retained calls. Reconnection clears the buffer. Complete tool results are size bounded; HTTP reads reject redirects and obey cancellation. Provider failures expose sanitized messages, and ambiguous delivery never automatically retries.
 
 ## Alternatives considered
 

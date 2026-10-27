@@ -12,6 +12,7 @@ import AgentRegistry from '@deepseek-ai/dsh-agent'
 import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
 import Tools from '@deepseek-ai/dsh-tools'
 import { ToolCallId } from '@deepseek-ai/dsh-llm'
+import { MemorySettings } from '../../../settings/settings/tests/memory.ts'
 import { credentialRef } from '@deepseek-ai/dsh-credentials'
 import { WebSocketServer } from 'ws'
 import { afterEach, expect, it } from 'vitest'
@@ -81,22 +82,22 @@ async function fixture(): Promise<void> {
   if (!address || typeof address !== 'object') throw new Error('Missing fixture port')
   baseURL = `http://127.0.0.1:${address.port}`
 }
-async function boot(): Promise<Context> {
+async function boot(wecomEnabled = true): Promise<Context> {
   await fixture()
   root = new Context()
   await root.plugin(Loader)
   root.loader.builtins.include = Include
   const modules = new Map<string, unknown>([
-    ['agents', AgentRegistry], ['system-prompt', SystemPrompt], ['tools', Tools], ['enterprise', Enterprise],
+    ['settings', MemorySettings], ['agents', AgentRegistry], ['system-prompt', SystemPrompt], ['tools', Tools], ['enterprise', Enterprise],
     ['credentials', { apply(ctx: Context) { ctx.plugin(MemoryCredentials, { FEISHU_APP_SECRET: 'fixture-feishu-secret', WECOM_BOT_SECRET: 'fixture-wecom-secret' }) } }],
   ])
   root.loader.internal = { version: 'v2', import(name: string) { return Promise.resolve(modules.get(name)) } } as unknown as NonNullable<typeof root.loader.internal>
   directory = await mkdtemp(join(tmpdir(), 'enterprise-loader-'))
   const config = { feishu: { enabled: true, appId: 'cli_fixture', baseURL, allowedChats: ['chat_a'] },
-    wecom: { enabled: true, botId: 'bot_fixture', websocketURL: baseURL.replace('http:', 'ws:'),
+    wecom: { enabled: wecomEnabled, botId: 'bot_fixture', websocketURL: baseURL.replace('http:', 'ws:'),
       receiveEnabled: true, allowedSenders: ['user_a'], allowedChats: ['chat_a'] }, maxResultBytes: 4096, timeoutMs: 1000 }
   const file = join(directory, 'cordis.yml')
-  await writeFile(file, '- name: agents\n- name: system-prompt\n- name: tools\n- name: credentials\n- name: enterprise\n  config: '+JSON.stringify(config)+'\n')
+  await writeFile(file, '- name: settings\n- name: agents\n- name: system-prompt\n- name: tools\n- name: credentials\n- name: enterprise\n  config: '+JSON.stringify(config)+'\n')
   await root.loader.create({ name: 'cordis:include', config: { path: pathToFileURL(file).href } })
   await root.loader.await()
   await root.enterpriseConnectors.reconnect('feishu')
@@ -169,4 +170,33 @@ it('captures only approved senders and exposes its received-message scope explic
   await ctx.credentials.set(credentialRef('WECOM_BOT_SECRET'), 'rotated-secret')
   await ctx.enterpriseConnectors.reconnect('wecom')
   expect(JSON.stringify(await execute(ctx, 'wecom_read_messages', { chat_id: 'chat_a' }))).not.toContain('Quality request')
+})
+it('keeps QR and manual bot tool registration live without enabling an unconfigured message account', async () => {
+  const ctx = await boot(false)
+  const namespace = 'wecom-connector'
+  const office = 'wecom-office-connector'
+  const botNames = ['wecom_list_chats', 'wecom_read_messages', 'wecom_send_message']
+  const visibleBots = () => ctx.tools.schemas().filter(tool => botNames.includes(tool.name)).map(tool => tool.name).sort()
+  expect(visibleBots()).toEqual([])
+  await ctx.settings.update(office, { enabled: true, documents: true })
+  expect(ctx.tools.get('wecom_office_search_documents')).toBeDefined()
+  expect(visibleBots()).toEqual([...botNames].sort())
+  expect((await execute(ctx, 'wecom_list_chats')).isError).toBe(true)
+  expect(frames).toEqual([])
+  await ctx.settings.update(namespace, { enabled: true })
+  expect(visibleBots()).toEqual([...botNames].sort())
+  const read = ctx.tools.get('wecom_read_messages')!
+  await ctx.enterpriseConnectors.reconnect('wecom')
+  expect((await execute(ctx, 'wecom_read_messages', { chat_id: 'chat_a' })).isError).toBe(false)
+  await ctx.settings.update(namespace, { enabled: false })
+  expect(visibleBots()).toEqual([...botNames].sort())
+  expect(ctx.tools.get('wecom_office_search_documents')).toBeDefined()
+  await ctx.settings.update(office, { enabled: false })
+  expect(visibleBots()).toEqual([])
+  await expect(Promise.resolve().then(() => read.execute({ chat_id: 'chat_a' }, { signal: new AbortController().signal } as never))).rejects.toThrow('Connect WeCom by QR')
+  await ctx.settings.update(namespace, { enabled: true })
+  expect(visibleBots()).toEqual([...botNames].sort())
+  const tools = ctx.tools
+  await ctx.fiber.dispose()
+  expect(tools.schemas()).toEqual([])
 })

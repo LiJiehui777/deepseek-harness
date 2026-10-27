@@ -3,6 +3,7 @@
 /** Locale keys these surfaces render. */
 export type PluginsSettingsLocaleKey =
   | 'wecomOfficeReconnect'
+  | 'wecomTaskAccess'
   | 'wecomOfficeAdvanced'
   | 'wecomOfficeTitle'
   | 'wecomOfficeHint'
@@ -139,10 +140,11 @@ export type PluginsSettingsLocaleKey =
 
 /** English copy. */
 export const en: Record<PluginsSettingsLocaleKey, string> = {
+  wecomTaskAccess: 'Task access permissions',
   wecomOfficeAdvanced: 'Read permissions and advanced settings',
   wecomOfficeReconnect: 'Scan again',
   wecomOfficeTitle: 'Office account',
-  wecomOfficeHint: 'Connect by scanning with WeCom. The first connection enables authorized document reads; adjust other capabilities in Advanced settings.',
+  wecomOfficeHint: 'Scan with WeCom to create and bind a bot automatically. Enable supported document, file, calendar, todo and bot conversation listing and sending in one connection; platform permissions still apply.',
   wecomOfficeEnabled: 'Enable office access',
   wecomOfficeCapabilities: 'Read-only capabilities',
   wecomOfficeDocuments: 'Search and read documents',
@@ -336,10 +338,11 @@ export const en: Record<PluginsSettingsLocaleKey, string> = {
 
 /** Simplified Chinese copy. */
 export const zh: Record<PluginsSettingsLocaleKey, string> = {
+  wecomTaskAccess: '任务访问权限',
   wecomOfficeAdvanced: '读取范围与高级设置',
   wecomOfficeReconnect: '重新扫码',
   wecomOfficeTitle: '办公账号',
-  wecomOfficeHint: '使用企业微信扫码即可连接。首次默认开启授权范围内的文档读取，其他能力可在高级设置中调整。',
+  wecomOfficeHint: '使用企业微信扫码，按提示创建并绑定机器人。连接后自动启用已支持的文档、微盘、日程、待办和机器人会话查询与发送，实际访问范围以企微授权为准。',
   wecomOfficeEnabled: '启用办公能力',
   wecomOfficeCapabilities: '只读办公能力',
   wecomOfficeDocuments: '搜索与读取文档',

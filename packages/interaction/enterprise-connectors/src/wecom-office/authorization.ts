@@ -1,4 +1,5 @@
 /** Native authorization ownership for an isolated official WeCom office connection. */
+import { z } from 'zod'
 import { createHash } from 'node:crypto'
 import { mkdir, mkdtemp, open, rm } from 'node:fs/promises'
 import { homedir } from 'node:os'
@@ -12,8 +13,9 @@ import type { WecomOfficeCapability, WecomOfficeCapabilityStatus, WecomOfficeErr
 import type { WecomOfficeSettings } from './config.ts'
 import { OFFICE_CAPABILITIES, OFFICE_METHODS, OFFICE_OPERATIONS, officeProjection, officeRequest } from './operations.ts'
 import type { OfficeOperation } from './operations.ts'
+import { readQrBot } from './bot.ts'
 import { OfficeError, OfficeRuntime, officeJson } from './runtime.ts'
-import { result } from '../limits.ts'
+import { result, text } from '../limits.ts'
 import { registerOfficeTools } from './tools.ts'
 import { requireLocalOfficeConversation } from './policy.ts'
 
@@ -52,8 +54,10 @@ export class WecomOffice {
    * @param ctx - owning plugin scope with credentials, tools and optional web services.
    * @param settings - current saved office policy, independent of robot settings.
    * @param config - deployment deadlines, private storage and complete-result limits.
+   * @param bindingChanged - reconnect the Host message bot after a committed binding change.
    */
-  constructor(private readonly ctx: Context, private readonly settings: () => WecomOfficeSettings, private readonly config: Config) {
+  constructor(private readonly ctx: Context, private readonly settings: () => WecomOfficeSettings,
+    private readonly config: Config, private readonly bindingChanged: () => Promise<void>) {
     const configured = config.wecomOfficeRuntime.directory
     if (configured && !isAbsolute(configured)) throw new Error('WeCom office directory must be absolute.')
     this.directory = resolve(configured || join(process.env.DSH_HOME ?? join(homedir(), '.dsh'), 'connections', 'wecom-office'))
@@ -176,6 +180,7 @@ export class WecomOffice {
             interaction: { notify() {}, prompt() { return Promise.reject(new AuthorizationDeclinedError()) } },
           })
           if (outcome.status === 'authorized') {
+            await this.bindingChanged()
             this.authorizerName = ''; this.corporationName = ''
             this.capabilities = OFFICE_CAPABILITIES.map(id => ({ id, state: 'unknown' }))
             if (old) await this.cleanup(old)
@@ -215,12 +220,23 @@ export class WecomOffice {
       await Promise.allSettled([this.attempt?.finished, this.tail])
       const old = await this.binding()
       await this.ctx.credentials.deleteRecord(key)
+      await this.bindingChanged()
       if (old) await this.cleanup(old)
       this.authorizerName = ''; this.corporationName = ''; this.error = ''
       this.capabilities = OFFICE_CAPABILITIES.map(id => ({ id, state: 'unknown' }))
       if (this.settings().enabled && !this.closing) this.lifetime = new AbortController()
       return this.status()
     })
+  }
+
+  /**
+   * Resolve the current QR bot for the Host SDK without exposing it over Remote or tool APIs.
+   * @returns bot credentials when office access has a committed binding.
+   */
+  async robot(): Promise<{ botId: string; secret: string } | undefined> {
+    if (!this.settings().enabled || this.closing) return undefined
+    const binding = await this.binding()
+    return binding ? readQrBot(join(binding, 'credentials')) : undefined
   }
 
   private async command(directory: string, args: readonly string[], signal: AbortSignal): Promise<Record<string, unknown>> {
@@ -314,6 +330,53 @@ export class WecomOffice {
         const code = failure(error)
         if (code === 'not-authorized') this.error = code
         this.setCapability(capability, code === 'unavailable' ? 'unavailable' : code === 'permission-denied' ? 'permission-denied' : 'error')
+        if (error instanceof OfficeError) throw error
+        throw new OfficeError(deadline.aborted ? 'cancelled' : 'invalid-result')
+      } finally { await rm(directory, { recursive: true, force: true }) }
+    })
+  }
+
+  /**
+   * Use the QR-bound bot to list recent conversations or send an approved message.
+   * @param operation - fixed bot operation; never an arbitrary CLI command.
+   * @param input - native tool arguments, validated before any provider call.
+   * @param exec - local conversation and caller cancellation; sends require native tool approval.
+   * @returns bounded bot conversation metadata or a delivery acknowledgment.
+   */
+  async message(operation: 'chats' | 'send', input: unknown, exec: ToolRunContext): Promise<string> {
+    await requireLocalOfficeConversation(this.ctx, exec.agent, exec.signal)
+    const args = operation === 'chats' ? z.object({}).strict().parse(input)
+      : z.object({ chat_id: z.string().min(1).max(2048), text: z.string() }).strict().parse(input)
+    const content = 'text' in args ? text(args.text, this.config.maxTextBytes) : undefined
+    const lifetime = this.lifetime.signal
+    return this.sequential(async () => {
+      if (!this.settings().enabled || this.closing) throw new OfficeError('permission-denied')
+      const binding = await this.binding()
+      if (!binding) throw new OfficeError('not-authorized')
+      const deadline = AbortSignal.any([exec.signal, lifetime, AbortSignal.timeout(this.config.timeoutMs)])
+      deadline.throwIfAborted()
+      const directory = await mkdtemp(join(binding, 'message-'))
+      try {
+        // The CLI reads its own encrypted credential file; the bot secret never crosses the adapter.
+        const credentials = join(binding, 'credentials')
+        await this.runtime.checkVersion(directory, credentials, deadline)
+        const call = async (command: string[]) => officeJson(await this.runtime.run(command, directory, credentials, deadline))
+        const data = await call(['message', 'aibot', 'sessions', 'list'])
+        const session = z.object({ chat_id: z.string().min(1).max(2048), chat_name: z.string().max(1024).optional(),
+          chat_type: z.enum(['single', 'group']).optional(), last_msg_time: z.string().max(128).optional() })
+        // The official API omits an empty repeated sessions field and returns sessions_count: 0.
+        const sessions = z.array(session).max(20).default([]).parse(data.sessions)
+        deadline.throwIfAborted()
+        if (!this.settings().enabled || await this.binding() !== binding) throw new OfficeError('cancelled')
+        if (!('chat_id' in args)) return result({ channel: 'wecom', scope: 'qr_bound_bot_recent_sessions',
+          items: sessions, reference_only: true }, this.config.maxResultBytes)
+        if (!sessions.some(row => row.chat_id === args.chat_id)) throw new OfficeError('permission-denied')
+        const sent = await call(['message', 'aibot', 'send', '--json', JSON.stringify({ chat_id: args.chat_id,
+          msg_type: 'markdown', markdown: { content } })])
+        if (sent.success !== true) throw new OfficeError('invalid-result')
+        return result({ channel: 'wecom', chat_id: args.chat_id, accepted: true }, this.config.maxResultBytes)
+      } catch (error) {
+        if (operation === 'send') throw new Error('WeCom QR bot delivery failed or was cancelled. Inspect the chat before retrying; delivery may already have occurred.')
         if (error instanceof OfficeError) throw error
         throw new OfficeError(deadline.aborted ? 'cancelled' : 'invalid-result')
       } finally { await rm(directory, { recursive: true, force: true }) }

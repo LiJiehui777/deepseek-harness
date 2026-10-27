@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-10-13-standalone-enterprise-connectors.md
-2026-10-13-standalone-enterprise-connectors.md: aa4129a6d88870515f721a92c298b01720eb4049
-2026-10-13-standalone-enterprise-connectors.zh.md: 0902ee668edfc1c3b199873dec4e68536fbc0e55
+2026-10-13-standalone-enterprise-connectors.md: 6d6ef0976f799c41da9d2810fd050e74809c6165
+2026-10-13-standalone-enterprise-connectors.zh.md: 9d0e497a6932f4b0c0aa4cda6e203903b576f572

@@ -115,7 +115,7 @@ export class EnterpriseCardController {
       return this.configured
     } }])
     this.store = this.form.bind(() => this.projection())
-    this.office = channel === 'wecom' ? new WecomOfficeCardController(ctx.settingsScope.bind({ namespace: 'wecom-office-connector' }), ctx) : undefined
+    this.office = channel === 'wecom' ? new WecomOfficeCardController(ctx.settingsScope.bind({ namespace: 'wecom-office-connector' }), ctx, () => { void this.refresh() }) : undefined
     this.officeOff = this.office?.source.subscribe(() => { if (!this.disposed) this.store.set(this.projection()) })
     this.store.set(this.projection())
     this.unsubscribe = scope.subscribe(() => { void this.refresh() })

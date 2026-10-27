@@ -19,7 +19,7 @@ interface Props {
 }
 
 /**
- * Render the QR connection and collapsed read-permission settings.
+ * Render one account action: scan, cancel a pending scan, or disconnect.
  * @param props - locale-owned labels, callbacks and account metadata.
  * @returns account connection controls without requiring prior configuration.
  */
@@ -31,11 +31,6 @@ export function WecomOfficeSection({ state, actions, t }: Props) {
   const blocked = state.dirty || disabled
   const status: PluginsSettingsLocaleKey = connected ? 'wecomOfficeAuthorized'
     : pending ? 'wecomOfficePending' : state.status?.state === 'checking' ? 'wecomOfficeChecking' : 'wecomOfficeDisabled'
-  const options = [
-    ['documents', 'wecomOfficeDocuments'], ['files', 'wecomOfficeFiles'], ['calendar', 'wecomOfficeCalendar'], ['todos', 'wecomOfficeTodos'],
-  ] as const
-  const states = { unknown: 'wecomOfficeCapabilityUnknown', discoverable: 'wecomOfficeCapabilityDiscoverable', verified: 'wecomOfficeCapabilityVerified',
-    unavailable: 'wecomOfficeUnavailable', 'permission-denied': 'wecomOfficePermissionDenied', error: 'wecomOfficeCapabilityError' } as const
   return <section className={css.office} aria-label={t('wecomOfficeTitle')}>
     <h4 className={css.sectionTitle}>{t('wecomOfficeTitle')}</h4>
     <p className={fields.hint}>{t('wecomOfficeHint')}</p>
@@ -51,30 +46,7 @@ export function WecomOfficeSection({ state, actions, t }: Props) {
       <p className={fields.hint}>{t('wecomOfficeQrHint')}</p>
       <button type="button" disabled={state.busy} onClick={actions.cancel}>{t('wecomOfficeCancel')}</button>
     </div> : <div className={css.actions}>
-      <button type="button" disabled={blocked} onClick={actions.scan}>{t(connected ? 'wecomOfficeReconnect' : 'wecomOfficeScan')}</button>
-      {connected ? <button type="button" disabled={blocked} onClick={actions.disconnect}>{t('wecomOfficeDisconnect')}</button> : null}
+      <button type="button" disabled={blocked} onClick={connected ? actions.disconnect : actions.scan}>{t(connected ? 'wecomOfficeDisconnect' : 'wecomOfficeScan')}</button>
     </div>}
-    <details className={css.advanced}>
-      <summary>{t('wecomOfficeAdvanced')}</summary>
-      <label className={css.toggle}><input type="checkbox" checked={state.fields.enabled?.text === 'true'} disabled={disabled}
-        onChange={(event) => { actions.edit('enabled', String(event.target.checked)) }} />{t('wecomOfficeEnabled')}</label>
-      <fieldset className={css.officeCapabilities} disabled={disabled}>
-        <legend>{t('wecomOfficeCapabilities')}</legend>
-        {options.map(([id, label]) => <div key={id} className={css.officeCapability}>
-          <label className={css.toggle}><input type="checkbox" checked={state.fields[id]?.text === 'true'}
-            onChange={(event) => { actions.edit(id, String(event.target.checked)) }} />{t(label)}</label>
-          <span>{t(states[state.status?.capabilities.find(row => row.id === id)?.state ?? 'unknown'])}</span>
-        </div>)}
-      </fieldset>
-      <p className={fields.hint}>{t('wecomOfficeLocalOnly')}</p>
-      {connected && !state.status?.authorizerName ? <p className={fields.hint}>{t('wecomOfficeIdentityUnknown')}</p> : null}
-      {state.dirty ? <div className={css.actions}>
-        <button type="button" disabled={disabled} onClick={actions.discard}>{t('discard')}</button>
-        <button type="button" disabled={disabled || state.invalid} onClick={actions.save}>{t('wecomOfficeSave')}</button>
-      </div> : null}
-      {state.failed ? <p className={fields.invalid} role="status">{t('saveFailed')}</p> : null}
-      {state.dirty ? <p className={fields.hint}>{t('wecomOfficeSaveFirst')}</p> : null}
-      <button type="button" disabled={blocked || !connected} onClick={actions.check}>{t('wecomOfficeCheck')}</button>
-    </details>
   </section>
 }

@@ -1,4 +1,6 @@
 /** Native QR settings, managed CLI transport and a logged local Agent tool round. */
+import { WebSocketServer } from 'ws'
+import { once } from 'node:events'
 import { existsSync } from 'node:fs'
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -13,6 +15,7 @@ import { assertFixtureInventory, captureStableAria, compareOrRefreshGolden, fixt
 
 const MODE = webSnapshotMode()
 const FIXTURE = fileURLToPath(new URL('../../../snapshots/web/wecom-office/session.v3.jsonl', import.meta.url))
+let socketServer: WebSocketServer | undefined
 let browser: Browser | undefined
 let scaffold: WebScaffold | undefined
 let directory: string | undefined
@@ -21,7 +24,12 @@ afterEach(async () => {
   finally {
     browser = undefined
     try { await scaffold?.close() }
-    finally { scaffold = undefined; if (directory) await rm(directory, { recursive: true, force: true }); directory = undefined }
+    finally {
+      scaffold = undefined
+      for (const socket of socketServer?.clients ?? []) socket.terminate()
+      if (socketServer) await new Promise<void>((resolve) => { socketServer!.close(() => { resolve() }) })
+      socketServer = undefined
+      if (directory) await rm(directory, { recursive: true, force: true }); directory = undefined }
   }
 })
 class OfficeModel extends LlmAdapter {
@@ -49,9 +57,18 @@ class OfficeModel extends LlmAdapter {
 }
 it.skipIf(MODE === 'record')('connects by QR without manual setup, reads a document in local chat and disconnects', async () => {
   directory = await mkdtemp(join(tmpdir(), 'wecom-office-web-'))
+  socketServer = new WebSocketServer({ host: '127.0.0.1', port: 0 })
+  socketServer.on('connection', (socket) => { socket.on('message', (raw) => {
+    const bytes = Array.isArray(raw) ? Buffer.concat(raw) : raw instanceof ArrayBuffer ? Buffer.from(raw) : raw
+    const frame = JSON.parse(bytes.toString()) as { headers: unknown }
+    socket.send(JSON.stringify({ headers: frame.headers, errcode: 0, errmsg: 'ok' }))
+  }) })
+  await once(socketServer, 'listening')
+  const address = socketServer.address()
+  if (!address || typeof address !== 'object') throw new Error('Missing SDK fixture port')
   const fixture = fileURLToPath(new URL('../../../packages/interaction/enterprise-connectors/tests/fixtures/wecom-office-cli.mjs', import.meta.url))
   const overlay = join(directory, 'office.patch.yml')
-  await writeFile(overlay, '- id: agent-default-model\n  config:\n    provider: office-fixture\n    model: fixture\n- insert:\n    - id: office-authorization\n      name: "@deepseek-ai/dsh-authorization"\n    - id: office-connector\n      name: "@deepseek-ai/dsh-enterprise-connectors"\n      config:\n        wecomOfficeRuntime:\n          directory: '+JSON.stringify(join(directory, 'account'))+'\n          command: '+JSON.stringify([process.execPath, fixture, directory])+'\n        timeoutMs: 10000\n')
+  await writeFile(overlay, '- id: agent-default-model\n  config:\n    provider: office-fixture\n    model: fixture\n- insert:\n    - id: office-authorization\n      name: "@deepseek-ai/dsh-authorization"\n    - id: office-connector\n      name: "@deepseek-ai/dsh-enterprise-connectors"\n      config:\n        wecom:\n          websocketURL: ws://127.0.0.1:'+String(address.port)+'\n        wecomOfficeRuntime:\n          directory: '+JSON.stringify(join(directory, 'account'))+'\n          command: '+JSON.stringify([process.execPath, fixture, directory])+'\n        timeoutMs: 10000\n')
   const bootstrap = MODE === 'refresh' && !existsSync(FIXTURE)
   scaffold = await launchWebScaffold({ extraOverlayPath: overlay, ...(bootstrap ? {} : { replayFixture: FIXTURE, compareReplaySession: true,
     replayProviders: [{ id: 'office-fixture', name: 'Office fixture', models: [{ id: 'fixture', name: 'Fixture', contextWindow: 128000 }] }] }) })
@@ -79,11 +96,27 @@ it.skipIf(MODE === 'record')('connects by QR without manual setup, reads a docum
   await office.getByRole('img').waitFor()
   await writeFile(join(directory, 'approve'), '')
   await office.getByText('Quality user', { exact: false }).waitFor()
-  await office.getByText('Read permissions and advanced settings', { exact: true }).click()
-  await office.getByText('Interface found; resource access not verified', { exact: true }).waitFor()
+  expect(await office.getByRole('button').count()).toBe(1)
+  expect(await office.getByRole('checkbox').count()).toBe(0)
   const document = await readFile(join(owner.harnessHome, 'settings.yaml'), 'utf8')
   expect(document).toContain('wecom-office-connector:')
   expect(document).not.toContain('fixture-secret')
+  expect(await settings.getByRole('textbox', { name: 'Bot ID', exact: true }).count()).toBe(0)
+  await settings.getByText('Task access permissions', { exact: true }).click()
+  const socket = [...socketServer.clients][0]!
+  socket.send(JSON.stringify({ cmd: 'aibot_msg_callback', headers: { req_id: 'setup-only' }, body: {
+    msgid: 'setup-only', aibotid: 'bot_fixture', chattype: 'group', chatid: 'qr_fixture_group', from: { userid: 'quality_member' },
+    msgtype: 'text', text: { content: 'Set up member access' },
+  } }))
+  await expect.poll(() => owner.ctx.enterpriseConnectors.status()[1]?.lastSenderId).toBe('quality_member')
+  expect(owner.ctx.enterpriseConnectors.status()[1]?.receivedMessages).toBe(0)
+  await settings.getByRole('button', { name: 'Refresh status', exact: true }).click()
+  await settings.getByRole('button', { name: 'Add latest sender', exact: true }).click()
+  await settings.getByRole('button', { name: 'Save', exact: true }).click()
+  await expect.poll(async () => (await readFile(join(owner.harnessHome, 'settings.yaml'), 'utf8')).includes('quality_member')).toBe(true)
+  expect(await settings.getByRole('textbox', { name: 'Bot ID', exact: true }).count()).toBe(0)
+  await settings.getByRole('button', { name: 'Show settings: WeCom connector', exact: true }).click()
+  await office.getByText('Quality user', { exact: false }).waitFor()
   expect(await settings.getByRole('textbox', { name: 'Bot ID', exact: true }).count()).toBe(0)
   const expected = fileURLToPath(new URL('./expected/wecom-office/settings.expected.md', import.meta.url))
   await compareOrRefreshGolden(expected, await captureStableAria(page, '[role="dialog"]', owner.workspaceCwd), webSnapshotMode())
@@ -107,6 +140,9 @@ it.skipIf(MODE === 'record')('connects by QR without manual setup, reads a docum
   const sessionId = await settled
   if (bootstrap) await recordFixture(owner, sessionId, FIXTURE)
   await page.getByText('Quality reference: inspect every incoming batch and retain the test report.', { exact: true }).waitFor()
+  expect(owner.ctx.tools.get('wecom_list_chats')).toBeDefined()
+  expect(owner.ctx.tools.get('wecom_send_message')).toBeDefined()
+  expect(owner.ctx.tools.get('wecom_read_messages')).toBeDefined()
   const reads = events.filter(event => event.type === 'tool/result')
   expect(JSON.stringify(reads)).toContain('Inspect every incoming batch')
   expect(JSON.stringify(reads)).not.toContain('fixture-secret')

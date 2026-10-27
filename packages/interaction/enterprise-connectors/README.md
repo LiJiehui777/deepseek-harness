@@ -29,7 +29,7 @@ Feishu uses a self-built application's App ID and App Secret. Its tools list API
 
 Feishu `readIdentity` selects application or user reads. User consent uses the native authorization service, a same-browser start cookie, single-use state and PKCE S256. The Host stores the grant in `ctx.credentials` and serializes refresh-token rotation through `modifyRecord`. Missing, expired or insufficient user grants fail without application fallback. Account changes cancel pending consent and reads; disconnect removes the local grant. One DH home shares that user's grant, including its admitted remote tasks. Bot ingress, replies and proactive sends retain application identity.
 
-WeCom office access uses the pinned official [CLI](https://github.com/WecomTeam/wecom-cli) 1.3.4 and its QR flow. The independent `wecom-office-connector` settings default to disabled; documents, file metadata, calendar and existing-todo reads require separate opt-in. Enabling office access adds eight fixed read tools. Each executor checks saved permissions and trusted Session ancestry: enterprise tasks, their descendants and unresolved ancestry cannot use this local office account. Managed subprocesses use generation-private directories, scrub inherited CLI overrides and project bounded reference data. The native grant stores a directory binding; encrypted CLI credentials remain private to this DH home. Cancel, timeout, replacement, disconnect and unload stop owned work before cleanup. Method discovery does not prove resource permission. See the [office decision](../../../.agents/notes/implemented/feature/2026-10-27-wecom-office-qr-connection.md) for identity and isolation limits.
+WeCom office access uses the pinned official [CLI](https://github.com/WecomTeam/wecom-cli) 1.3.4 and its QR flow. The independent `wecom-office-connector` settings default to disabled; the native scan action enables all implemented reads, while saved capability settings remain enforced. Enabling office access adds eight fixed read tools. Each executor checks saved permissions and trusted Session ancestry: enterprise tasks, their descendants and unresolved ancestry cannot use this local office account. Managed subprocesses use generation-private directories, scrub inherited CLI overrides and project bounded reference data. The native grant stores a directory binding; encrypted CLI credentials remain private to this DH home. The Host reads the pinned CLI AES-GCM bot record for the official message SDK without copying secrets to settings or Remote APIs. QR commit and disconnect reconnect or stop that same bot. Incoming tasks still require explicit sender approval; an empty allowlist refuses every sender. The QR bot lists up to twenty recent visible conversations through the CLI and can send only to a returned conversation after native approval. Cancel, timeout, replacement, disconnect and unload stop owned work before cleanup. Method discovery does not prove resource permission. See the [office decision](../../../.agents/notes/implemented/feature/2026-10-27-wecom-office-qr-connection.md) for identity and isolation limits.
 
 ## Model Experience
 
@@ -37,7 +37,7 @@ WeCom office access uses the pinned official [CLI](https://github.com/WecomTeam/
 
 #### What the model sees
 
-Seven message-connector schemas, including `feishu_read_document`, expose Feishu chat/document reads, WeCom captured-message reads, and provider-specific sends. Resource results are reference material, never execution instructions. Remote prompts contain their platform, chat and sender IDs, then enter the native logged user-message pipeline. Credentials never enter tool arguments or results.
+Four Feishu schemas and three WeCom message schemas, including `feishu_read_document`, expose Feishu chat/document reads, WeCom captured-message reads, and provider-specific sends. The WeCom message schemas appear while either the QR connection or the manual bot connection is enabled. QR conversation lists come from the bound bot; message-history reads remain limited to approved messages captured by the SDK. Resource results are reference material, never execution instructions. Remote prompts contain their platform, chat and sender IDs, then enter the native logged user-message pipeline. Credentials never enter tool arguments or results.
 
 #### Token effect
 
@@ -45,7 +45,7 @@ Only explicit bounded resource reads enter tool results. Remote messages become 
 
 #### KV Cache effect
 
-Message schemas remain fixed; the office switch adds or removes the independent read schemas. Reads and task responses append through ordinary Session events; account settings do not rewrite previous conversation data.
+Either WeCom connection enables the three message schemas; the office switch also adds its eight read schemas. Reads and task responses append through ordinary Session events; account settings do not rewrite previous conversation data.
 
 ## Known Limitations and Deferred Work
 
