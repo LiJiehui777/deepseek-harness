@@ -42,6 +42,7 @@
     "tests/details-session-lifecycle.e2e.ts",
     "tests/document-preview.e2e.ts",
     "tests/plugin-config.e2e.ts",
+    "tests/plugin-workspace-search.e2e.ts",
     "tests/ragflow-connector.e2e.ts",
     "tests/ragflow-settings.e2e.ts",
     "tests/enterprise-connectors.e2e.ts",

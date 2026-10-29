@@ -1,0 +1,8 @@
+- text: 工作区
+- button "搜索会话":
+  - img
+- textbox "搜索会话…" [disabled]
+- button "视图选项":
+  - img
+- button "添加工作区":
+  - img
