@@ -1,6 +1,40 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/interaction/tool-quality-report/README.md
-README.md: 913ad7663b7dc050038ee5d026cdd150d41b8f27
-README.zh.md: 1ff5bdc369811b71781bcabe7fa082d73428f8ef
+/:
+  en: 4ad47ce0d1ecadd1
+  zh: 4ad47ce0d1ecadd1
+/deepseek-ai-dsh-tool-quality-report:
+  en: df96593c55584efd
+  zh: 744929938267ebb4
+/deepseek-ai-dsh-tool-quality-report/summary:
+  en: 73d749c49aa4cdad
+  zh: 0d3223945b303c21
+/deepseek-ai-dsh-tool-quality-report/table-of-contents:
+  en: 2e89ddb1e73218cb
+  zh: c100ad3595cf2b25
+/deepseek-ai-dsh-tool-quality-report/use-this-package:
+  en: 01f1cd1ca9c96a94
+  zh: 943db394808ee11f
+/deepseek-ai-dsh-tool-quality-report/model-experience:
+  en: 215e7ba838619b7b
+  zh: a311da3843709f90
+/deepseek-ai-dsh-tool-quality-report/model-experience/report-review:
+  en: 7ec64d7b904bdd97
+  zh: 7ec64d7b904bdd97
+/deepseek-ai-dsh-tool-quality-report/model-experience/report-review/what-the-model-sees:
+  en: fd01f90cbf06ef2d
+  zh: f8e1d1b461912b19
+/deepseek-ai-dsh-tool-quality-report/model-experience/report-review/token-effect:
+  en: 11ea77dea40c1882
+  zh: 6e8431cd754d8b92
+/deepseek-ai-dsh-tool-quality-report/model-experience/report-review/kv-cache-effect:
+  en: c2cccf8572a221d3
+  zh: 1d88716328d7bca4
+/deepseek-ai-dsh-tool-quality-report/known-limitations-and-deferred-work:
+  en: c2b91f06921eeced
+  zh: 5927fc00386fcac8
+/deepseek-ai-dsh-tool-quality-report/known-limitations-and-deferred-work/dev-note:
+  en: 778cebbc592e839a
+  zh: 52c19c86bc9e20b8

@@ -1,3 +1,4 @@
+import type {} from '@deepseek-ai/dsh-user-approval'
 /** Real settings, SDK transports, Agent execution and durable Session receipts; no external account or model calls. */
 import { once } from 'node:events'
 import { createServer, type Server } from 'node:http'
@@ -42,9 +43,9 @@ afterEach(async () => {
 class FixtureModel extends LlmAdapter {
   private calls = 0
   override async * stream(options: GenerateOptions): AsyncIterable<StreamChunk> {
-    const last = options.messages.findLast(message => message.source.kind === 'tool' || message.source.kind === 'user')
+    const last = options.messages.findLast(message => message.source?.kind === 'tool' || message.source?.kind === 'user')
     const lastText = JSON.stringify(last)
-    if (last?.source.kind === 'user' && lastText.includes('quality_remote_task') && options.tools?.some(tool => tool.name === 'feishu_read_document')) {
+    if (last?.source?.kind === 'user' && lastText.includes('quality_remote_task') && options.tools?.some(tool => tool.name === 'feishu_read_document')) {
       const id = ToolCallId(`enterprise-read-${++this.calls}`)
       const name = lastText.includes('notify_feishu') ? 'feishu_send_message' : lastText.includes('notify_wecom') ? 'wecom_send_message' : 'feishu_read_document'
       const args = JSON.stringify(name === 'feishu_read_document' ? { resource: 'DocA' } : { chat_id: 'chat_a', text: `Quality notice via ${name}` })
@@ -100,7 +101,7 @@ it('saves both native accounts without secrets in settings, then runs a WeCom ta
   if (!address || typeof address !== 'object') throw new Error('Missing provider port')
   directory = await mkdtemp(join(tmpdir(), 'enterprise-web-'))
   const overlay = join(directory, 'cordis.patch.yml')
-  await writeFile(overlay, `- id: agent-default-model\n  config:\n    provider: enterprise-fixture\n    model: fixture\n- insert:\n    - id: enterprise-connectors\n      name: '@deepseek-ai/dsh-enterprise-connectors'\n      config:\n        feishu:\n          secretRef: DSH_TEST_FEISHU_SECRET\n          baseURL: http://127.0.0.1:${address.port}\n        wecom:\n          secretRef: DSH_TEST_WECOM_SECRET\n          websocketURL: ws://127.0.0.1:${address.port}\n        timeoutMs: 2000\n    - id: ragflow-connector\n      name: '@deepseek-ai/dsh-tool-ragflow-connector'\n`)
+  await writeFile(overlay, `- id: agent-default-model\n  config:\n    provider: enterprise-fixture\n    model: fixture\n- insert:\n    - id: enterprise-connectors\n      name: '@deepseek-ai/dsh-enterprise-connectors'\n      config:\n        feishu:\n          secretRef: DSH_TEST_FEISHU_SECRET\n          baseURL: http://127.0.0.1:${address.port}\n        wecom:\n          secretRef: DSH_TEST_WECOM_SECRET\n          websocketURL: ws://127.0.0.1:${address.port}\n        timeoutMs: 2000\n    - id: ragflow-connector\n      name: '@deepseek-ai/dsh-tool-ragflow-connector'\n- id: ui-settings-connectors\n  disabled: false\n`)
   scaffold = await launchWebScaffold({ extraOverlayPath: overlay })
   const model = new FixtureModel()
   scaffold.ctx.effect(() => scaffold!.ctx.llm.registerAdapter(['enterprise-fixture'], model))
@@ -112,11 +113,10 @@ it('saves both native accounts without secrets in settings, then runs a WeCom ta
   const page = await browser.newPage({ viewport: { width: 1440, height: 1100 }, locale: 'en-US' })
   const tripwire = watchConsole(page)
   await page.goto(scaffold.authenticatedUrl)
-  await page.getByRole('button', { name: 'Settings', exact: true }).click()
-  const settings = page.getByRole('dialog', { name: 'Settings', exact: true })
-  await settings.getByRole('button', { name: 'Plugins', exact: true }).click()
-  const feishu = settings.getByRole('listitem').filter({ has: page.getByRole('button', { name: /settings: Feishu connector$/ }) })
-  await feishu.getByRole('button', { name: 'Show settings: Feishu connector', exact: true }).click()
+  await page.getByRole('button', { name: 'Plugins', exact: true }).click()
+  const settings = page.locator('[data-plugin-panel]')
+  await page.locator('[data-plugin-item="feishu-connector"] button').first().click()
+  const feishu = page.locator('[data-plugin-item-detail="feishu-connector"]')
   await feishu.getByLabel('App ID', { exact: true }).fill('cli_0123456789abcdef')
   await feishu.getByLabel('App Secret', { exact: true }).fill('fixture-feishu-secret')
   await feishu.getByLabel('Allowed sender IDs', { exact: true }).fill('user_a')
@@ -125,7 +125,6 @@ it('saves both native accounts without secrets in settings, then runs a WeCom ta
   await feishu.getByRole('checkbox', { name: 'Receive remote tasks from this platform', exact: true }).check()
   await feishu.getByRole('checkbox', { name: 'Allow DH to send messages', exact: true }).check()
   await feishu.getByRole('button', { name: 'Save', exact: true }).click()
-  await feishu.getByRole('button', { name: 'Show settings: Feishu connector', exact: true }).click()
   await feishu.getByRole('button', { name: 'Connect / check saved account' }).click()
   try { await feishu.getByText('Connected', { exact: true }).waitFor({ timeout: 5000 }) }
   catch (error) {
@@ -133,8 +132,9 @@ it('saves both native accounts without secrets in settings, then runs a WeCom ta
     throw new Error(JSON.stringify(details), { cause: error })
   }
   expect(await feishu.getByLabel('App Secret', { exact: true }).inputValue()).toBe('')
-  const wecom = settings.getByRole('listitem').filter({ has: page.getByRole('button', { name: /settings: WeCom connector$/ }) })
-  await wecom.getByRole('button', { name: 'Show settings: WeCom connector', exact: true }).click()
+  await settings.getByRole('button', { name: 'Back to plugins', exact: true }).click()
+  await page.locator('[data-plugin-item="wecom-connector"] button').first().click()
+  const wecom = page.locator('[data-plugin-item-detail="wecom-connector"]')
   await wecom.getByText('Message robot connection', { exact: true }).click()
   await wecom.getByLabel('Bot ID', { exact: true }).fill('bot_fixture')
   await wecom.getByLabel('Bot Secret', { exact: true }).fill('fixture-wecom-secret')
@@ -144,20 +144,18 @@ it('saves both native accounts without secrets in settings, then runs a WeCom ta
   await wecom.getByRole('checkbox', { name: 'Receive remote tasks from this platform', exact: true }).check()
   await wecom.getByRole('checkbox', { name: 'Allow DH to send messages', exact: true }).check()
   await wecom.getByRole('button', { name: 'Save', exact: true }).click()
-  await wecom.getByRole('button', { name: 'Show settings: WeCom connector', exact: true }).click()
-  await wecom.getByText('Message robot connection', { exact: true }).click()
   await wecom.getByRole('button', { name: 'Connect / check saved account' }).click()
   await wecom.getByText('Connected', { exact: true }).waitFor()
   await wecom.getByRole('button', { name: 'Connect / check saved account', exact: true }).waitFor()
   expect(await wecom.getByLabel('Bot Secret', { exact: true }).inputValue()).toBe('')
-  const document = await readFile(join(scaffold.harnessHome, 'settings.yaml'), 'utf8')
-  expect(document).toContain('feishu-connector:')
-  expect(document).toContain('wecom-connector:')
+  const document = await readFile(join(scaffold.harnessHome, 'profiles/scaffold/cordis.patch.yml'), 'utf8')
+  expect(document).toContain('feishu:')
+  expect(document).toContain('wecom:')
   expect(document).not.toContain('fixture-feishu-secret')
   expect(document).not.toContain('fixture-wecom-secret')
   expect(await settings.innerText()).not.toContain('fixture-feishu-secret')
   const expected = fileURLToPath(new URL('./expected/enterprise-connectors/settings.expected.md', import.meta.url))
-  await compareOrRefreshGolden(expected, await captureStableAria(page, '[role="dialog"]', scaffold.workspaceCwd), webSnapshotMode())
+  await compareOrRefreshGolden(expected, await captureStableAria(page, '[data-plugin-panel]', scaffold.workspaceCwd), webSnapshotMode())
   const messages: Array<{ session: Session; text: string }> = []
   scaffold.ctx.on('session/event', (session, event) => {
     if (event.type === 'user/message' && event.data.source.kind === 'user') messages.push({ session, text: JSON.stringify(event.data) })

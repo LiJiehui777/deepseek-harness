@@ -33,7 +33,8 @@
 - paragraph: 将此地址添加到飞书应用「安全设置 → 重定向 URL」。它用于授权后自动返回，不能直接打开来授权；请在同一浏览器点击下方按钮。
 - button "授权我的飞书账号" [disabled]
 - button "解除账号授权" [disabled]
-- text: 允许的会话 ID
+- text: 允许的会话 ID 已覆盖
+- button "恢复默认"
 - textbox "允许的会话 ID":
   - /placeholder: ""
 - paragraph: 留空允许可见资源读取及已授权用户派任务；主动发送时，目标会话必须填写在此处。
@@ -42,7 +43,8 @@
 - checkbox "接收平台消息并执行 DH 任务"
 - text: 接收平台消息并执行 DH 任务
 - paragraph: 私聊或群内 @机器人可启动 DH 任务，沿用现有模型、知识库和确认设置。
-- text: 允许派任务的用户 ID
+- text: 允许派任务的用户 ID 已覆盖
+- button "恢复默认"
 - textbox "允许派任务的用户 ID":
   - /placeholder: ""
 - paragraph: 多个 ID 用逗号分隔；留空时拒绝所有远程任务。先给机器人发消息，再刷新状态并添加最近发送者。

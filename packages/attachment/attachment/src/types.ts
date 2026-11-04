@@ -106,10 +106,16 @@ export type PromptContentPart =
     readonly name?: string
   }
 
-/** Host prompt content whose file receipts are resolved and whose image bytes await admission. */
+/**
+ * Host prompt content whose upload receipts are resolved. An image part
+ * carries encoded bytes awaiting admission, or references an image this
+ * service already stored for an upload the same Session staged, with
+ * `encodedBytes` holding the byte length of that upload.
+ */
 export type AttachmentAdmissionPart =
   | PromptContentPart
   | { readonly type: 'file'; readonly attachment: FileAttachmentRef }
+  | { readonly type: 'image'; readonly attachment: ImageAttachmentRef; readonly encodedBytes: number }
 
 /** Host-admitted prompt content with every attachment represented by its durable reference. */
 export type AdmittedPromptContentPart =
@@ -132,10 +138,12 @@ export interface StoredImageAttachment {
   data: Uint8Array
 }
 
-/** Deterministic request-image policy selected by one exact model route. */
-export interface ImageRequestPolicy {
-  /** Maximum width multiplied by height after aspect-preserving projection. */
-  maxPixels: number
+/** Deterministic request-image target selected by one exact model route for one attachment. */
+export interface ImageRequestTarget {
+  /** Target width in pixels; a target above the source keeps the source width. */
+  width: number
+  /** Target height in pixels; a target above the source keeps the source height. */
+  height: number
   /** Encoded-byte target before base64 expansion or Files API upload; the smallest quality-ladder output is kept when no quality fits. */
   maxBytes: number
 }

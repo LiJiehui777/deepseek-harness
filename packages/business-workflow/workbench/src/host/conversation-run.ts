@@ -9,6 +9,13 @@ import { z } from 'zod'
 import type { ProcessDetail, ProcessId, ConversationFollow } from '../shared/runtime.ts'
 import { FlowableError } from './flowable.ts'
 
+declare module '@deepseek-ai/dsh-llm' {
+  interface MessageSourceMap {
+    /** Saved workflow checkpoints delivered to their initiating conversation. */
+    'business-workflow': { kind: 'business-workflow'; form: 'notice'; summary: string }
+  }
+}
+
 /** Follow ownership is independent of editable templates and never rewrites the catalog format. */
 export const conversationRunSpec = { name: 'business_workflow_follows', version: 1,
   tables: { runs: { valueSchema: z.object({ runId: z.string().min(1).max(128), sessionId: z.string().min(1).max(256),
@@ -27,7 +34,7 @@ export class ConversationRuns {
     private readonly tenantId: string, private readonly intervalMs: number, private readonly lifetime: AbortSignal,
     private readonly detail: (id: ProcessId) => Promise<ProcessDetail>) {
     ctx.on('agent/turn-stopping', ({ agent, signal }) => this.track(this.wait(agent, signal)))
-    ctx.on('agent/session-start', ({ agent }) => { this.resume(agent) })
+    ctx.on('agent/created', ({ agent }) => { this.resume(agent) })
     ctx.on('session/event', (session, event) => {
       if (event.type === 'turn/end' && event.data.reason.kind === 'aborted' && event.data.reason.reason.kind !== 'disposed') {
         void this.track(this.detach(session.id)).catch((error: unknown) => {
@@ -65,7 +72,7 @@ export class ConversationRuns {
    */
   resume(agent: Agent): void {
     if (this.lifetime.aborted || agent.status !== 'idle' || !this.records(agent.id).length) return
-    agent.steer(createUserMessage({ source: { kind: 'plugin', plugin: 'business-workflow', form: 'notice',
+    agent.steer(createUserMessage({ source: { kind: 'business-workflow', form: 'notice',
       summary: 'Resuming the existing workflow' },
     content: [{ type: 'text', text: wakeInstruction }] }))
   }
@@ -106,7 +113,7 @@ export class ConversationRuns {
           if (Buffer.byteLength(JSON.stringify(facts), 'utf8') > 49152) {
             facts.currentSteps = []; facts.completed = []; facts.detailsOmitted = true
           }
-          const message = createUserMessage({ source: { kind: 'plugin', plugin: 'business-workflow', form: 'notice',
+          const message = createUserMessage({ source: { kind: 'business-workflow', form: 'notice',
             summary: 'Workflow execution settled; DH continues with saved results' }, content: [{ type: 'text', text:
             'The already-started workflow has completed, was terminated, or needs operator intervention. '
             + 'Report its actual status and summarize the saved evidence. Do not start another workflow or approve a task. '

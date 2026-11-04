@@ -74,7 +74,7 @@ export function apply(ctx: Context, config: Config): void {
       render: (_args, value) => [{ type: 'text', text: JSON.stringify(value) }],
       presentationMeta: (_args, value) => value,
     },
-    async execute({ report }) {
+    execute({ report }) {
       const count = report.facts.length + report.evidence.length + report.hypotheses.length
         + report.actions.length + report.questions.length
         + report.hypotheses.reduce((sum, hypothesis) => sum + hypothesis.evidence_ids.length, 0)
@@ -102,7 +102,7 @@ export function apply(ctx: Context, config: Config): void {
         review_status: 'draft', report_json: reportJson, issues: [...new Set(issues)],
       }
       if (Buffer.byteLength(JSON.stringify(result)) > config.maxReportBytes) throw new Error('Complete review result exceeds the configured byte limit.')
-      return result
+      return Promise.resolve(result)
     },
   }))
 }

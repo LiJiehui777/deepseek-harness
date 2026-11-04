@@ -9,13 +9,14 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { AppWebEntry } from '../src/boot.ts'
 
 const MODULES_ID = '@deepseek-ai/dsh-client-modules'
+const REQUIRED_ID = '@deepseek-ai/dsh-client-ui-chat'
 const PROVIDER_CLIENT_ID = 'provider/client'
 const RUNTIME_CLIENT_ID = 'runtime/client'
 const win = globalThis as DshWindow
 const transportGlobal = globalThis as {
-  __DSH_TRANSPORT__?: { loadBundle(url: string): Promise<void> }
+  __DSH_TRANSPORT__?: { loadBundle(url: string): Promise<void>; resolveAsset?(reference: string): string }
 }
-const moduleFace = modulesClient as unknown as Record<string, unknown>
+const moduleFace = modulesClient as Record<string, unknown>
 
 afterEach(() => {
   vi.restoreAllMocks()
@@ -56,6 +57,90 @@ async function expectBootFailure(setup: () => void, message: string): Promise<vo
 }
 
 describe('bootstrap failure rendering', () => {
+  it('leaves the loading page visible when a carrier owns fatal presentation', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    const container = document.createElement('div')
+    document.body.append(container)
+    const entry = new AppWebEntry(container)
+    const failure = vi.fn()
+    await entry.run(failure)
+    expect(failure).toHaveBeenCalledWith(new Error('web boot: window.__ModuleLoader__ bootstrap facade is missing'))
+    expect(container.textContent).toContain('Loading plugins')
+    expect(container.textContent).not.toContain('Failed to load plugins')
+    expect(container.querySelector('[data-dsh-boot-spinner]')).not.toBeNull()
+    await entry.dispose()
+  })
+
+  it.each([false, true])('routes failed required plugin activation with carrier presentation=%s', async (carrier) => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    const container = document.createElement('div')
+    document.body.append(container)
+    const target = installFacade()
+    win.__DSH_BOOT__ = {
+      rev: 'graph',
+      entries: [{ id: REQUIRED_ID, url: '/broken.js', rev: '1' }],
+      batches: [{ phase: 'application', url: '/application.js', rev: '1', entries: [REQUIRED_ID] }],
+    }
+    const entry = new AppWebEntry(container, {
+      loadBundle: async () => {
+        target.load({ id: REQUIRED_ID, factory: () => ({ apply() { throw new Error('plugin activation failed') } }) })
+      },
+    })
+    const report = vi.fn<(reason: unknown) => void>()
+    try {
+      await entry.run(carrier ? report : undefined)
+      if (carrier) {
+        expect(report).toHaveBeenCalledOnce()
+        expect(String(report.mock.calls[0]![0])).toContain(`${REQUIRED_ID} (required): failed: Error: plugin activation failed`)
+        expect(container.querySelector('[data-dsh-boot-spinner]')).not.toBeNull()
+        expect(container.textContent).not.toContain('Failed to load plugins')
+      } else {
+        expect(report).not.toHaveBeenCalled()
+        expect(container.textContent).toContain('Failed to load plugins')
+        expect(container.textContent).toContain(`${REQUIRED_ID} (required): failed: Error: plugin activation failed`)
+      }
+    } finally {
+      await entry.dispose()
+    }
+  })
+
+  it.each([false, true])('mounts past a failed optional plugin without a failure report with carrier presentation=%s', async (carrier) => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const container = document.createElement('div')
+    document.body.append(container)
+    const target = installFacade()
+    const entries: WebBootEntry[] = [
+      { id: 'broken', url: '/broken.js', rev: '1' },
+      { id: 'renderer', url: '/renderer.js', rev: '1' },
+    ]
+    win.__DSH_BOOT__ = {
+      rev: 'graph',
+      entries,
+      batches: [{ phase: 'application', url: '/application.js', rev: '1', entries: entries.map(row => row.id) }],
+    }
+    const mounted = vi.fn<(element: HTMLElement) => () => void>(() => () => {})
+    const entry = new AppWebEntry(container, {
+      loadBundle: async () => {
+        target.load({ id: 'broken', factory: () => ({ apply() { throw new Error('plugin activation failed') } }) })
+        target.load({
+          id: 'renderer',
+          factory: () => ({ apply: (ctx: Context) => { ctx.reflect.provide('uiRenderer', { mount: mounted }) } }),
+        })
+      },
+    })
+    const report = vi.fn<(reason: unknown) => void>()
+    try {
+      await entry.run(carrier ? report : undefined)
+      expect(mounted).toHaveBeenCalledExactlyOnceWith(container)
+      expect(report).not.toHaveBeenCalled()
+      expect(warn).toHaveBeenCalledExactlyOnceWith('web boot: warning: 1 entry did not activate\nbroken: failed: Error: plugin activation failed')
+      expect(container.textContent).not.toContain('Failed to load plugins')
+    } finally {
+      await entry.dispose()
+    }
+  })
+
   it('renders a missing bootstrap facade', async () => {
     await expectBootFailure(
       () => { delete win.__ModuleLoader__ },
@@ -119,12 +204,14 @@ describe('plugin activation', () => {
         factory: require => ({
           apply: () => {
             expect((require(RUNTIME_CLIENT_ID) as { marker: string }).marker).toBe('provider')
+            // The transport's asset resolver reaches every bundle factory.
+            expect((require(PROVIDER_CLIENT_ID) as { asset: string }).asset).toBe('blob:plugins/provider/assets/a.svg')
           },
         }),
       },
       {
         id: 'provider',
-        factory: () => ({ apply: () => {}, marker: 'provider' }),
+        factory: require => ({ apply: () => {}, marker: 'provider', asset: require.asset('plugins/provider/assets/a.svg') }),
       },
       {
         id: 'runtime',
@@ -143,6 +230,7 @@ describe('plugin activation', () => {
       },
     ]
     transportGlobal.__DSH_TRANSPORT__ = {
+      resolveAsset: reference => `blob:${reference}`,
       loadBundle: async (url) => {
         loaded.push(url)
         if (url !== applicationUrl) throw new Error(`missing fixture batch ${url}`)
@@ -217,4 +305,34 @@ describe('plugin activation', () => {
     expect(container.textContent).toBe('mounted')
     await entry.dispose()
   })
+})
+
+it('draws the shared boot page before Host injections and resumes without replacing the document', async () => {
+  const gate = Promise.withResolvers<undefined>()
+  vi.stubGlobal('__DSH_BOOT_READY__', gate)
+  const container = document.createElement('div')
+  document.body.append(container)
+  const create = vi.fn(() => { throw new Error('injections consumed') })
+  const error = vi.spyOn(console, 'error').mockImplementation(() => {})
+  const entry = new AppWebEntry(container)
+  const boot = entry.run()
+  try {
+    const page = container.querySelector('[data-dsh-boot]')
+    const spinner = container.querySelector('[data-dsh-boot-spinner]')
+    expect(spinner).not.toBeNull()
+    await Promise.resolve()
+    expect(create).not.toHaveBeenCalled()
+    expect(error).not.toHaveBeenCalled()
+    installFacade(create)
+    gate.resolve(undefined)
+    await boot
+    expect(create).toHaveBeenCalledOnce()
+    expect(container.querySelector('[data-dsh-boot]')).toBe(page)
+    expect(container.textContent).toContain('injections consumed')
+  } finally {
+    gate.resolve(undefined)
+    await boot
+    await entry.dispose()
+    vi.unstubAllGlobals()
+  }
 })

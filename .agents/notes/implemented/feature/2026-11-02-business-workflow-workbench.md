@@ -16,7 +16,7 @@ A grouped node inspector separates basic information, execution parameters, inpu
 
 Previews advance through explicit simulated actions. Human and wait nodes reject ordinary advancement, and terminal previews cannot resume. No preview calls a model, connector, or workflow engine; simulated approval grants no business permission. The interface states those limits. Real execution is owned separately by the [Flowable decision](2026-11-02-flowable-business-execution.md).
 
-This decision does not supersede [dynamic workflows](2026-07-05-dynamic-workflows.md): that feature owns model-driven workflow execution, while this package owns business authoring and simulation.
+This decision does not supersede [dynamic workflows](../../../../packages/workflow/workflow/README.md): that feature owns model-driven workflow execution, while this package owns business authoring and simulation.
 
 ## Alternatives considered
 

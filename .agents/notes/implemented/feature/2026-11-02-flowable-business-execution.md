@@ -32,6 +32,8 @@ Browser state cannot persist work or constrain a restarted DH. Running arbitrary
 
 ## Consequences
 
+The tools provider applies the deny-only `tools/model-denied` event before describing capabilities through the selected executor. The workflow owner supplies this presentation policy alongside its execution guard, so native and PTC descriptions cannot restore an omitted capability. Conversation follows resume on `agent/created`; each analysis or connector attempt mounts the native executor in its own Agent scope and uses the executor-owned batch API.
+
 External source edits are configuration, compiler references, Remote assembly, and dependency classification. `credentialRef` and `createUserMessage` retain shared peer dependencies; the duplicate-safe export exception list is unchanged. The generic Web bundle remains opt-in, and ZTT supplies explicit engine configuration. Saved drafts and publication pointers persist in a schema-validated DH storage domain; submitted instances survive browser and Host reloads. Same-key start handling is local deduplication plus history lookup, not distributed exactly-once execution. Mutating REST requests are not automatically retried.
 
 Real-engine tests use an isolated tenant and cover routing, review and wait refusal, missing connectors, cancellation, and Host reload. A built Loader/browser scenario replays a recorded DH turn, verifies empty analysis tools, handles actual engine tasks, and reloads persisted history. Additional business connectors, office mutations, enterprise identity, signed upstream receipts, distributed deduplication, and recovery of uncertain model attempts remain outside this integration.

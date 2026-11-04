@@ -1,58 +1,29 @@
-- dialog "Settings":
-  - navigation:
-    - text: Settings
-    - button "General":
-      - img
-      - text: General
-    - button "Models":
-      - img
-      - text: Models
-    - button "Plugins":
-      - img
-      - text: Plugins
-    - button "Agent presets":
-      - img
-      - text: Agent presets
-  - button "Open configuration file"
-  - button "Close":
-    - img
-    - text: Close
-  - heading "Plugins" [level=2]
-  - paragraph: Configure and inspect the plugins installed in this deployment.
-  - tablist "Plugin views":
-    - tab "Plugin configuration" [selected]
-    - tab "Plugin list"
-  - tabpanel "Plugin configuration":
-    - list:
-      - listitem:
-        - 'button "Show settings: Feishu connector"':
-          - text: Feishu connector Read authorized messages and documents; send and receive DH tasks.
-          - img
-      - listitem:
-        - 'button "Hide settings: WeCom connector" [expanded]':
-          - text: WeCom connector Connect office access by QR code and an optional message robot.
-          - img
-        - region "Office account":
-          - heading "Office account" [level=4]
-          - paragraph: Scan with WeCom to create or bind a bot. Connect contacts, messages, documents, sheets, microdisk, calendar, meetings, todos and mail. Each send or change requires confirmation; actual access depends on WeCom permissions.
-          - status:
-            - paragraph: Office account connected
-            - paragraph: Quality user · Quality organization
-          - button "Disconnect"
-        - group: Task access permissions
-      - listitem:
-        - 'button "Show settings: Shell"':
-          - text: Shell Limits every command the agent runs.
-          - img
-      - listitem:
-        - 'button "Show settings: Agent loop"':
-          - text: Agent loop How the agent dispatches tool calls.
-          - img
-      - listitem:
-        - 'button "Show settings: Subagent"':
-          - text: Subagent Control which models agents may choose for subagents.
-          - img
-      - listitem:
-        - 'button "Show settings: Web search"':
-          - text: Web search The DeepSeek search provider.
-          - img
+- button "Back to plugins": Plugins
+- heading "WeCom connector" [level=3]
+- paragraph: Connect office access by QR code and an optional message robot.
+- region "Office account":
+  - heading "Office account" [level=4]
+  - paragraph: Scan with WeCom to create or bind a bot. Connect contacts, messages, documents, sheets, microdisk, calendar, meetings, todos and mail. Each send or change requires confirmation; actual access depends on WeCom permissions.
+  - status:
+    - paragraph: Office account connected
+    - paragraph: Quality user · Quality organization
+  - button "Disconnect"
+- group:
+  - text: Task access permissions
+  - paragraph: Only text received by this bot since connecting is available; arbitrary group history is not available.
+  - paragraph: Direct messages and bot mentions start DH tasks. Existing model, knowledge and approval settings apply.
+  - text: Allowed sender IDs Overridden
+  - button "Reset to default"
+  - textbox "Allowed sender IDs":
+    - /placeholder: ""
+    - text: quality_member
+  - paragraph: Comma-separated IDs. Empty denies all remote tasks. Send a message, refresh status, then add the latest sender.
+  - text: Allowed chat IDs
+  - textbox "Allowed chat IDs":
+    - /placeholder: ""
+  - paragraph: Empty permits visible reads and authorized-sender tasks. Proactive sending requires an explicitly listed chat.
+  - status:
+    - paragraph: Connected
+  - button "Refresh status"
+  - button "Add latest sender" [disabled]
+  - button "Add latest chat" [disabled]

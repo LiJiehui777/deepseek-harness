@@ -1,154 +1,49 @@
-- dialog "Settings":
-  - navigation:
-    - text: Settings
-    - button "General":
-      - img
-      - text: General
-    - button "Models":
-      - img
-      - text: Models
-    - button "Plugins":
-      - img
-      - text: Plugins
-    - button "Agent presets":
-      - img
-      - text: Agent presets
-  - button "Open configuration file"
-  - button "Close":
-    - img
-    - text: Close
-  - heading "Plugins" [level=2]
-  - paragraph: Configure and inspect the plugins installed in this deployment.
-  - tablist "Plugin views":
-    - tab "Plugin configuration" [selected]
-    - tab "Plugin list"
-  - tabpanel "Plugin configuration":
-    - list:
-      - listitem:
-        - 'button "Hide settings: Feishu connector" [expanded]':
-          - text: Feishu connector Read authorized messages and documents; send and receive DH tasks.
-          - img
-        - group "Read identity":
-          - text: Read identity
-          - paragraph: Choose whose permissions DH uses to read chats and documents.
-          - radio "Application identity" [checked]
-          - text: Application identity Read chats the bot belongs to and documents shared with the app. No personal sign-in is required.
-          - radio "User identity"
-          - text: User identity Sign in to read chats and documents visible to your account, within the user permissions granted to this app.
-        - paragraph: Both identities need the app credentials below. User identity also requires your account authorization.
-        - text: App ID Overridden
-        - button "Reset to default"
-        - textbox "App ID":
-          - /placeholder: ""
-          - text: cli_0123456789abcdef
-        - paragraph: Find App ID and App Secret in your Feishu application credentials. Enable bot capability if you use bot messaging.
-        - text: App Secret Secret configured.
-        - textbox "App Secret"
-        - paragraph: Stored by DH credentials, never returned to the browser. Blank keeps the saved secret.
-        - link "Open platform console":
-          - /url: https://open.feishu.cn/app
-        - checkbox "Enable this connection" [checked]
-        - text: Enable this connection
-        - checkbox "Allow reading visible chats and documents" [checked]
-        - text: Allow reading visible chats and documents
-        - paragraph: Enable and publish the required application read permissions. Add the bot to the target chats and share documents with the app.
-        - text: Allowed chat IDs Overridden
-        - button "Reset to default"
-        - textbox "Allowed chat IDs":
-          - /placeholder: ""
-          - text: chat_a
-        - paragraph: Empty permits visible reads and authorized-sender tasks. Proactive sending requires an explicitly listed chat.
-        - heading "Bot messaging · application identity" [level=4]
-        - paragraph: Receiving tasks and sending messages always use the application bot, independently of the read identity above.
-        - checkbox "Receive remote tasks from this platform" [checked]
-        - text: Receive remote tasks from this platform
-        - paragraph: Direct messages and bot mentions start DH tasks. Existing model, knowledge and approval settings apply.
-        - text: Allowed sender IDs Overridden
-        - button "Reset to default"
-        - textbox "Allowed sender IDs":
-          - /placeholder: ""
-          - text: user_a
-        - paragraph: Comma-separated IDs. Empty denies all remote tasks. Send a message, refresh status, then add the latest sender.
-        - checkbox "Allow DH to send messages" [checked]
-        - text: Allow DH to send messages
-        - paragraph: Every model-requested send requires DH approval. Authorized task replies return to their original conversation.
-        - group: Advanced connection settings
-        - heading "Bot connection status" [level=4]
-        - status:
-          - paragraph: Connected
-        - button "Connect / check saved account"
-        - button "Refresh status"
-        - button "Add latest sender" [disabled]
-        - button "Add latest chat" [disabled]
-        - button "Discard" [disabled]
-        - button "Save" [disabled]
-      - listitem:
-        - 'button "Hide settings: WeCom connector" [expanded]':
-          - text: WeCom connector Connect office access by QR code and an optional message robot.
-          - img
-        - region "Office account":
-          - heading "Office account" [level=4]
-          - paragraph: Scan with WeCom to create or bind a bot. Connect contacts, messages, documents, sheets, microdisk, calendar, meetings, todos and mail. Each send or change requires confirmation; actual access depends on WeCom permissions.
-          - status:
-            - paragraph: Not connected
-          - button "Connect by QR code"
-        - group:
-          - text: Message robot connection Bot ID Overridden
-          - button "Reset to default"
-          - textbox "Bot ID":
-            - /placeholder: ""
-            - text: bot_fixture
-          - paragraph: Create an intelligent bot in API / long-connection mode. This is not a group webhook key.
-          - text: Bot Secret Secret configured.
-          - textbox "Bot Secret"
-          - paragraph: Stored by DH credentials, never returned to the browser. Blank keeps the saved secret.
-          - link "Open platform console":
-            - /url: https://work.weixin.qq.com/
-          - checkbox "Enable this connection" [checked]
-          - text: Enable this connection
-          - paragraph: Only text received by this bot since connecting is available; arbitrary group history is not available.
-          - checkbox "Receive remote tasks from this platform" [checked]
-          - text: Receive remote tasks from this platform
-          - paragraph: Direct messages and bot mentions start DH tasks. Existing model, knowledge and approval settings apply.
-          - text: Allowed sender IDs Overridden
-          - button "Reset to default"
-          - textbox "Allowed sender IDs":
-            - /placeholder: ""
-            - text: user_a
-          - paragraph: Comma-separated IDs. Empty denies all remote tasks. Send a message, refresh status, then add the latest sender.
-          - text: Allowed chat IDs Overridden
-          - button "Reset to default"
-          - textbox "Allowed chat IDs":
-            - /placeholder: ""
-            - text: chat_a
-          - paragraph: Empty permits visible reads and authorized-sender tasks. Proactive sending requires an explicitly listed chat.
-          - checkbox "Allow DH to send messages" [checked]
-          - text: Allow DH to send messages
-          - paragraph: Every model-requested send requires DH approval. Authorized task replies return to their original conversation.
-          - group: Advanced connection settings
-          - status:
-            - paragraph: Connected
-          - button "Connect / check saved account"
-          - button "Refresh status"
-          - button "Add latest sender" [disabled]
-          - button "Add latest chat" [disabled]
-      - listitem:
-        - 'button "Show settings: RAGFlow connector"':
-          - text: RAGFlow connector Connect an independent RAGFlow service for knowledge retrieval.
-          - img
-      - listitem:
-        - 'button "Show settings: Shell"':
-          - text: Shell Limits every command the agent runs.
-          - img
-      - listitem:
-        - 'button "Show settings: Agent loop"':
-          - text: Agent loop How the agent dispatches tool calls.
-          - img
-      - listitem:
-        - 'button "Show settings: Subagent"':
-          - text: Subagent Control which models agents may choose for subagents.
-          - img
-      - listitem:
-        - 'button "Show settings: Web search"':
-          - text: Web search The DeepSeek search provider.
-          - img
+- button "Back to plugins": Plugins
+- heading "WeCom connector" [level=3]
+- paragraph: Connect office access by QR code and an optional message robot.
+- region "Office account":
+  - heading "Office account" [level=4]
+  - paragraph: Scan with WeCom to create or bind a bot. Connect contacts, messages, documents, sheets, microdisk, calendar, meetings, todos and mail. Each send or change requires confirmation; actual access depends on WeCom permissions.
+  - status:
+    - paragraph: Not connected
+  - button "Connect by QR code"
+- group:
+  - text: Message robot connection Bot ID Overridden
+  - button "Reset to default"
+  - textbox "Bot ID":
+    - /placeholder: ""
+    - text: bot_fixture
+  - paragraph: Create an intelligent bot in API / long-connection mode. This is not a group webhook key.
+  - text: Bot Secret Secret configured.
+  - textbox "Bot Secret"
+  - paragraph: Stored by DH credentials, never returned to the browser. Blank keeps the saved secret.
+  - link "Open platform console":
+    - /url: https://work.weixin.qq.com/
+  - checkbox "Enable this connection" [checked]
+  - text: Enable this connection
+  - paragraph: Only text received by this bot since connecting is available; arbitrary group history is not available.
+  - checkbox "Receive remote tasks from this platform" [checked]
+  - text: Receive remote tasks from this platform
+  - paragraph: Direct messages and bot mentions start DH tasks. Existing model, knowledge and approval settings apply.
+  - text: Allowed sender IDs Overridden
+  - button "Reset to default"
+  - textbox "Allowed sender IDs":
+    - /placeholder: ""
+    - text: user_a
+  - paragraph: Comma-separated IDs. Empty denies all remote tasks. Send a message, refresh status, then add the latest sender.
+  - text: Allowed chat IDs Overridden
+  - button "Reset to default"
+  - textbox "Allowed chat IDs":
+    - /placeholder: ""
+    - text: chat_a
+  - paragraph: Empty permits visible reads and authorized-sender tasks. Proactive sending requires an explicitly listed chat.
+  - checkbox "Allow DH to send messages" [checked]
+  - text: Allow DH to send messages
+  - paragraph: Every model-requested send requires DH approval. Authorized task replies return to their original conversation.
+  - group: Advanced connection settings
+  - status:
+    - paragraph: Connected
+  - button "Connect / check saved account"
+  - button "Refresh status"
+  - button "Add latest sender" [disabled]
+  - button "Add latest chat" [disabled]

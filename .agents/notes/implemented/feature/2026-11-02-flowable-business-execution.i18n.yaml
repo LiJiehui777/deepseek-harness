@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-11-02-flowable-business-execution.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-11-02-flowable-business-execution.md
-2026-11-02-flowable-business-execution.md: 56e9e7bef5e244fcac547cd76473709cefe64f13
-2026-11-02-flowable-business-execution.zh.md: 7ceda9c530649249bfa3c404cc90d4cf2436e2d6
+/agent-note-flowable-business-execution-in-dh:
+  en: d04fca49dbcb7f19
+  zh: 61813c813732d4ce
+/agent-note-flowable-business-execution-in-dh/problem:
+  en: 02be7060469dfd6e
+  zh: 7cb018cfa400fdc1
+/agent-note-flowable-business-execution-in-dh/decision:
+  en: 301f3ba953e71580
+  zh: aa7b04aca68b2c98
+/agent-note-flowable-business-execution-in-dh/alternatives-considered:
+  en: ad710859c491870b
+  zh: e0167fa93990a839
+/agent-note-flowable-business-execution-in-dh/consequences:
+  en: 033385b56e0a80b0
+  zh: a515fcbfe288bd6f

@@ -1,10 +1,5 @@
 - menu:
-  - menuitem "普通聊天":
-    - img
-    - text: 普通聊天
-    - img
+  - menuitem "普通聊天"
   - menuitem "企业微信待办整理 · v1"
   - paragraph: 普通聊天可讨论和推荐流程；手动选择工作流后，DH 才能启动它。
-  - menuitem "刷新流程列表":
-    - img
-    - text: 刷新流程列表
+  - menuitem "刷新流程列表"

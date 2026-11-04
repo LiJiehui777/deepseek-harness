@@ -1,4 +1,5 @@
 /** Run one analysis-only DH turn; the scoped execution guard denies every tool. */
+import { NativeToolExecutor } from '@deepseek-ai/dsh-tool-executor-native'
 import type { Context } from '@deepseek-ai/cordis'
 import { brandString } from '@deepseek-ai/dsh-brand'
 import { createUserMessage } from '@deepseek-ai/dsh-llm'
@@ -22,7 +23,7 @@ export async function runAnalysis(ctx: Context, sessionId: string, instruction: 
     meta: { cwd: process.cwd() },
     agentOptions: ctx.agentDefaultModel.currentSelection(),
     setup: (scope) => {
-      scope.tools.presentAs('native')
+      scope.tools.setExecutor(new NativeToolExecutor(scope))
       scope.tools.restrict({ allow: [] })
       scope.tools.guard(() => 'Business workflow analysis nodes cannot execute tools; system operations belong to engine-owned action nodes.')
     },

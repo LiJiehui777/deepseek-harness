@@ -3,7 +3,8 @@
 import type { Context, FiberState } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/cordis-plugin-loader'
 // Type-only: the optional agent-preset roster resolved through `ctx.get`.
-import type {} from '@deepseek-ai/dsh-agent-presets'
+import type {} from '@deepseek-ai/dsh-agent-preset-registry'
+import type {} from '@deepseek-ai/dsh-app-boot'
 import { TypertRemoteService, Remote } from '@deepseek-ai/dsh-typert-protocol'
 // Typert-generated ./typert and ./remote artifacts import Zod at runtime.
 import type {} from 'zod'
@@ -19,8 +20,8 @@ export type * from './types.ts'
 
 /**
  * Brand an existing Loader-tree entry id at the owning boundary.
- * @param value - Loader-owned entry identifier.
- * @returns the same identifier with its public plugin-entry brand.
+ * @param value - the entry id as the Loader tree spells it.
+ * @returns the same id as the inventory's branded entry id.
  */
 export function pluginEntryId(value: string): PluginEntryId {
   return value as PluginEntryId
@@ -63,42 +64,58 @@ export class PluginInventoryGateway extends TypertRemoteService {
    * preset's composition rows, because those rows — not the Loader's own
    * entries — are where a deployment that mounts the roster runs its
    * model-facing plugins.
-   * @returns Current non-group Loader entries in Loader order, with per-preset
-   * compositions when a roster is composed.
+   * @returns Current non-group Loader entries in Loader order, with optional display metadata
+   * and per-preset compositions when a roster is composed.
    */
   @Remote('list')
-  async list(): Promise<PluginInventorySnapshot> { return readPluginInventory(this.ctx) }
+  async list(): Promise<PluginInventorySnapshot> {
+    return readPluginInventory(this.ctx)
+  }
 }
 
-/**
- * Read the active Loader inventory without exposing plugin configuration.
- * @param ctx - Loader consumer scope.
- * @returns current plugin entries and preset metadata.
+export default PluginInventoryGateway
+
+/** Read current Loader entries and optional preset compositions.
+ * @param ctx Context with the Loader service.
+ * @returns Current inventory with optional display metadata and no separate runtime cache.
  */
 export async function readPluginInventory(ctx: Context): Promise<PluginInventorySnapshot> {
   const entries: PluginInventoryEntry[] = []
+  const packages = ctx.get('pluginPackages')
   for (const entry of ctx.loader.entries()) {
     if (entry.options.group) continue
+    const base = entry.parent.tree.ctx.baseUrl
+    const meta = base === undefined ? undefined : packages?.metaOf(entry.options.name, base)
+    const fiber = entry.fiber
+    const fiberPhase = fiber === undefined ? null : FIBER_PHASE[fiber.state]
+    let diagnostic: string | undefined
+    if (fiber !== undefined && fiberPhase === 'failed') {
+      try { await fiber.await() } catch (error) { diagnostic = error instanceof Error ? error.message : String(error) }
+    }
     entries.push({
       entryId: pluginEntryId(entry.id),
       moduleName: entry.options.name,
       enabled: !entry.disabled,
-      fiberPhase: entry.fiber === undefined ? null : FIBER_PHASE[entry.fiber.state],
+      fiberPhase,
+      ...diagnostic === undefined ? {} : { diagnostic },
+      ...meta === undefined ? {} : { meta },
     })
   }
-  const management = [...ctx.loader.entries()].some(row => row.options.name === '@deepseek-ai/dsh-plugin-manager' && row.fiber?.state === FIBER_STATE.ACTIVE) ? { managementAvailable: true } : {}
   const presets = ctx.get('agentPresets')
+  const management = ctx.get('pluginManager') === undefined ? {} : { managementAvailable: true }
   if (presets === undefined) return { entries, ...management }
   const agentPresets: AgentPresetPluginGroup[] = (await presets.compositionInventory()).map(
     composition => ({
       ...composition,
-      rows: composition.rows.map(({ fiberState, ...row }) => ({
-        ...row,
-        fiberPhase: fiberState === undefined ? null : FIBER_PHASE[fiberState],
-      })),
+      rows: composition.rows.map(({ fiberState, ...row }) => {
+        const meta = ctx.baseUrl === undefined ? undefined : packages?.metaOf(row.moduleName, ctx.baseUrl)
+        return {
+          ...row,
+          fiberPhase: fiberState === undefined ? null : FIBER_PHASE[fiberState],
+          ...meta === undefined ? {} : { meta },
+        }
+      }),
     }),
   )
   return { entries, agentPresets, ...management }
 }
-
-export default PluginInventoryGateway

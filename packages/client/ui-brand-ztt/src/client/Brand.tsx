@@ -36,8 +36,10 @@ export function ZttHero({ t }: PropsLocale<typeof NS>) {
 export function ZttDocumentTitle({ useSessions, usePanelInfo, t }:
 PropsRuntime<'shell.document-title'> & PropsLocale<typeof NS>): null {
   const showSessionTitle = usePanelInfo(info => info.activePanelId === null)
-  const sessionTitle = useSessions(state => !showSessionTitle || state.current === undefined
-    ? undefined : state.byId[state.current]?.title)
+  const sessionTitle = useSessions((state) => {
+    const current = Object.values(state.byId).find(session => (session.retainedBy.mainView ?? 0) > 0)?.id
+    return !showSessionTitle || current === undefined ? undefined : state.byId[current]?.title
+  })
   const productTitle = t('name')
   useEffect(() => {
     const links = [...document.querySelectorAll<HTMLLinkElement>('link[rel="icon"], link[rel="manifest"]')]

@@ -77,7 +77,7 @@ export class FeishuAuthorization {
         handler: (req, res) => this.callback(req, res) }), 'feishu.oauth-callback')
       scope.effect(() => () => { this.routeAvailable = false; this.localRedirectURI = undefined; this.invalidate() }, 'feishu.oauth-routes')
     })
-    ctx.effect(() => async () => { const pending = [this.attempt?.finished, this.flowPending, this.refreshPending]; this.invalidate(); await Promise.allSettled(pending) }, 'feishu.oauth-lifetime')
+    ctx.effect(() => async () => { const pending = [this.attempt?.finished, this.flowPending, this.refreshPending]; this.invalidate(); await Promise.allSettled(pending.filter(value => value !== undefined)) }, 'feishu.oauth-lifetime')
   }
   private async runFlow(session: AuthorizationSession): Promise<void> {
     const attempt = this.attempt
@@ -134,7 +134,7 @@ export class FeishuAuthorization {
     const previous = [this.attempt?.finished, this.flowPending]
     this.invalidate()
     const currentLifetime = this.generation.signal
-    await Promise.allSettled(previous)
+    await Promise.allSettled(previous.filter(value => value !== undefined))
     currentLifetime.throwIfAborted()
     this.error = ''
     const redirectURI = this.redirectURI()
@@ -241,7 +241,7 @@ export class FeishuAuthorization {
   async revoke(): Promise<void> {
     const pending = [this.attempt?.finished, this.flowPending, this.refreshPending]
     this.invalidate()
-    await Promise.allSettled(pending)
+    await Promise.allSettled(pending.filter(value => value !== undefined))
     await this.ctx.credentials.deleteRecord(key)
     this.error = ''
   }

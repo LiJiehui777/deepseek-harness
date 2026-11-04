@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-10-09-unified-feishu-connection.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-10-09-unified-feishu-connection.md
-2026-10-09-unified-feishu-connection.md: d64d79fd7970dde6ae0696d7feb537d47ef1bee2
-2026-10-09-unified-feishu-connection.zh.md: 6707a28eae5f225fcf16f85ad34292652951d791
+/agent-note-unified-feishu-connection:
+  en: b179904e191300bf
+  zh: f0109c7530240994
+/agent-note-unified-feishu-connection/problem:
+  en: 5c5ee76cda632079
+  zh: 506edd38c0eb3852
+/agent-note-unified-feishu-connection/decision:
+  en: 1f4a267c3dd81910
+  zh: 479340fc5fb2b81a
+/agent-note-unified-feishu-connection/alternatives-considered:
+  en: cee2f39c6208aef4
+  zh: 49074a572c971ffa
+/agent-note-unified-feishu-connection/consequences:
+  en: 721cfb1a0960b2a6
+  zh: a8732a5b6a36fc56
+/agent-note-unified-feishu-connection/verification:
+  en: ad01259c4124c9fb
+  zh: 51b07eecd246bc57

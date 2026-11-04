@@ -12,9 +12,7 @@
     - textbox "任务说明 / 判断规则": 核对输入资料，并给出有依据的建议。
     - paragraph: 写清楚分析目标、依据和需要输出的内容。
   - region "输入数据":
-    - heading "输入数据" [level=4]:
-      - img
-      - text: 输入数据
+    - heading "输入数据" [level=4]
     - text: 输入来源节点
     - combobox "输入来源节点":
       - option "流程启动参数"
@@ -27,9 +25,7 @@
       - option "核对 EIP 数据"
       - option "回填维护台账"
       - option "结束"
-    - img
     - text: 输出字段名
-    - img
     - textbox "输出字段名": result
     - paragraph: 填写上游输出中的字段，例如 result 或 result.requires_review。
   - region "后续步骤":
@@ -46,8 +42,5 @@
       - option "核对 EIP 数据"
       - option "回填维护台账"
       - option "结束"
-    - img
   - text: 草稿修改不会自动发布
-  - button "删除节点":
-    - img
-    - text: 删除节点
+  - button "删除节点"

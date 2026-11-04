@@ -20,8 +20,8 @@
 // NO_ADAPTER.
 import { fileURLToPath } from 'node:url'
 import type { Browser, Page } from 'playwright'
-import { chromium } from 'playwright'
-import { afterAll, beforeAll, describe, expect, it, onTestFailed } from 'vitest'
+import { chromium, webkit } from 'playwright'
+import { afterAll, beforeAll, describe, expect, it, onTestFailed, onTestFinished } from 'vitest'
 import { createMessage, createUserMessage } from '@deepseek-ai/dsh-llm'
 import {
   SESSION_FORMAT_VERSION,
@@ -56,6 +56,7 @@ const TAIL_MARKER = 'MWT_TABLES_DONE'
 const FILL_MARKER = 'MWT_FILL_C1'
 const WIDE_MARKER = 'MWT_WIDE_C01'
 const LONG_CELL_MARKER = 'MWT_LONGCELL_F1'
+const SHORT_MARKER = 'MWT_SHORT_C1'
 const MARKERS = [FILL_MARKER, WIDE_MARKER, LONG_CELL_MARKER]
 /** Golden-facing names, in {@link MARKERS} order. */
 const TABLE_NAMES = ['fill', 'wide', 'long-cell']
@@ -76,13 +77,20 @@ const SENTENCE = 'This cell carries one full sentence so the unwrapped table is 
 const LONG_TOKEN = 'workspace/deepseek-harness/packages/client/ui-primitives/src/markdown/render.tsx/'.repeat(3)
 const CJK_SENTENCE = '这个单元格包含一段较长的中文说明，用来验证长内容在窄列宽下按最小可读宽度换行而不是把列压缩到无法阅读。'
 
-/** The assistant markdown: one 3-column fill, one 12-column wide, one long-cell table. */
+/** The assistant markdown includes fitting and overflowing wide tables. */
 function tablesMarkdown(): string {
   const wideHeader = [WIDE_MARKER, ...Array.from({ length: 11 }, (_, i) => `C${String(i + 2).padStart(2, '0')}`)]
   const wideRow = (row: number): string[] =>
     Array.from({ length: 12 }, (_, i) => `v${String(row)}${String(i + 1).padStart(2, '0')}`)
   return [
-    'Three markdown tables exercise the wide-table layout rules.',
+    'Markdown tables exercise the wide-table layout rules.',
+    '',
+    `| ${SHORT_MARKER} | C2 | C3 | C4 |`,
+    '| --- | --- | --- | --- |',
+    '| 1 | 2 | 3 | 4 |',
+    '| 5 | 6 | 7 | 8 |',
+    '',
+    'The paragraph after the short table stays in place.',
     '',
     `| ${FILL_MARKER} | Current approach | Proposed approach |`,
     '| --- | --- | --- |',
@@ -103,7 +111,7 @@ function tablesMarkdown(): string {
   ].join('\n')
 }
 
-/** Build one closed, invariant-checked session fixture carrying the three tables. */
+/** Build one closed session fixture carrying the tables. */
 function wideTableFixture(): string {
   const session = Session.create(SessionId('markdown-wide-table-source'))
   const eventTimeOrigin = new Date().setHours(12, 0, 0, 0)
@@ -208,8 +216,8 @@ async function awaitTableLayout(target: Page): Promise<void> {
     if (element === null) return false
     const tracks = getComputedStyle(element).gridTemplateColumns.split(' ').map(Number.parseFloat)
     const root = element.querySelector<HTMLElement>('div[data-phase]')
-    // Mirrored from ui-layout's SIDEBAR_COLLAPSED; these tests use the Host compiler face.
-    return tracks[0] === 56 && tracks.at(-1) === 0
+    // Desktop retains the rail; the mobile drawer leaves the whole width to the transcript.
+    return tracks[0] === (element.hasAttribute('data-sidebar-drawer') ? 0 : 56) && tracks.at(-1) === 0
       && element.getAnimations().every(animation =>
         animation.playState === 'finished' || animation.playState === 'idle')
       && root !== null
@@ -257,7 +265,8 @@ describe('web e2e: markdown tables fill the column, wide ones break out and scro
   beforeAll(async () => {
     scaffold = await launchWebScaffold({})
     await seedSession(scaffold, wideTableFixture(), SEED_ID)
-    browser = await chromium.launch()
+    // The geometry assertions include the space occupied by native scrollbars.
+    browser = await chromium.launch({ ignoreDefaultArgs: ['--hide-scrollbars'] })
     page = await newEnglishPage(browser)
     tripwire = watchConsole(page)
     await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
@@ -365,6 +374,44 @@ describe('web e2e: markdown tables fill the column, wide ones break out and scro
     expect(tripwire.pageErrors).toEqual([])
   }, 120_000)
 
+  it.each(['chromium', 'webkit'] as const)('keeps wide tables horizontally scrollable without hover in %s', async (engine) => {
+    const touchBrowser = await ({ chromium, webkit })[engine].launch()
+    onTestFinished(() => touchBrowser.close())
+    // Mobile WebKit has no wheel driver; touch emulation also disables hover in its desktop viewport.
+    const context = await touchBrowser.newContext({
+      viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: engine === 'chromium', locale: 'en-US',
+    })
+    const touchPage = await context.newPage()
+    const touchConsole = watchConsole(touchPage)
+    onTestFailed(() => saveFailureShot(touchPage, `markdown-wide-table-touch-${engine}`))
+    await touchPage.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
+    const group = touchPage.getByRole('treeitem').first()
+    await touchPage.getByRole('button', { name: 'Open sidebar', exact: true }).first().click()
+    await group.click()
+    await touchPage.getByRole('treeitem').filter({ hasText: 'Markdown wide tables' }).click()
+    await touchPage.getByText(TAIL_MARKER, { exact: true }).waitFor()
+    expect(await touchPage.evaluate(() => matchMedia('(hover: hover)').matches)).toBe(false)
+    const wide = touchPage.locator('[class*="tableScroll"]', { hasText: WIDE_MARKER })
+    await wide.scrollIntoViewIfNeeded()
+    expect(await wide.evaluate(element => ({
+      overflow: getComputedStyle(element).overflowX,
+      overflowing: element.scrollWidth > element.clientWidth,
+      focused: element.matches(':focus-visible'),
+    }))).toEqual({ overflow: 'auto', overflowing: true, focused: false })
+    const box = await wide.boundingBox()
+    if (box === null) throw new Error('Wide table is not visible')
+    // A wheel input must scroll the native overflow container without hover or focus.
+    // Assigning scrollLeft would also work with overflow:hidden and miss this regression.
+    await touchPage.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
+    await touchPage.mouse.wheel(5_000, 0)
+    await expect.poll(() => wide.evaluate(element => element.scrollLeft)).toBeGreaterThan(0)
+    await expect.poll(() => wide.evaluate((element) => {
+      const last = element.querySelector('thead th:last-child')!
+      return last.getBoundingClientRect().right <= element.getBoundingClientRect().right + 1
+    })).toBe(true)
+    expect(touchConsole.pageErrors).toEqual([])
+  })
+
   it('reveals the wide table scrollbar on hover only', async () => {
     onTestFailed(() => saveFailureShot(page, 'web-e2e-markdown-wide-table-scrollbar'))
     await sweep()
@@ -382,14 +429,81 @@ describe('web e2e: markdown tables fill the column, wide ones break out and scro
     // the wrapper focused, and focus-visible also reveals the bar.
     await page.mouse.move(4, 4)
     await wide.evaluate((element) => { element.blur() })
-    await expect.poll(overflowState, { timeout: 5_000 }).toBe('hidden 8px')
+    await expect.poll(overflowState, { timeout: 5_000 }).toBe('hidden 5px')
     // Resting hidden overflow keeps the scroll position reachable and intact.
     expect(await wide.evaluate(element => element.scrollLeft)).toBeGreaterThanOrEqual(0)
     await wide.hover()
-    await expect.poll(overflowState, { timeout: 5_000 }).toBe('auto 0px')
+    await expect.poll(overflowState, { timeout: 5_000 }).toBe('scroll 0px')
     // Pointer leaves: the bar rests hidden again.
     await page.mouse.move(4, 4)
-    await expect.poll(overflowState, { timeout: 5_000 }).toBe('hidden 8px')
+    await expect.poll(overflowState, { timeout: 5_000 }).toBe('hidden 5px')
+    expect(tripwire.pageErrors).toEqual([])
+  }, 120_000)
+
+  it('keeps a fitting wide table and its following paragraph stationary during interaction', async () => {
+    onTestFailed(() => saveFailureShot(page, 'web-e2e-markdown-short-table-height'))
+    await settleAt(1680)
+    const short = page.locator('[class*="tableScroll"]', { hasText: SHORT_MARKER })
+    await short.evaluate((element) => { element.scrollIntoView({ block: 'center', behavior: 'instant' }) })
+    await page.mouse.move(4, 4)
+    await short.evaluate((element) => { element.blur() })
+    expect(await short.evaluate(element => element.classList.contains('md-table-wide'))).toBe(true)
+    expect(await short.evaluate(element => element.scrollWidth - element.clientWidth)).toBeLessThanOrEqual(1)
+    const position = () => short.evaluate((element) => {
+      const following = element.nextElementSibling
+      if (following === null) throw new Error('short table has no following paragraph')
+      return {
+        height: element.getBoundingClientRect().height,
+        followingTop: following.getBoundingClientRect().top,
+      }
+    })
+    const resting = await position()
+    await short.hover()
+    await expect.poll(position).toEqual(resting)
+    await page.mouse.move(4, 4)
+    await short.focus()
+    expect(await short.evaluate(element => document.activeElement === element)).toBe(true)
+    await expect.poll(position).toEqual(resting)
+    await short.evaluate((element) => { element.blur() })
+    await expect.poll(position).toEqual(resting)
+    expect(tripwire.pageErrors).toEqual([])
+  }, 120_000)
+
+  it('gives the gutter to painted table content, not transparent breakout padding', async () => {
+    onTestFailed(() => saveFailureShot(page, 'web-e2e-markdown-width-handle-hit'))
+    await settleAt(1680)
+    const hitAtHandle = async (marker: string) => {
+      const wrapper = page.locator('[class*="tableScroll"]', { hasText: marker })
+      await wrapper.evaluate((element) => { element.scrollIntoView({ block: 'center', behavior: 'instant' }) })
+      return await page.evaluate((tableMarker) => {
+        const handle = document.querySelector<HTMLElement>('[data-width-handle="right"]')
+        const wrapper = [...document.querySelectorAll<HTMLElement>('[class*="tableScroll"]')]
+          .find(candidate => candidate.textContent?.includes(tableMarker) ?? false)
+        const table = wrapper?.querySelector('table') ?? null
+        if (handle === null || table === null) throw new Error(`missing hit-test geometry for ${tableMarker}`)
+        const handleRect = handle.getBoundingClientRect()
+        const tableRect = table.getBoundingClientRect()
+        const x = handleRect.left + handleRect.width / 2
+        const y = tableRect.top + tableRect.height / 2
+        const hit = document.elementFromPoint(x, y)
+        return {
+          tableCoversHandle: tableRect.left <= x && tableRect.right >= x,
+          hitTable: hit !== null && table.contains(hit),
+          hitHandle: hit !== null && handle.contains(hit),
+        }
+      }, marker)
+    }
+
+    expect(await hitAtHandle(WIDE_MARKER)).toEqual({
+      tableCoversHandle: true,
+      hitTable: true,
+      hitHandle: false,
+    })
+    expect(await hitAtHandle(SHORT_MARKER)).toEqual({
+      tableCoversHandle: false,
+      hitTable: false,
+      hitHandle: true,
+    })
     expect(tripwire.pageErrors).toEqual([])
   }, 120_000)
 

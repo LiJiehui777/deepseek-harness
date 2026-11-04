@@ -1,3 +1,5 @@
+import * as NativeExecutor from '@deepseek-ai/dsh-tool-executor-native'
+import { executeOne } from './execute.ts'
 /** Bound-conversation policy, stable model instruction, and lifecycle removal. */
 import { Context } from '@deepseek-ai/cordis'
 import { brandString } from '@deepseek-ai/dsh-brand'
@@ -21,6 +23,7 @@ it('narrows model tools, denies a hidden body at dispatch, and removes the polic
   try {
     await ctx.plugin(SystemPrompt)
     await ctx.plugin(Tools)
+    await ctx.plugin(NativeExecutor)
     const unavailable = () => Promise.reject(new Error('No workflow operation expected'))
     registerWorkflowTools(ctx, { templates: unavailable, selection: () => null,
       start: unavailable, detail: unavailable, cancel: unavailable })
@@ -39,7 +42,14 @@ it('narrows model tools, denies a hidden body at dispatch, and removes the polic
     expect(assembly.contexts.some(row => row.text.includes(selectionInstruction))).toBe(true)
     await expect(selectionInstruction).toMatchFileSnapshot(join(import.meta.dirname, 'expected/workflow-selection-prompt.expected.md'))
     const request = { agent, name: 'outside_probe', arguments: {}, callId: brandString<ToolCallId>('blocked'), signal: new AbortController().signal }
-    expect((await ctx.tools.execute(request)).isError).toBe(true)
+    expect((await executeOne(ctx, request)).isError).toBe(true)
+    expect(calls).toBe(0)
+    ctx.tools.register({ name: 'later_probe', description: 'Capability added after binding', parameters: { type: 'object', properties: {} },
+      output: { schema: { type: 'string' }, render: (_args, value) => [{ type: 'text', text: value as string }] },
+      execute: () => { calls++; return Promise.resolve('late execution') },
+    })
+    expect((await ctx.systemPrompt.assemble({ scope: agent })).tools.some(tool => tool.name === 'later_probe')).toBe(false)
+    expect((await executeOne(ctx, { ...request, name: 'later_probe' })).isError).toBe(true)
     expect(calls).toBe(0)
     bound = false
     const ordinary = await ctx.systemPrompt.assemble({ scope: agent })
@@ -47,13 +57,13 @@ it('narrows model tools, denies a hidden body at dispatch, and removes the polic
     expect(ordinary.tools.some(tool => tool.name === 'outside_probe')).toBe(true)
     expect(ordinary.contexts.some(row => row.text === ordinaryInstruction)).toBe(true)
     await expect(ordinaryInstruction).toMatchFileSnapshot(join(import.meta.dirname, 'expected/workflow-ordinary-prompt.expected.md'))
-    const denied = await ctx.tools.execute({ ...request, name: 'business_workflow_start',
+    const denied = await executeOne(ctx, { ...request, name: 'business_workflow_start',
       arguments: { workflowId: 'published', version: 1, inputs: {} } })
     expect(denied.isError).toBe(true)
     expect(JSON.stringify(denied)).toContain('WORKFLOW_SELECTION_REQUIRED')
     await fiber.dispose()
     expect((await ctx.systemPrompt.assemble({ scope: agent })).tools.some(tool => tool.name === 'outside_probe')).toBe(true)
-    expect((await ctx.tools.execute({ ...request, callId: brandString<ToolCallId>('restored') })).isError).toBe(false)
+    expect((await executeOne(ctx, { ...request, callId: brandString<ToolCallId>('restored') })).isError).toBe(false)
     expect(calls).toBe(1)
   } finally { await ctx.fiber.dispose() }
 })

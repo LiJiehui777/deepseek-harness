@@ -1,5 +1,6 @@
+import type {} from '@deepseek-ai/cordis-plugin-loader'
 /** Standalone, Host-owned enterprise connectors using official Feishu and WeCom SDKs. */
-import { Context } from '@deepseek-ai/cordis'
+import { Context, type Volatile } from '@deepseek-ai/cordis'
 import Schema from '@deepseek-ai/schemastery'
 import { credentialRef } from '@deepseek-ai/dsh-credentials'
 import type { ToolRunContext } from '@deepseek-ai/dsh-tools'
@@ -52,9 +53,28 @@ export interface Config {
   /** WeCom reconnect attempt limit. */
   maxReconnectAttempts: number
 }
+/** Loader-owned references to editable account sections; execution captures plain snapshots. */
+interface RuntimeConfig extends Omit<Config, 'feishu' | 'wecom' | 'wecomOffice'> {
+  /** Editable Feishu account and resource permissions. */
+  feishu: Volatile<FeishuSettings>
+  /** Editable WeCom message-robot account and permissions. */
+  wecom: Volatile<WecomSettings>
+  /** Editable QR-authorized WeCom office permissions. */
+  wecomOffice: Volatile<WecomOfficeSettings>
+}
+
+function plainConfig(config: RuntimeConfig): Config {
+  return { ...config, feishu: structuredClone(config.feishu.get()) as FeishuSettings,
+    wecom: structuredClone(config.wecom.get()) as WecomSettings,
+    wecomOffice: structuredClone(config.wecomOffice.get()) }
+}
+
 /** Defaults leave both connections disabled and make no external request. */
-export const Config: Schema<Config> = Schema.object({
-  feishu: FeishuSettings, wecom: WecomSettings, wecomOffice: WecomOfficeSettings, wecomOfficeRuntime: WecomOfficeRuntimeConfig,
+export const Config = Schema.object({
+  feishu: FeishuSettings.default(FeishuSettings()).volatile(),
+  wecom: WecomSettings.default(WecomSettings()).volatile(),
+  wecomOffice: WecomOfficeSettings.default(WecomOfficeSettings()).volatile(),
+  wecomOfficeRuntime: WecomOfficeRuntimeConfig,
   timeoutMs: Schema.natural().min(1000).max(120000).default(30000),
   taskTimeoutMs: Schema.natural().min(1000).max(3600000).default(180000),
   maxResultBytes: Schema.natural().min(1024).max(1048576).default(262144),
@@ -110,29 +130,28 @@ export class EnterpriseConnectors extends TypertRemoteService {
    * @param ctx - independent DH composition; no RAGFlow bridge is required.
    * @param config - initial accounts and bounded execution settings.
    */
-  constructor(ctx: Context, private readonly config: Config) {
+  constructor(ctx: Context, private readonly config: RuntimeConfig) {
     super(ctx, 'enterpriseConnectors', { namespace: 'enterpriseConnections' })
-    this.feishu = () => config.feishu
-    this.wecom = () => config.wecom
-    this.officeSettings = () => config.wecomOffice
-    this.office = new WecomOffice(ctx, () => this.officeSettings(), config, () => this.configure('wecom'))
+    this.feishu = () => plainConfig(config).feishu
+    this.wecom = () => plainConfig(config).wecom
+    this.officeSettings = () => plainConfig(config).wecomOffice
+    this.office = new WecomOffice(ctx, () => this.officeSettings(), plainConfig(config), () => this.configure('wecom'))
     const state = (channel: EnterpriseChannel): ConnectionState => ({ abort: new AbortController(), pending: Promise.resolve(),
       status: { channel, state: 'disabled', error: '', receivedMessages: 0, lastSenderId: '', lastChatId: '' } })
     this.states = { feishu: state('feishu'), wecom: state('wecom') }
     ctx.inject(['settings'], (scope) => {
-      scope.settings.installSection(ctx, 'feishu-connector', FeishuSettings, config.feishu, {
-        setSource: (read) => { this.feishu = read }, onChange: () => { void this.configure('feishu') },
-      })
-      scope.settings.installSection(ctx, 'wecom-office-connector', WecomOfficeSettings, config.wecomOffice, {
-        setSource: (read) => { this.officeSettings = read }, onChange: () => { this.office.configure(); void this.configure('wecom') },
-      })
-      this.office.configure()
-      scope.settings.installSection(ctx, 'wecom-connector', WecomSettings, config.wecom, {
-        setSource: (read) => { this.wecom = read }, onChange: () => { void this.configure('wecom') },
-      })
-      void this.configure('feishu')
-      void this.configure('wecom')
+      scope.effect(() => scope.settings.configure({ auto: false }, ctx.fiber), 'enterprise custom configuration pages')
     })
+    ctx.on('loader/volatile-update', (paths) => {
+      const changed = (field: string) => paths.some(path => path[0] === field)
+      if (changed('feishu')) void this.configure('feishu')
+      const officeChanged = changed('wecomOffice')
+      if (officeChanged) this.office.configure()
+      if (changed('wecom') || officeChanged) void this.configure('wecom')
+    })
+    this.office.configure()
+    void this.configure('feishu')
+    void this.configure('wecom')
     ctx.on('credentials/reference-updated', (ref) => {
       for (const channel of ['feishu', 'wecom'] as const) if (ref === this.account(channel).secretRef) void this.configure(channel)
     })
@@ -143,7 +162,7 @@ export class EnterpriseConnectors extends TypertRemoteService {
       this.captured.length = 0
     }, 'enterprise-connectors.lifecycle')
     ctx.inject(['authorization'], (scope) => {
-      const authorization = new FeishuAuthorization(scope, () => this.feishu(), this.config)
+      const authorization = new FeishuAuthorization(scope, () => this.feishu(), plainConfig(this.config))
       this.authorization = authorization
       scope.effect(() => () => { if (this.authorization === authorization) this.authorization = undefined }, 'feishu.authorization-owner')
     })
@@ -268,8 +287,8 @@ export class EnterpriseConnectors extends TypertRemoteService {
           message: (incoming: IncomingMessage) => { if (active()) this.receive(incoming, id, abort.signal) },
         }
         const provider = channel === 'feishu'
-          ? await connectFeishu(this.feishu(), secret, this.config, abort.signal, callbacks)
-          : await connectWecom(Object.assign({}, this.wecom(), { botId: id }), secret, this.config, abort.signal, callbacks)
+          ? await connectFeishu(this.feishu(), secret, plainConfig(this.config), abort.signal, callbacks)
+          : await connectWecom(Object.assign({}, this.wecom(), { botId: id }), secret, plainConfig(this.config), abort.signal, callbacks)
         if (!active()) provider.close()
         else entry.provider = provider
       } catch {
@@ -298,7 +317,7 @@ export class EnterpriseConnectors extends TypertRemoteService {
     const previous = this.tasks.get(key) ?? Promise.resolve()
     const task = previous.then(async () => {
       signal.throwIfAborted()
-      await runRemoteTask(this.ctx, accountId, account, incoming, this.config, signal)
+      await runRemoteTask(this.ctx, accountId, account, incoming, plainConfig(this.config), signal)
     }).catch(() => {
       if (!signal.aborted) state.error = 'task-failed'
     }).finally(() => { this.activeTasks.delete(task); if (this.tasks.get(key) === task) this.tasks.delete(key) })
@@ -325,8 +344,8 @@ export class EnterpriseConnectors extends TypertRemoteService {
     try {
       const secret = await this.ctx.credentials.resolve(credentialRef(account.secretRef))
       if (!secret?.value) throw new Error('Missing Feishu credential.')
-      const client = feishuClient(account, secret.value, this.config, deadline)
-      return result(await readFeishu(client, account, this.config, operation, args, userToken), this.config.maxResultBytes)
+      const client = feishuClient(account, secret.value, plainConfig(this.config), deadline)
+      return result(await readFeishu(client, account, plainConfig(this.config), operation, args, userToken), this.config.maxResultBytes)
     } catch {
       throw new Error('Feishu read failed. Check account permissions, resource visibility and requested IDs; try a smaller page.')
     }

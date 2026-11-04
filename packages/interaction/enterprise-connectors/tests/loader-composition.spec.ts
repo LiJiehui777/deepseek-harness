@@ -1,10 +1,12 @@
+import { pathToFileURL } from 'node:url'
+import * as NativeExecutor from '@deepseek-ai/dsh-tool-executor-native'
+import { executeOne } from './execute.ts'
 /** Real Loader + official SDKs against private HTTP/WebSocket provider fixtures. */
 import { once } from 'node:events'
 import { createServer, type Server } from 'node:http'
 import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { pathToFileURL } from 'node:url'
 import { Context } from '@deepseek-ai/cordis'
 import Loader from '@deepseek-ai/cordis-plugin-loader'
 import Include from '@deepseek-ai/cordis-plugin-include'
@@ -12,7 +14,7 @@ import AgentRegistry from '@deepseek-ai/dsh-agent'
 import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
 import Tools from '@deepseek-ai/dsh-tools'
 import { ToolCallId } from '@deepseek-ai/dsh-llm'
-import { MemorySettings } from '../../../settings/settings/tests/memory.ts'
+import { profileComposition } from '../../../settings/settings/tests/profile-composition.ts'
 import { credentialRef } from '@deepseek-ai/dsh-credentials'
 import { WebSocketServer } from 'ws'
 import { afterEach, expect, it } from 'vitest'
@@ -88,29 +90,29 @@ async function boot(wecomEnabled = true): Promise<Context> {
   await root.plugin(Loader)
   root.loader.builtins.include = Include
   const modules = new Map<string, unknown>([
-    ['settings', MemorySettings], ['agents', AgentRegistry], ['system-prompt', SystemPrompt], ['tools', Tools], ['enterprise', Enterprise],
+    ['agents', AgentRegistry], ['system-prompt', SystemPrompt], ['tools', Tools], ['native-executor', NativeExecutor], ['enterprise', Enterprise],
     ['credentials', { apply(ctx: Context) { ctx.plugin(MemoryCredentials, { FEISHU_APP_SECRET: 'fixture-feishu-secret', WECOM_BOT_SECRET: 'fixture-wecom-secret' }) } }],
   ])
   root.loader.internal = { version: 'v2', import(name: string) { return Promise.resolve(modules.get(name)) } } as unknown as NonNullable<typeof root.loader.internal>
   directory = await mkdtemp(join(tmpdir(), 'enterprise-loader-'))
+  root.baseUrl = pathToFileURL(directory + '/').href
   const config = { feishu: { enabled: true, appId: 'cli_fixture', baseURL, allowedChats: ['chat_a'] },
     wecom: { enabled: wecomEnabled, botId: 'bot_fixture', websocketURL: baseURL.replace('http:', 'ws:'),
       receiveEnabled: true, allowedSenders: ['user_a'], allowedChats: ['chat_a'] }, maxResultBytes: 4096, timeoutMs: 1000 }
   const file = join(directory, 'cordis.yml')
-  await writeFile(file, '- name: settings\n- name: agents\n- name: system-prompt\n- name: tools\n- name: credentials\n- name: enterprise\n  config: '+JSON.stringify(config)+'\n')
-  await root.loader.create({ name: 'cordis:include', config: { path: pathToFileURL(file).href } })
-  await root.loader.await()
+  await writeFile(file, '- name: agents\n- name: system-prompt\n- name: tools\n- name: native-executor\n- name: credentials\n- id: enterprise-connectors\n  name: enterprise\n  config: '+JSON.stringify(config)+'\n')
+  await profileComposition(root, directory, file)
   await root.enterpriseConnectors.reconnect('feishu')
   await root.enterpriseConnectors.reconnect('wecom')
   return root
 }
 function execute(ctx: Context, name: string, args: unknown = {}) {
-  return ctx.tools.execute({ name, callId: ToolCallId(`test-${name}`), arguments: args, signal: new AbortController().signal })
+  return executeOne(ctx, { name, callId: ToolCallId(`test-${name}`), arguments: args, signal: new AbortController().signal })
 }
 it('defaults to disconnected accounts without credentials in settings', () => {
-  const config = Config({} as never)
-  expect(config.feishu.enabled).toBe(false)
-  expect(config.wecom.enabled).toBe(false)
+  const config = Config({})
+  expect(config.feishu.get().enabled).toBe(false)
+  expect(config.wecom.get().enabled).toBe(false)
   expect(JSON.stringify(config)).not.toContain('fixture-')
 })
 it('uses official API authentication, projects authorized reads, and removes native tools on unload', async () => {
@@ -128,7 +130,7 @@ it('uses official API authentication, projects authorized reads, and removes nat
     expect(JSON.stringify(response)).not.toContain('fixture-access-token')
   }
   expect(requests.filter(row => !row.path.includes('tenant_access_token')).every(row => row.auth === 'Bearer fixture-access-token')).toBe(true)
-  expect(ctx.tools.schemas().filter(tool => /^(feishu|wecom)_/.test(tool.name))).toMatchSnapshot('standalone enterprise tool schemas')
+  expect(ctx.tools.schemas().filter(tool => /^(feishu|wecom)_/.test(tool.name)).sort((a, b) => a.name.localeCompare(b.name))).toMatchSnapshot('standalone enterprise tool schemas')
   const tools = ctx.tools
   await ctx.fiber.dispose()
   expect(tools.schemas()).toEqual([])
@@ -173,28 +175,28 @@ it('captures only approved senders and exposes its received-message scope explic
 })
 it('keeps QR and manual bot tool registration live without enabling an unconfigured message account', async () => {
   const ctx = await boot(false)
-  const namespace = 'wecom-connector'
-  const office = 'wecom-office-connector'
+  const namespace = 'enterprise-connectors'
+  const office = 'enterprise-connectors'
   const botNames = ['wecom_list_chats', 'wecom_read_messages', 'wecom_send_message']
   const visibleBots = () => ctx.tools.schemas().filter(tool => botNames.includes(tool.name)).map(tool => tool.name).sort()
   expect(visibleBots()).toEqual([])
-  await ctx.settings.update(office, { enabled: true, documents: true })
+  await ctx.settings.update(office, { wecomOffice: { enabled: true, documents: true } })
   expect(ctx.tools.get('wecom_office_search_documents')).toBeDefined()
   expect(visibleBots()).toEqual([...botNames].sort())
   expect((await execute(ctx, 'wecom_list_chats')).isError).toBe(true)
   expect(frames).toEqual([])
-  await ctx.settings.update(namespace, { enabled: true })
+  await ctx.settings.update(namespace, { wecom: { enabled: true } })
   expect(visibleBots()).toEqual([...botNames].sort())
   const read = ctx.tools.get('wecom_read_messages')!
   await ctx.enterpriseConnectors.reconnect('wecom')
   expect((await execute(ctx, 'wecom_read_messages', { chat_id: 'chat_a' })).isError).toBe(false)
-  await ctx.settings.update(namespace, { enabled: false })
+  await ctx.settings.update(namespace, { wecom: { enabled: false } })
   expect(visibleBots()).toEqual([...botNames].sort())
   expect(ctx.tools.get('wecom_office_search_documents')).toBeDefined()
-  await ctx.settings.update(office, { enabled: false })
+  await ctx.settings.update(office, { wecomOffice: { enabled: false } })
   expect(visibleBots()).toEqual([])
   await expect(Promise.resolve().then(() => read.execute({ chat_id: 'chat_a' }, { signal: new AbortController().signal } as never))).rejects.toThrow('Connect WeCom by QR')
-  await ctx.settings.update(namespace, { enabled: true })
+  await ctx.settings.update(namespace, { wecom: { enabled: true } })
   expect(visibleBots()).toEqual([...botNames].sort())
   const tools = ctx.tools
   await ctx.fiber.dispose()

@@ -1,3 +1,4 @@
+import { executeOne } from './execute.ts'
 /** Real shipped DH/Flowable composition with a keyless recorded DH analysis turn. */
 import { randomUUID } from 'node:crypto'
 import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
@@ -50,7 +51,7 @@ describe.skipIf(!password || !baseUrl || MODE === 'record')('business workflow: 
         output: { schema: { type: 'string' }, render: (_args, value) => [{ type: 'text', text: value as string }] },
         execute: () => { toolBodyCalls++; return Promise.resolve('unexpected execution') },
       })
-      const result = await agent.ctx.tools.execute({ agent, name: 'workflow_denial_probe', arguments: {},
+      const result = await executeOne(agent.ctx, { agent, name: 'workflow_denial_probe', arguments: {},
         callId: brandString<ToolCallId>('denial-probe'), signal: new AbortController().signal,
       })
       denied.push(result.isError)

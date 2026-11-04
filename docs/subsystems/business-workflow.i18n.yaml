@@ -1,6 +1,13 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for business-workflow.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/subsystems/business-workflow.md
-business-workflow.md: 7d8aaa67f5ee6a2dc4ff1299abe58755b0dbdc42
-business-workflow.zh.md: 582f776a071f477702a65ac21f774dfa6d9a5de5
+/business-workflows:
+  en: aa97e96b2fe425d0
+  zh: a95ecff5130963ad
+/business-workflows/draft-data:
+  en: e9fb975881469723
+  zh: 826bbad42e075b63
+/business-workflows/runtime-projections:
+  en: e7d48a6965e117c5
+  zh: 7637845c72681c5c

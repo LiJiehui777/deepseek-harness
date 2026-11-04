@@ -1,6 +1,64 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/business-workflow/workbench/README.md
-README.md: 1dbe299ca88670d85f5eabcce821d77dbb8b877c
-README.zh.md: 986194fd4e3e285b8044afbada05afdb8d3c6085
+/:
+  en: 882c28b306de6d98
+  zh: 3db29bcf69b805c4
+/deepseek-ai-dsh-business-workflow-workbench:
+  en: 36cebfe3470f70fc
+  zh: 0eec07efb1593267
+/deepseek-ai-dsh-business-workflow-workbench/summary:
+  en: 199a583b95121e01
+  zh: 1200bb743b69df33
+/deepseek-ai-dsh-business-workflow-workbench/table-of-contents:
+  en: d1be9432d713a7f9
+  zh: 27e52f3e6d567466
+/deepseek-ai-dsh-business-workflow-workbench/use-this-package:
+  en: b95ccd7d9adba3a8
+  zh: 58adb2a0cb0aff3c
+/deepseek-ai-dsh-business-workflow-workbench/execution-semantics:
+  en: 39cc21d3888f73f8
+  zh: a8f8beade1587cd1
+/deepseek-ai-dsh-business-workflow-workbench/model-experience:
+  en: 215e7ba838619b7b
+  zh: a311da3843709f90
+/deepseek-ai-dsh-business-workflow-workbench/model-experience/workflow-tools:
+  en: 8e6822db32b43f35
+  zh: 42a192cfa67b0192
+/deepseek-ai-dsh-business-workflow-workbench/model-experience/workflow-tools/what-the-model-sees:
+  en: 19cb3797701c42d0
+  zh: 1e489e1e21da4578
+/deepseek-ai-dsh-business-workflow-workbench/model-experience/workflow-tools/what-the-model-sees/conversation-workflow-instruction:
+  en: 99a179187037cd1c
+  zh: 215f5bd35c427793
+/deepseek-ai-dsh-business-workflow-workbench/model-experience/workflow-tools/what-the-model-sees/ordinary-chat-instruction:
+  en: 69e2e66528e59d4a
+  zh: 817cd26c3ac53d90
+/deepseek-ai-dsh-business-workflow-workbench/model-experience/workflow-tools/token-effect:
+  en: 81b62218995fa64f
+  zh: c240c35ea07a00ad
+/deepseek-ai-dsh-business-workflow-workbench/model-experience/workflow-tools/kv-cache-effect:
+  en: f52c8253c9acbb75
+  zh: cc6f0ea20d18725f
+/deepseek-ai-dsh-business-workflow-workbench/model-experience/workflow-analysis:
+  en: c9b9c0389c9179af
+  zh: f92cb9124c22066b
+/deepseek-ai-dsh-business-workflow-workbench/model-experience/workflow-analysis/what-the-model-sees:
+  en: 3ff0011e95bd64e8
+  zh: e6eef49c0ffd061e
+/deepseek-ai-dsh-business-workflow-workbench/model-experience/workflow-analysis/what-the-model-sees/analysis-task-prefix:
+  en: 1173ccedbd217a57
+  zh: f3ec725f6f9814bc
+/deepseek-ai-dsh-business-workflow-workbench/model-experience/workflow-analysis/token-effect:
+  en: 1ee84727d6da28e0
+  zh: 07fe68132a2215c2
+/deepseek-ai-dsh-business-workflow-workbench/model-experience/workflow-analysis/kv-cache-effect:
+  en: 457851b208ab9406
+  zh: c379d8df1e249410
+/deepseek-ai-dsh-business-workflow-workbench/known-limitations-and-deferred-work:
+  en: 167e8f2e334ee529
+  zh: 7dd3692ae632d2a2
+/deepseek-ai-dsh-business-workflow-workbench/known-limitations-and-deferred-work/dev-note:
+  en: ef9d886ff44d6d4f
+  zh: d3d6d1cc3f58a9e9

@@ -7,7 +7,7 @@ import { captureStableAria, compareOrRefreshGolden, launchWebScaffold, watchCons
 import { ZH_BROWSER_LOCALE } from './support.ts'
 
 it('renders the ZTT identity, keeps sidebar navigation usable, and retains native connector settings', async () => {
-  const scaffold = await launchWebScaffold({ pluginManagement: true, extraOverlayPath: fileURLToPath(new URL('../../cli/config/examples/ztt/cordis.yml', import.meta.url)) })
+  const scaffold = await launchWebScaffold({ profile: { packages: ['enterprise-connectors', 'tool-ragflow-connector'].map(name => ({ dir: fileURLToPath(new URL('../../../packages/interaction/' + name, import.meta.url)), enabled: true })) }, extraOverlayPath: fileURLToPath(new URL('../../cli/config/examples/ztt/cordis.yml', import.meta.url)) })
   const browser = await chromium.launch()
   try {
     const page = await browser.newPage({ viewport: { width: 1440, height: 960 }, locale: ZH_BROWSER_LOCALE })
@@ -17,7 +17,7 @@ it('renders the ZTT identity, keeps sidebar navigation usable, and retains nativ
     await expect.poll(() => page.title()).toBe('中天质量智能体')
     expect(await page.getByText('中天质量智能体', { exact: true }).count()).toBe(2)
     expect(await page.getByText('DSH Local Build', { exact: true }).count()).toBe(0)
-    expect(await page.locator('link[rel="icon"]').getAttribute('href')).toBe('./ztt-mark.svg')
+    expect(await page.locator('link[rel="icon"]').evaluateAll(links => links.every(link => link.getAttribute('href') === './ztt-mark.svg'))).toBe(true)
     expect(await page.locator('link[rel="manifest"]').getAttribute('href')).toBe('./ztt.webmanifest')
     expect(await page.locator('img[src="./ztt-mark.svg"]').evaluateAll(images => images.every(image => (image as HTMLImageElement).complete && (image as HTMLImageElement).naturalWidth > 0))).toBe(true)
     const snapshot = await captureStableAria(page, 'body', scaffold.workspaceCwd)
@@ -33,11 +33,9 @@ it('renders the ZTT identity, keeps sidebar navigation usable, and retains nativ
     await page.getByText('连接企业知识，辅助质量工作', { exact: true }).waitFor()
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
     await page.setViewportSize({ width: 1440, height: 960 })
-    await page.getByRole('button', { name: '设置', exact: true }).click()
-    const dialog = page.getByRole('dialog', { name: '设置', exact: true })
-    await dialog.getByRole('button', { name: '插件', exact: true }).click()
-    await dialog.getByRole('button', { name: '展开设置: RAGFlow 连接器' }).click()
-    await dialog.getByLabel('RAGFlow 服务地址', { exact: true }).waitFor()
+    await page.getByRole('button', { name: '插件', exact: true }).click()
+    await page.locator('[data-plugin-item="ragflow-connector"] button').first().click()
+    await page.getByLabel('RAGFlow 服务地址', { exact: true }).waitFor()
     expect(tripwire.pageErrors).toEqual([])
   } finally {
     await browser.close()

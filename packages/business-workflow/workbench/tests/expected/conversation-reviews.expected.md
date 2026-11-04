@@ -1,5 +1,4 @@
 - region "DH 正在等待你审核":
-  - img
   - strong: DH 正在等待你审核
   - text: 等待期间不调用模型
   - button "刷新待审核"

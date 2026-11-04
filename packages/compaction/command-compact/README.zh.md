@@ -42,8 +42,8 @@ kind: "package-reference"
 | 情形 | 你看到的消息 |
 |---|---|
 | 压缩已在运行，或 agent 正在轮次中 | `Compaction is unavailable because this process has an active compaction, or the agent is not idle.` |
-| 压缩过程中历史发生了变化 | `The history selected for compaction changed before it could be replaced. The conversation is unchanged; the attempt is recorded in the session log.` |
-| 无法产生有用的摘要 | `Compaction could not produce a useful summary. The conversation is unchanged; the attempt is recorded in the session log.` |
+| 压缩过程中历史发生了变化 | `The history selected for compaction changed before it could be replaced. The attempt is recorded in the session log.` |
+| 无法产生有用的摘要 | `Compaction could not produce a useful summary. The attempt is recorded in the session log.` |
 | 压缩未干净地完成 | `Compaction did not finish cleanly; some session history may have changed. Inspect the current session state before retrying.` |
 | 会话无法保存 | `Compaction finished, but the session could not be saved.` |
 
@@ -95,7 +95,6 @@ kind: "package-reference"
 | 文件 | 职责 |
 |---|---|
 | [`src/index.ts`](src/index.ts) | 插件入口：`/compact` 注册、参数拒绝、错误码映射、生命周期排空 |
-| — | 不发布运行时不变式伴随条目；该命令适配器不拥有任何状态或事件流；压缩 seam 拥有平衡且具持久性的事务，命令注册表拥有注册与分发生命周期。 |
 
 </details>
 
@@ -110,7 +109,7 @@ kind: "package-reference"
 - [压缩基础后端](../compaction-basic/README.zh.md)——自动与按需压缩的随附后端。
 - [命令包](../../interaction/commands/README.zh.md)——聊天命令背后的注册表与分发约定。
 - [压缩子系统参考](../../../docs/subsystems/compaction.zh.md)——压缩词汇、结果与服务行为。
-- [排队手动压缩 Agent Note](../../../.agents/notes/implemented/feature/2026-07-30-queued-manual-compaction.zh.md)——按需压缩如何与运行中的轮次串行化。
+- [排队手动压缩 参考](../compaction/README.zh.md)——按需压缩如何与运行中的轮次串行化。
 
 -----
 

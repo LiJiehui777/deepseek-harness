@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-11-03-manual-workflow-selection.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-11-03-manual-workflow-selection.md
-2026-11-03-manual-workflow-selection.md: 66e105c665c986e9d4fd744d757285b22bc3ae47
-2026-11-03-manual-workflow-selection.zh.md: bd9f8d180f092f5989871fe7a0e56baa0753275b
+/agent-note-manual-workflow-selection-before-conversation-starts:
+  en: 659a15edcca4d6d1
+  zh: 2ac605e1ad1b705e
+/agent-note-manual-workflow-selection-before-conversation-starts/problem:
+  en: 1a37068d3c441298
+  zh: 2c40c23ee1d2eb23
+/agent-note-manual-workflow-selection-before-conversation-starts/decision:
+  en: 571d0de6b1a5227c
+  zh: 88050fabf3746064
+/agent-note-manual-workflow-selection-before-conversation-starts/alternatives-considered:
+  en: 6774b84630b91ee2
+  zh: 5e06b63e0661e380
+/agent-note-manual-workflow-selection-before-conversation-starts/consequences:
+  en: eeaeedd930bb001e
+  zh: 0ccf5e430d987a14

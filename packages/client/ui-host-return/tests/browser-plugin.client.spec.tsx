@@ -1,3 +1,4 @@
+import type { PeerScope } from '@deepseek-ai/dsh-typert-protocol'
 // @vitest-environment jsdom
 import { Context } from '@deepseek-ai/cordis'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
@@ -6,7 +7,7 @@ import type { IndexInjection } from '@deepseek-ai/dsh-host-webserver'
 import type { GlobalStandardProps } from '@deepseek-ai/dsh-client-ui-slots'
 import { SlotRegistry } from '@deepseek-ai/dsh-client-ui-renderer/client'
 import { apply as applyLocale, inject as localeInject } from '@deepseek-ai/dsh-client-locale/client'
-import { stubSettingsScope } from '@deepseek-ai/dsh-client-test-runtime'
+import { stubConfigForm } from '@deepseek-ai/dsh-client-test-runtime'
 import {
   HostAgentHero,
   HostAgentMark,
@@ -44,13 +45,14 @@ const useResource = (() => ({
   reload: () => {},
 })) as GlobalStandardProps['useResource']
 const usePanelInfo: GlobalStandardProps['usePanelInfo'] = selector => selector({ activePanelId: null })
-type AttentionSnapshot = Parameters<Parameters<GlobalStandardProps['useSessionPendingInteraction']>[0]>[0]
-const noAttention: AttentionSnapshot = new Map()
-const useSessionPendingInteraction: GlobalStandardProps['useSessionPendingInteraction'] =
-  selector => selector(noAttention)
 const standardProps = {
   useSessions: unusedHook,
-  useSessionPendingInteraction,
+  useRemoteAccess: unusedHook,
+  useSessionStatus: unusedHook,
+  useSessionRetainInfo: unusedHook,
+  useSessionAccess: unusedHook,
+  useWorkspaceAccess: unusedHook,
+  useContextMenu: unusedHook,
   usePanelInfo,
   useResource,
   useWorkspaces: unusedHook,
@@ -61,7 +63,7 @@ async function baseContext(): Promise<Context> {
   await ctx.plugin(SlotRegistry).await()
   ctx.provide('connection', { api: { settings: {} }, isLoopback: false } as never)
   ctx.provide('remote', { $on: () => () => {} } as never)
-  ctx.provide('settingsScope', { bind: () => stubSettingsScope().scope } as never)
+  ctx.provide('configForms', { get: () => stubConfigForm().scope } as never)
   await ctx.plugin({ inject: localeInject, apply: applyLocale }).await()
   return ctx
 }
@@ -103,7 +105,7 @@ describe('host-return browser half', () => {
     const hostFiber = host.plugin({ apply: hostApply }, config)
     await hostFiber.await()
     const rows: IndexInjection[] = []
-    host.emit('webserver/index-inject', rows)
+    host.emit('webserver/index-inject', rows, { principal: { kind: 'owner' } } as PeerScope)
     expect(rows[0]).toMatchObject({ value: config })
     await host.fiber.dispose()
     const ctx = await baseContext()
@@ -159,7 +161,7 @@ describe('host-return browser half', () => {
     })
     await fiber.await()
     const rows: IndexInjection[] = []
-    ctx.emit('webserver/index-inject', rows)
+    ctx.emit('webserver/index-inject', rows, { principal: { kind: 'owner' } } as PeerScope)
     expect(rows).toEqual([{
       kind: 'global',
       name: HOST_RETURN_BOOTSTRAP_GLOBAL,
@@ -174,7 +176,7 @@ describe('host-return browser half', () => {
     expect(inject).toEqual(['slots', 'locale'])
     await fiber.dispose()
     const after: IndexInjection[] = []
-    ctx.emit('webserver/index-inject', after)
+    ctx.emit('webserver/index-inject', after, { principal: { kind: 'owner' } } as PeerScope)
     expect(after).toEqual([])
   })
 

@@ -4,7 +4,7 @@ Status: implemented
 
 English | [中文](2026-07-23-acp-automation-only-protocol.zh.md)
 
-> The automation-only boundary remains current. [Standard ACP v1 automation controls](../feature/2026-08-22-standard-acp-automation-controls.md) supersedes only this note's prompt-only method, configuration, MCP, update, and lifecycle inventory; it does not restore ACP as a UI.
+> The automation-only boundary remains current. [Standard ACP v1 automation controls](../../../../packages/acp/acp/README.md) supersedes only this note's prompt-only method, configuration, MCP, update, and lifecycle inventory; it does not restore ACP as a UI.
 
 > [Opt-in live assistant updates](../feature/2026-09-15-opt-in-acp-live-assistant-updates.md) adds a deployment-controlled transient text and reasoning path without adding DSH presentation data.
 

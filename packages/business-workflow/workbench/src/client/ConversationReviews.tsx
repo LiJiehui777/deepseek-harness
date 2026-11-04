@@ -1,7 +1,7 @@
 /** Review cards above the conversation composer, with DH-owned details over the same engine task. */
 import { useMemo } from 'react'
 import clsx from 'clsx'
-import { Button, Modal, MarkdownText, Tag, IconWarningOutline16, IconCheckOutline16 } from '@deepseek-ai/dsh-client-ui-primitives'
+import { Button, Modal, MarkdownText, Tag, IconWarningOutlineRegular, IconCheckOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type {} from '@deepseek-ai/dsh-client-ui-session/client'
@@ -40,7 +40,7 @@ export function ConversationReviews({ useSession, useWorkflowReviews, refreshRev
   return <>
     {(!!inbox?.items.length || !!following.length || !!state.error) && <section
       className={css.card} aria-label={title} data-conversation-reviews>
-      <header className={css.cardHeader}><span className={css.mark}><IconWarningOutline16 /></span>
+      <header className={css.cardHeader}><span className={css.mark}><IconWarningOutlineRegular /></span>
         <div className={css.heading}><strong>{title}</strong><span>
           {following.length ? t('followNoModelPolling') : t('reviewCount', { count: inbox?.total ?? 0 })}
         </span></div>
@@ -90,7 +90,7 @@ export function ConversationReviews({ useSession, useWorkflowReviews, refreshRev
           {run && <Tag>{t(`process.${run.status}`)}</Tag>}
         </header>
         {state.error && <div role="alert" className={css.error}>{error}<Button variant="ghost" onClick={refreshReviews}>{t('reviewRefresh')}</Button></div>}
-        {decision && <p role="status" className={css.success}><IconCheckOutline16 />{t(decision === 'approved' ? 'reviewApproved' : 'reviewRejected')}</p>}
+        {decision && <p role="status" className={css.success}><IconCheckOutlineRegular />{t(decision === 'approved' ? 'reviewApproved' : 'reviewRejected')}</p>}
         {!detail && !state.error && <p role="status">{t('reviewLoading')}</p>}
         {detail && !item && !decision && <p role="status" className={css.notice}>{t('reviewResolved')}</p>}
         {item && <>

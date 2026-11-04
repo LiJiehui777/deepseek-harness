@@ -1,3 +1,9 @@
+import { mkdtemp, readFile, writeFile, rm } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { pathToFileURL } from 'node:url'
+import * as NativeExecutor from '@deepseek-ai/dsh-tool-executor-native'
+import { executeOne } from './execute.ts'
 import { Context } from '@deepseek-ai/cordis'
 import Loader from '@deepseek-ai/cordis-plugin-loader'
 import Include from '@deepseek-ai/cordis-plugin-include'
@@ -8,6 +14,7 @@ import { ToolCallId } from '@deepseek-ai/dsh-llm'
 import { afterEach, expect, it, vi } from 'vitest'
 import * as Records from '../src/index.ts'
 
+let fixtureDirectory: string | undefined
 let ctx: Context | undefined
 const config = { channel: 'feishu' as 'feishu' | 'wecom', endpoint: 'http://bridge.invalid/read', token: 'host-only-authority', maxResultBytes: 4096, maxPageSize: 50, timeoutMs: 1000 }
 const page = { channel: 'feishu', account_name: 'Project bot', scope: 'bot_visible_history', kind: 'messages', items: [{ chat_id: 'room', message_id: 'm1', sender_id: 'u1', text: '项目按计划推进' }], has_more: false, next_cursor: '' }
@@ -15,15 +22,19 @@ const page = { channel: 'feishu', account_name: 'Project bot', scope: 'bot_visib
 afterEach(async () => {
   await ctx?.fiber.dispose()
   ctx = undefined
+  if (fixtureDirectory) { await rm(fixtureDirectory, { recursive: true, force: true }); fixtureDirectory = undefined }
   vi.unstubAllGlobals()
 })
 async function boot(): Promise<Context> {
   ctx = new Context()
   await ctx.plugin(Loader)
   ctx.loader.builtins.include = Include
-  const modules = new Map<string, unknown>([['@deepseek-ai/dsh-agent', AgentRegistry], ['@deepseek-ai/dsh-system-prompt', SystemPrompt], ['@deepseek-ai/dsh-tools', Tools], ['@deepseek-ai/dsh-tool-chat-records', Records]])
+  const modules = new Map<string, unknown>([['@deepseek-ai/dsh-agent', AgentRegistry], ['@deepseek-ai/dsh-system-prompt', SystemPrompt], ['@deepseek-ai/dsh-tools', Tools], ['@deepseek-ai/dsh-tool-executor-native', NativeExecutor], ['@deepseek-ai/dsh-tool-chat-records', Records]])
   ctx.loader.internal = { version: 'v2', import(name: string) { return Promise.resolve(modules.get(name)) } } as unknown as NonNullable<typeof ctx.loader.internal>
-  await ctx.loader.create({ name: 'cordis:include', config: { path: new URL('./fixtures/cordis.yml', import.meta.url).href } })
+  fixtureDirectory = await mkdtemp(join(tmpdir(), 'chat-records-loader-'))
+  const file = join(fixtureDirectory, 'cordis.yml')
+  await writeFile(file, await readFile(new URL('./fixtures/cordis.yml', import.meta.url), 'utf8'))
+  await ctx.loader.create({ name: 'cordis:include', config: { path: pathToFileURL(file).href } })
   await ctx.loader.await()
   return ctx
 }
@@ -31,12 +42,12 @@ async function configured(overrides: Partial<Records.Config> = {}): Promise<Cont
   ctx = new Context()
   await ctx.plugin(AgentRegistry)
   await ctx.plugin(SystemPrompt)
-  await ctx.plugin(Tools)
+  await ctx.plugin(Tools); await ctx.plugin(NativeExecutor)
   await ctx.plugin(Records, { ...config, ...overrides })
   return ctx
 }
 function execute(root: Context, name = 'feishu_read_messages', arguments_: Record<string, unknown> = { chat_id: 'room' }) {
-  return root.tools.execute({ callId: ToolCallId('read-records'), name, arguments: arguments_, signal: new AbortController().signal })
+  return executeOne(root, { callId: ToolCallId('read-records'), name, arguments: arguments_, signal: new AbortController().signal })
 }
 function requestBody(request: RequestInit): Record<string, unknown> {
   if (typeof request.body !== 'string') throw new Error('Expected a JSON string request body')
@@ -51,7 +62,7 @@ it('boots both instances through the Loader and pins model-visible schemas and r
   const root = await boot()
   expect(root.tools.schemas().filter(tool => tool.name.includes('feishu') || tool.name.includes('wecom'))).toMatchSnapshot('channel-read schemas')
   const result = await execute(root, 'feishu_read_messages', { chat_id: 'room', account_id: 'cannot-widen', cursor: 'next', start_time: 1, end_time: 5 })
-  expect(result.isError).toBe(false)
+  expect(result.isError, JSON.stringify(result)).toBe(false)
   expect(result.content).toMatchSnapshot('record output without host authority')
   const sent = fetchMock.mock.calls[0]![1]
   expect(requestBody(sent)).toEqual({ channel: 'feishu', operation: 'messages', chat_id: 'room', page_size: 20, cursor: 'next', start_time: 1, end_time: 5 })
@@ -117,7 +128,7 @@ it('rejects invalid host authority before any tool is registered', async () => {
 it('removes both contributions when their Loader row is unloaded', async () => {
   const root = await boot()
   expect(root.tools.schemas().map(tool => tool.name)).toContain('feishu_list_chats')
-  const entry = root.loader.entries().find(entry => entry.options.id === 'feishu-records')
+  const entry = [...root.loader.entries()].find(entry => entry.options.id === 'feishu-records')
   expect(entry).toBeDefined()
   await entry!.fiber!.dispose()
   expect(root.tools.schemas().map(tool => tool.name)).not.toContain('feishu_list_chats')

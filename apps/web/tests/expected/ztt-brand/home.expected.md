@@ -1,34 +1,24 @@
 - button "新建会话"
-- text: 中天质量智能体 中天科技 · 质量工作台
-- button "收起侧边栏":
-  - img
-- button "新建会话":
-  - img
-  - text: 新会话
+- button "收起侧边栏"
+- button "新建会话": 新会话
 - navigation "全局面板":
   - button "插件"
+  - button "自动化任务"
+  - button "从侧边栏取消固定自动化任务"
+  - button "工作流"
+  - button "从侧边栏取消固定工作流"
+  - button "更多"
 - text: 工作区
-- button "搜索会话":
-  - img
-- textbox "搜索会话…"
-- button "视图选项":
-  - img
-- button "添加工作区":
-  - img
+- button "搜索会话"
+- textbox "搜索会话名称" [disabled]
+- button "视图选项"
+- button "添加工作区"
 - tree "会话": 暂无会话
-- button "设置":
-  - img
-  - text: 设置
+- button "账号菜单": 更多
+- banner
 - text: 中天质量智能体 连接企业知识，辅助质量工作 质量知识检索 · 检验资料整理 · 报告辅助编写
-- button "选择工作区":
-  - img
-  - text: 选择工作区
-  - img
-- button "标准模式":
-  - img
-  - text: 标准模式
-  - img
+- button "选择工作区"
+- button "标准模式"
 - textbox "选择工作区"
-- button "添加文件或调用指令" [disabled]:
-  - img
+- button "添加文件或调用指令" [disabled]
 - button "发送消息" [disabled]

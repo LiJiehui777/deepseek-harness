@@ -1,7 +1,7 @@
 /** Conversation-level workflow choice beside the existing permission control. */
 import { useState } from 'react'
 import clsx from 'clsx'
-import { Menu, IconChevronDownOutline14, IconNewChatOutline16, IconRefreshOutline16 } from '@deepseek-ai/dsh-client-ui-primitives'
+import { Menu, IconChevronDownOutlineRegular, IconNewChatOutlineRegular, IconRefreshOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type {} from '@deepseek-ai/dsh-client-ui-session/client'
@@ -33,15 +33,15 @@ export function WorkflowChooser({ useSession, useWorkflowChoice, choose, reload,
         title={t('chooserHint')} aria-label={t('chooserLabel', { name: label })}
         aria-haspopup="menu" aria-expanded={open} onClick={() => { if (!open) reload(); setOpen(!open) }}>
         <WorkflowIcon size={14} /><span className={css.name}>{selected ? selected.name : t('chooserButton')}</span>
-        <span className={clsx(css.chevron, open && css.chevronOpen)} aria-hidden><IconChevronDownOutline14 /></span>
+        <span className={clsx(css.chevron, open && css.chevronOpen)} aria-hidden><IconChevronDownOutlineRegular /></span>
       </button>}
       items={[
-        { id: 'ordinary', label: t('chooserNormal'), icon: <IconNewChatOutline16 />, disabled: state.busy || !state.value },
+        { id: 'ordinary', label: t('chooserNormal'), icon: <IconNewChatOutlineRegular />, disabled: state.busy || !state.value },
         ...(state.value?.choices ?? []).map(choice => ({ id: key(choice),
           label: t('chooserBound', { name: choice.name, version: choice.version }),
           icon: <WorkflowIcon size={16} />, disabled: state.busy })),
       ]}
-      footer={[{ id: 'refresh', label: t('chooserReload'), icon: <IconRefreshOutline16 />, disabled: state.busy }]}
+      footer={[{ id: 'refresh', label: t('chooserReload'), icon: <IconRefreshOutlineRegular />, disabled: state.busy }]}
       selectedId={selected ? key(selected) : 'ordinary'} onClose={() => { setOpen(false) }}
       onSelect={(id) => { void (async () => {
         if (id === 'refresh') { reload(); return }

@@ -1,4 +1,5 @@
 /** Reuse the existing WeCom executor for one engine-owned read; no model runs here. */
+import { NativeToolExecutor } from '@deepseek-ai/dsh-tool-executor-native'
 import type { Context } from '@deepseek-ai/cordis'
 import { brandString } from '@deepseek-ai/dsh-brand'
 import type { ToolCallId } from '@deepseek-ai/dsh-llm'
@@ -21,17 +22,18 @@ export async function readWecomTodos(ctx: Context, sessionId: string, signal: Ab
   const handle = await ctx.agents.create({ sessionId: brandString<SessionId>(sessionId), signal,
     meta: { cwd: process.cwd() },
     setup: (scope) => {
-      scope.tools.presentAs('native')
+      scope.tools.setExecutor(new NativeToolExecutor(scope))
       scope.tools.restrict({ allow: [tool] })
       scope.tools.guard(exec => exec.name === tool && JSON.stringify(exec.arguments) === JSON.stringify(query)
         ? undefined : 'This workflow action permits only its configured read of pending WeCom todos.')
     },
   })
   try {
-    const result = await handle.agent.ctx.tools.execute({ agent: handle.agent, name: tool, arguments: query,
-      callId: brandString<ToolCallId>(`workflow-${sessionId}`), signal })
+    const batch = await handle.agent.ctx.tools.execute({ agent: handle.agent, calls: [{ type: 'tool-call', name: tool, arguments: JSON.stringify(query),
+      id: brandString<ToolCallId>(`workflow-${sessionId}`) }], signal })
+    const result = batch.results[0]?.result
     signal.throwIfAborted()
-    if (result.isError || typeof result.value !== 'string') throw new Error('WECOM_TODOS_READ_FAILED')
+    if (!result || result.isError || typeof result.value !== 'string') throw new Error('WECOM_TODOS_READ_FAILED')
     const data: unknown = JSON.parse(result.value)
     await ctx.sessions.flush(handle.agent.session)
     return { result: data, query }

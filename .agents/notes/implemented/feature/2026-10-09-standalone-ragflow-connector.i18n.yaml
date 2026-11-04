@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-10-09-standalone-ragflow-connector.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-10-09-standalone-ragflow-connector.md
-2026-10-09-standalone-ragflow-connector.md: fdc3ba9baa1046e1e34522b1064f2b9fda91847b
-2026-10-09-standalone-ragflow-connector.zh.md: 6432b7b54e5370b47d690eaf87622b7122326f89
+/agent-note-standalone-ragflow-connector:
+  en: 5771b5ff5b0431ca
+  zh: 2c5cdf649bab06c2
+/agent-note-standalone-ragflow-connector/problem:
+  en: ffa992494ac4fa0c
+  zh: 368acce3dbc8aba3
+/agent-note-standalone-ragflow-connector/decision:
+  en: e9e074a4335403f8
+  zh: 749f037a45c0d26e
+/agent-note-standalone-ragflow-connector/alternatives-considered:
+  en: 29ab8115a0a2b4c0
+  zh: 03116ea99391cb49
+/agent-note-standalone-ragflow-connector/consequences:
+  en: 11e355462de17878
+  zh: bf09ef0eae509d25

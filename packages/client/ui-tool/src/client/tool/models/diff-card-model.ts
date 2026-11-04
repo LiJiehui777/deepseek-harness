@@ -1,18 +1,11 @@
 /** Pure diff-card derivation from raw file-mutation calls and result metadata. @module */
 import type { DiffBlockProps, DiffHunk } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { ToolCallBlock } from './tool-call-model.ts'
-import { parsedToolCall, validEscalationFields } from './raw-tool-call.ts'
+import { parsedToolCall } from './raw-tool-call.ts'
+import { recordedAbsolutePath } from './recorded-path.ts'
 
-/**
- * Diff-body lines the chat row shows before collapsing the middle — half the
- * primitive's own default, which the details panel keeps. A chat row is a
- * summary surface inside the message flow: the flow must stay scannable across
- * many calls, while the details panel is the single-call reading surface. The
- * same split {@link CHAT_TERMINAL_MAX_LINES} draws for a terminal card, so the
- * two card kinds cap a long body at the same place in the flow. A design
- * constant of this UI's row geometry, not a deployment choice.
- */
-export const CHAT_DIFF_MAX_LINES = 8
+/** Room for a path, one removed/added pair, and three context lines on each side. */
+export const CHAT_DIFF_MAX_LINES = 9
 
 /**
  * The {@link DiffBlock} props this derivation owns. Picked off the primitive's
@@ -74,7 +67,6 @@ function intendedDiff(block: ToolCallBlock): IntendedDiff | null {
   }
   const { file_path: path } = parsed.args
   if (typeof path !== 'string' || path.trim() === '') return null
-  if (!validEscalationFields(parsed.args)) return null
   if (parsed.name === 'write') {
     const { content } = parsed.args
     return typeof content === 'string'
@@ -102,13 +94,19 @@ function appliedDiffs(meta: unknown): DiffHunk[] | 'empty' | null {
  * A successful write with valid empty metadata uses its argument-derived
  * whole-file diff, matching create and identical-overwrite presentation;
  * `str_replace_editor` settles through Generic because it has no result view.
+ * A settled call whose arguments carry no single intended diff, such as a
+ * multi-file patch, shows only the applied diffs its result metadata records.
  * @param block - running or settled Tool block.
  * @returns the diff-card props, or null for the generic path.
  */
 export function diffCardModel(block: ToolCallBlock): DiffCardModel | null {
   if (block.parentCallId !== undefined) return null
   const intended = intendedDiff(block)
-  if (intended === null) return null
+  if (intended === null) {
+    if (!('kind' in block) || block.isError) return null
+    const applied = appliedDiffs(block.meta)
+    return applied === null || applied === 'empty' ? null : { card: { diffs: applied } }
+  }
   if (!('kind' in block)) return { card: { diffs: [intended.diff] } }
   if (intended.tool === 'str_replace_editor') return null
   if (block.isError) return null
@@ -116,5 +114,6 @@ export function diffCardModel(block: ToolCallBlock): DiffCardModel | null {
   if (applied === null || applied === 'empty') {
     return intended.tool === 'write' ? { card: { diffs: [intended.diff] } } : null
   }
-  return { card: { diffs: applied } }
+  const path = recordedAbsolutePath(block.meta, 'path')
+  return { card: { diffs: applied.map(diff => diff.path === path ? { ...diff, path: intended.diff.path } : diff) } }
 }

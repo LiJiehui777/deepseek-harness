@@ -1,22 +1,34 @@
 /** Turn-aware trajectory event ledger with a local record inspector. */
 
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
+import { assertNever, type JsonValue } from '@deepseek-ai/dsh-util-values'
+import type { WatchToolResult } from './watch-tool-result.ts'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import {
-  IconChevronRightOutline14,
-  IconSettingsOutline16,
-  IconSparkle16,
-  IconUserOutline16,
+  CodeBlock,
+  FileTypeIcon,
+  fileExtension,
+  fileSizeText,
+  IconCheckOutlineRegular,
+  IconChevronRightOutlineRegular,
+  IconCodeOutlineRegular,
+  IconWrapLinesOutlineRegular,
+  IconCopyOutlineRegular,
+  IconSettingsOutlineRegular,
+  IconSparkleRegular,
+  IconUserOutlineRegular,
   JsonTree,
   MarkdownText,
+  StateDot,
   Tooltip,
+  writeClipboard,
 } from '@deepseek-ai/dsh-client-ui-primitives'
-import type { JsonTreeLabels, MarkdownLabels } from '@deepseek-ai/dsh-client-ui-primitives'
+import type { JsonTreeLabels, JsonTreeProps, MarkdownLabels } from '@deepseek-ai/dsh-client-ui-primitives'
+import type { PropsRenderSlots } from '@deepseek-ai/dsh-client-ui-slots'
 import { structuredPatch } from 'diff'
-import type { ImageAttachmentRef } from '@deepseek-ai/dsh-attachment'
 import type {
-  AssistantRequestConfig, ConversationPromptSnapshot, RenderMessageImages,
+  AssistantRequestConfig, ConversationPromptSnapshot, MessageImageLoader,
 } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type {
   AssistantMetricDetail, TrajectoryCellKind, TrajectoryCellProps, TrajectorySourceBlock,
@@ -30,6 +42,7 @@ import type { TrajectoryTurnModel } from './layout.ts'
 import { trajectoryPreviewText } from './trajectory-preview.ts'
 import type { TrajectoryKey, TrajectoryTranslate } from './locales.ts'
 import { COMPACTION_INTERRUPTED_ERROR } from './copy-codes.ts'
+import { codeProgram, PTC_TOOL_NAME, type CodeProgram } from './code-program.ts'
 import css from './TrajectoryTable.module.css'
 
 const BOTTOM_FOLLOW_THRESHOLD_PX = 2
@@ -111,11 +124,11 @@ function CompactedIcon(): ReactNode {
 }
 
 const KIND_ICON: Record<TrajectoryCellKind, ReactNode> = {
-  system: <IconSettingsOutline16 size={13} />,
-  user: <IconUserOutline16 size={13} />,
+  system: <IconSettingsOutlineRegular size={13} />,
+  user: <IconUserOutlineRegular size={13} />,
   context: <InformationIcon />,
   compacted: <CompactedIcon />,
-  message: <IconSparkle16 size={13} />,
+  message: <IconSparkleRegular size={13} />,
   tool: <ToolWrenchIcon />,
   subtool: <ToolWrenchIcon />,
 }
@@ -129,7 +142,13 @@ interface TableRecord {
   cell: TrajectoryCellProps
   turnEnd: boolean
   collapsedSummary?: string
-  collapsedSummaryKind?: 'turn' | 'assistant'
+  collapsedSummaryKind?: 'turn' | 'assistant' | 'tool'
+}
+
+const COLLAPSED_SUMMARY_LABEL_KEY: Record<NonNullable<TableRecord['collapsedSummaryKind']>, TrajectoryKey> = {
+  turn: 'request.collapsedTurn',
+  assistant: 'request.collapsedAssistant',
+  tool: 'request.collapsedTool',
 }
 
 interface VirtualRowStructure {
@@ -183,6 +202,7 @@ interface ParentRecords {
 }
 
 interface ToolCallTextParts {
+  program: boolean
   name: string
   args?: string
 }
@@ -232,8 +252,8 @@ function jsonTreeLabels(t: TrajectoryTranslate): JsonTreeLabels {
     copyCompactJson: t('copy.compactJson'),
     copied: t('copied'),
     copyFailed: t('copy.failed'),
-    collapseNode: t('json.collapseNode'),
-    expandNode: t('json.expandNode'),
+    collapseNode: t('collapse'),
+    expandNode: t('expand'),
     copyButtonTitle: action => t('copy.optionsHint', { action }),
   }
 }
@@ -376,10 +396,16 @@ function AssistantTimingPanel({
 
 /** Props for the trajectory ledger. */
 export interface TrajectoryTableProps {
+  /** Observe the selected result while the Result tab is open. */
+  watchToolResult?: WatchToolResult | undefined
+  /** Wrapping control shared by all JSON inspectors. */
+  stringWrapping?: JsonTreeProps['stringWrapping']
   /** Trajectory locale seat. */
   t: TrajectoryTranslate
   /** Slot-backed durable image renderer shared with the Chat gallery. */
-  renderImages: RenderMessageImages
+  renderSlot: PropsRenderSlots<'conversation.trajectory.images'>['renderSlot']
+  /** Session-bound loader for durable message image attachments. */
+  loadImage: MessageImageLoader
   /** Session-global request numbers for the request groups visible in this context. */
   requestNumbers?: readonly TrajectoryRequestNumber[]
   /** Grouped records in display order. */
@@ -418,6 +444,10 @@ export interface TrajectoryTableProps {
   collapsedAssistants: ReadonlySet<string>
   /** Toggle tool calls under one assistant record. */
   onToggleAssistant: (id: string) => void
+  /** Stable tool record ids whose nested calls are folded. */
+  collapsedTools: ReadonlySet<string>
+  /** Toggle nested calls under one tool record. */
+  onToggleTool: (id: string) => void
   /** One-shot cross-view inspect: open and scroll to this call's record. */
   inspectCallId?: string | null
   /** Acknowledge a consumed (or unresolvable) inspect request. */
@@ -542,7 +572,7 @@ function indexRequestBoundaries(
     const key = requestKey(record.turn, record.group)
     if (!requestGroups.has(key)) continue
     if (boundaries.has(key)) continue
-    if (record.cell.kind === 'user' || record.cell.kind === 'context') continue
+    if (record.cell.kind === 'user' || record.cell.kind === 'context' || record.cell.kind === 'system') continue
     boundaries.set(key, record.cell.index)
   }
   return boundaries
@@ -657,7 +687,7 @@ function assistantToolCalls(
   return calls
 }
 
-function summarizeAssistantTools(
+function summarizeCalls(
   records: readonly TableRecord[],
   t: TrajectoryTranslate,
 ): string {
@@ -670,9 +700,10 @@ function summarizeAssistantTools(
   return names.length > 0 ? `${summary} · ${names.join(', ')}` : summary
 }
 
-function collapseAssistantRecords(
+function collapseCallRecords(
   records: readonly TableRecord[],
-  collapsedAssistants: ReadonlySet<string>,
+  collapsedIds: ReadonlySet<string>,
+  kind: 'assistant' | 'tool',
   t: TrajectoryTranslate,
 ): TableRecord[] {
   const out: TableRecord[] = []
@@ -681,8 +712,9 @@ function collapseAssistantRecords(
     if (record === undefined) continue
     out.push(record)
     if (
-      record.cell.kind !== 'message'
-      || !collapsedAssistants.has(trajectoryRecordId(record.cell))
+      record.collapsedSummary !== undefined
+      || record.cell.kind !== (kind === 'assistant' ? 'message' : 'tool')
+      || !collapsedIds.has(trajectoryRecordId(record.cell))
     ) continue
     const calls: TableRecord[] = []
     for (let j = i + 1; j < records.length; j++) {
@@ -691,6 +723,7 @@ function collapseAssistantRecords(
         candidate === undefined
         || candidate.collapsedSummary !== undefined
         || (candidate.cell.kind !== 'tool' && candidate.cell.kind !== 'subtool')
+        || (kind === 'tool' && candidate.cell.kind !== 'subtool')
       ) break
       calls.push(candidate)
     }
@@ -702,8 +735,8 @@ function collapseAssistantRecords(
       groupStart: false,
       turnStart: false,
       turnEnd: last?.turnEnd ?? false,
-      collapsedSummary: summarizeAssistantTools(calls, t),
-      collapsedSummaryKind: 'assistant',
+      collapsedSummary: summarizeCalls(calls, t),
+      collapsedSummaryKind: kind,
     })
     i += calls.length
   }
@@ -713,6 +746,7 @@ function collapseAssistantRecords(
 function stateOf(record: TableRecord): RecordState {
   if (record.cell.isError) return 'error'
   if (record.cell.kind === 'compacted' && record.cell.timeSeconds === null) return 'running'
+  if (record.cell.assistantMetrics?.completedTime === null) return 'running'
   if (
     (record.cell.kind === 'tool' || record.cell.kind === 'subtool')
     && record.cell.outputDetail === undefined
@@ -844,10 +878,12 @@ function RequestUsagePanel({
 function RequestOptions({
   options,
   preview = false,
+  stringWrapping,
   t,
 }: {
   options: AssistantRequestConfig | undefined
   preview?: boolean
+  stringWrapping: JsonTreeProps['stringWrapping']
   t: TrajectoryTranslate
 }) {
   if (options === undefined) {
@@ -856,6 +892,8 @@ function RequestOptions({
   return (
     <JsonTree
       data={options}
+      stringWrapping={stringWrapping}
+      collapsedStringLines={preview ? 3 : 12}
       label={t('options.json')}
       labels={jsonTreeLabels(t)}
       className={preview ? css.jsonPreview : css.jsonPayload}
@@ -870,12 +908,6 @@ function messageSourceLabel(source: unknown, t: TrajectoryTranslate): string {
   const properties = source as Record<string, unknown>
   const kind = properties.kind
   if (kind === 'user') return t('source.user')
-  if (kind === 'plugin') {
-    const plugin = properties.plugin
-    return typeof plugin === 'string' && plugin !== ''
-      ? t('source.pluginNamed', { plugin })
-      : t('source.plugin')
-  }
   if (kind === 'goal') {
     const round = properties.round
     return typeof round === 'number' && round > 0
@@ -886,7 +918,11 @@ function messageSourceLabel(source: unknown, t: TrajectoryTranslate): string {
   return `${kind[0]?.toUpperCase() ?? ''}${kind.slice(1)}`
 }
 
-function MessageSource({ record, t }: { record: TableRecord; t: TrajectoryTranslate }) {
+function MessageSource({ record, stringWrapping, t }: {
+  record: TableRecord
+  stringWrapping: JsonTreeProps['stringWrapping']
+  t: TrajectoryTranslate
+}) {
   const source = record.cell.messageSource
   if (source === undefined) return <p className={css.noPayload}>{t('source.notRecorded')}</p>
   const data = typeof source === 'object' && source !== null
@@ -895,6 +931,8 @@ function MessageSource({ record, t }: { record: TableRecord; t: TrajectoryTransl
   return (
     <JsonTree
       data={data}
+      stringWrapping={stringWrapping}
+      collapsedStringLines={12}
       label={t('source.messageJson')}
       labels={jsonTreeLabels(t)}
       className={css.jsonPayload}
@@ -979,8 +1017,11 @@ function detailTabs(record: TableRecord): readonly DetailTabItem[] {
   }
   return [
     { id: 'overview', labelKey: 'tab.summary' },
-    ...(record.cell.inputDetail ? [{ id: 'input', labelKey: 'tab.payload' } as const] : []),
-    ...(record.cell.outputDetail ? [{ id: 'output', labelKey: 'tab.result' } as const] : []),
+    ...(record.cell.inputDetail ? [{
+      id: 'input', labelKey: codeProgram(record.cell) === undefined ? 'tab.payload' : 'code.source',
+    } as const] : []),
+    ...(record.cell.outputDetail || codeProgram(record.cell) !== undefined
+      ? [{ id: 'output', labelKey: 'tab.result' } as const] : []),
     { id: 'schema', labelKey: 'tab.schema' },
     { id: 'timing', labelKey: 'tab.timing' },
   ]
@@ -988,6 +1029,8 @@ function detailTabs(record: TableRecord): readonly DetailTabItem[] {
 
 function recordDisplayText(cell: TrajectoryCellProps, t: TrajectoryTranslate): string {
   if (isToolCallOnly(cell, t)) return ''
+  const program = codeProgram(cell)
+  if (program !== undefined) return `${PTC_TOOL_NAME} · ${program.description.replace(/\s+/g, ' ')}`
   if (cell.previewMarkdown !== undefined) {
     const preview = trajectoryPreviewText(cell.previewMarkdown)
     if (cell.text === '') return preview
@@ -1009,13 +1052,15 @@ function recordResultText(cell: TrajectoryCellProps): string | undefined {
 }
 
 function toolCallTextParts(
-  kind: TrajectoryCellKind,
+  cell: TrajectoryCellProps,
   text: string,
 ): ToolCallTextParts | undefined {
-  if (kind !== 'tool' && kind !== 'subtool') return undefined
+  if (cell.kind !== 'tool' && cell.kind !== 'subtool') return undefined
+  const program = cell.toolName === PTC_TOOL_NAME
   const separator = text.indexOf(' · ')
-  if (separator === -1) return { name: text }
+  if (separator === -1) return { name: text, program }
   return {
+    program,
     name: text.slice(0, separator),
     args: text.slice(separator + 3),
   }
@@ -1048,7 +1093,7 @@ function RecordPresentation({
   const displayText = useMemo(
     () => recordDisplayText(cell, t),
     [
-      cell.kind, cell.text, cell.previewMarkdown,
+      cell.kind, cell.text, cell.toolName, cell.previewMarkdown,
       cell.inputDetail, cell.outputDetail, cell.thinkingDetail, t,
     ],
   )
@@ -1057,7 +1102,7 @@ function RecordPresentation({
     [cell.result, cell.resultPreviewMarkdown],
   )
   const toolCallOnly = isToolCallOnly(cell, t)
-  const toolCallText = toolCallTextParts(cell.kind, displayText)
+  const toolCallText = toolCallTextParts(cell, displayText)
   const listDisplayText = toolCallOnly
     ? t('record.toolCallOnly')
     : toolCallText === undefined
@@ -1087,10 +1132,11 @@ function RecordListText({
   return (
     <>
       <span className={css.toolCallNameTypeface}>
+        {toolCallText.program && <IconCodeOutlineRegular className={css.programIcon} size={12} />}
         {toolCallText.name || '—'}
       </span>
       {toolCallText.args !== undefined && (
-        <span className={css.toolCallPayload}>
+        <span className={toolCallText.program ? css.programSummary : css.toolCallPayload}>
           {toolCallText.args}
         </span>
       )}
@@ -1102,18 +1148,20 @@ function MarkdownFragment({
   text,
   rendered,
   preview,
+  variant = 'body',
   t,
 }: {
   text: string
   rendered: boolean
   preview: boolean
+  variant?: 'body' | 'compact'
   t: TrajectoryTranslate
 }) {
   const labels = useMemo(() => markdownLabels(t), [t])
   if (rendered) {
     return (
       <div className={preview ? css.markdownPreview : css.markdownPayload}>
-        <MarkdownText text={text} labels={labels} />
+        <MarkdownText text={text} labels={labels} variant={variant} />
       </div>
     )
   }
@@ -1127,75 +1175,123 @@ function MarkdownFragment({
 function SourceBlocks({
   blocks,
   onOpenCall,
-  renderImages,
   t,
 }: {
   blocks: readonly TrajectorySourceBlock[]
   onOpenCall: (callId: string) => void
-  renderImages: RenderMessageImages
   t: TrajectoryTranslate
 }) {
+  const attachments = new Map(recordAttachments(blocks, t).map(entry => [entry.index, entry]))
   return (
     <div className={css.sourceBlocks}>
-      {blocks.map((block, index) => (
-        <section className={css.sourceBlock} key={index}>
-          {block.callId !== undefined
-            ? (
-              <button
-                type="button"
-                className={css.sourceBlockJumpTarget}
-                aria-label={t('block.openSummary', { index: index + 1 })}
-                title={t('block.openSummaryTitle')}
-                onClick={() => {
-                  if (block.callId !== undefined) onOpenCall(block.callId)
-                }}
-              >
-                <span className={css.sourceBlockLabel}>
-                  {t('block.label', { index: index + 1, type: block.type })}
-                </span>
-                <IconChevronRightOutline14 className={css.sourceBlockJumpIcon} size={12} />
-              </button>
-            )
-            : (
-              <div className={css.sourceBlockHeader}>
-                <span className={css.sourceBlockLabel}>
-                  {t('block.label', { index: index + 1, type: block.type })}
-                </span>
-              </div>
-            )}
-          {/* The Raw view keeps model block order and granularity: one
-              gallery per image block, unlike the aggregated record gallery. */}
-          {block.attachment !== undefined
-            ? renderImages({ images: [{ attachment: block.attachment }], align: 'start' })
-            : <pre className={css.sourceBlockContent}>{block.content}</pre>}
-        </section>
-      ))}
+      {blocks.map((block, index) => {
+        const attachment = attachments.get(index)
+        return attachment !== undefined ? (
+          <details className={css.attachmentDisclosure} key={index}>
+            <summary>
+              <span className={css.sourceBlockLabel}>
+                {t('block.label', { index: index + 1, type: block.type })}
+              </span>
+              <span className={css.attachmentName} title={attachment.name}>
+                {attachment.name}
+              </span>
+            </summary>
+            <pre className={css.sourceBlockContent}>{block.content}</pre>
+          </details>
+        )
+          : (
+            <section className={css.sourceBlock} key={index}>
+              {block.callId !== undefined
+                ? (
+                  <button
+                    type="button"
+                    className={css.sourceBlockJumpTarget}
+                    aria-label={t('block.openSummary', { index: index + 1 })}
+                    title={t('block.openSummaryTitle')}
+                    onClick={() => {
+                      if (block.callId !== undefined) onOpenCall(block.callId)
+                    }}
+                  >
+                    <span className={css.sourceBlockLabel}>
+                      {t('block.label', { index: index + 1, type: block.type })}
+                    </span>
+                    <IconChevronRightOutlineRegular className={css.sourceBlockJumpIcon} size={12} />
+                  </button>
+                )
+                : (
+                  <div className={css.sourceBlockHeader}>
+                    <span className={css.sourceBlockLabel}>
+                      {t('block.label', { index: index + 1, type: block.type })}
+                    </span>
+                  </div>
+                )}
+              <pre className={css.sourceBlockContent}>{block.content}</pre>
+            </section>
+          )
+      })}
     </div>
   )
 }
 
-function recordImages(
+function recordAttachments(
   blocks: readonly TrajectorySourceBlock[] | undefined,
-): { readonly attachment: ImageAttachmentRef }[] {
-  return (blocks ?? []).flatMap(block =>
-    block.attachment !== undefined ? [{ attachment: block.attachment }] : [])
+  t: TrajectoryTranslate,
+) {
+  let imageIndex = 0
+  return (blocks ?? []).flatMap((block, index) => {
+    const ref = block.attachment ?? block.file
+    if (ref === undefined) return []
+    if (block.attachment !== undefined) imageIndex += 1
+    return [{
+      block,
+      index,
+      name: ref.name ?? t('attachment.imageName', { index: imageIndex }),
+      metadata: [
+        block.attachment?.mediaType ?? fileExtension(ref.name ?? '').toUpperCase(),
+        fileSizeText(ref.bytes),
+        ...(block.attachment === undefined ? [] : [`${block.attachment.width} × ${block.attachment.height}`]),
+      ].filter(Boolean).join(' · '),
+    }]
+  })
 }
 
-function MessageImages({
+function RecordAttachments({
   blocks,
   preview,
-  renderImages,
+  renderSlot,
+  loadImage,
+  t,
 }: {
   blocks: readonly TrajectorySourceBlock[] | undefined
   preview: boolean
-  renderImages: RenderMessageImages
+  renderSlot: PropsRenderSlots<'conversation.trajectory.images'>['renderSlot']
+  loadImage: MessageImageLoader
+  t: TrajectoryTranslate
 }) {
-  const images = recordImages(blocks)
-  if (images.length === 0) return null
+  const attachments = recordAttachments(blocks, t)
+  if (attachments.length === 0) return null
   return (
-    <div className={preview ? `${css.messageImages} ${css.messageImagesPreview}` : css.messageImages}>
-      {renderImages({ images, align: 'start' })}
-    </div>
+    <ul
+      className={preview ? `${css.attachments} ${css.attachmentsPreview}` : css.attachments}
+      aria-label={t('attachment.list')}
+    >
+      {attachments.map(({ block, index, name, metadata }) => (
+        <li className={css.attachmentRow} key={index}>
+          {block.attachment !== undefined
+            ? renderSlot('conversation.trajectory.images', {
+              images: [{ attachment: block.attachment, label: name }],
+              align: 'start',
+              thumbnail: true,
+              loadImage,
+            })
+            : <span className={css.attachmentIcon}><FileTypeIcon path={name} /></span>}
+          <div className={css.attachmentInfo}>
+            <span className={css.attachmentName} title={name}>{name}</span>
+            <span className={css.attachmentMetadata}>{metadata}</span>
+          </div>
+        </li>
+      ))}
+    </ul>
   )
 }
 
@@ -1281,15 +1377,20 @@ function ToolGlyph() {
 
 function ToolCatalog({
   tools,
+  stringWrapping,
   t,
-}: { tools: ConversationPromptSnapshot['tools']; t: TrajectoryTranslate }) {
+}: {
+  tools: ConversationPromptSnapshot['tools']
+  stringWrapping: JsonTreeProps['stringWrapping']
+  t: TrajectoryTranslate
+}) {
   if (tools.length === 0) return <p className={css.noPayload}>{t('record.toolsMissing')}</p>
   return (
     <div className={css.toolCatalog}>
       {tools.map((tool, index) => (
         <details className={css.toolCatalogItem} key={`${tool.name}:${index}`}>
           <summary className={css.toolCatalogSummary}>
-            <IconChevronRightOutline14 className={css.toolCatalogChevron} size={12} />
+            <IconChevronRightOutlineRegular className={css.toolCatalogChevron} size={12} />
             <ToolGlyph />
             <span className={css.toolCatalogName}>{tool.name}</span>
             <span className={css.toolCatalogDescription}>{tool.description}</span>
@@ -1300,6 +1401,7 @@ function ToolCatalog({
             )}
             <JsonTree
               data={tool.parameters}
+              stringWrapping={stringWrapping}
               label={t('record.namedParametersJson', { name: tool.name })}
               labels={jsonTreeLabels(t)}
               className={css.toolCatalogTree}
@@ -1395,14 +1497,16 @@ function ToolOutputBlocks({
   error,
   errorDetail,
   preview,
-  renderImages,
+  renderSlot,
+  loadImage,
 }: {
   blocks: readonly TrajectorySourceBlock[]
   error: boolean
-  /** Failure name and code preserved beside image-only error content. */
+  /** Failure name and code shown only when no recorded text block is non-empty. */
   errorDetail?: string | undefined
   preview: boolean
-  renderImages: RenderMessageImages
+  renderSlot: PropsRenderSlots<'conversation.trajectory.images'>['renderSlot']
+  loadImage: MessageImageLoader
 }) {
   return (
     <div className={[
@@ -1412,12 +1516,13 @@ function ToolOutputBlocks({
     ].filter((value): value is string => value !== undefined).join(' ')}
     >
       {error && errorDetail !== undefined && errorDetail !== ''
+        && !blocks.some(block => block.type === 'text' && block.content !== '')
         && <pre className={css.resultBlockText}>{errorDetail}</pre>}
       {blocks.map((block, index) => (
         block.attachment !== undefined
           ? (
             <div className={css.messageImages} key={index}>
-              {renderImages({ images: [{ attachment: block.attachment }], align: 'start' })}
+              {renderSlot('conversation.trajectory.images', { images: [{ attachment: block.attachment }], align: 'start', loadImage })}
             </div>
           )
           : block.content !== ''
@@ -1435,7 +1540,8 @@ function MarkdownRecordContent({
   thinkingExpanded,
   onThinkingExpandedChange,
   onOpenCall,
-  renderImages,
+  renderSlot,
+  loadImage,
   t,
 }: {
   record: TableRecord
@@ -1444,15 +1550,19 @@ function MarkdownRecordContent({
   thinkingExpanded: boolean
   onThinkingExpandedChange: (expanded: boolean) => void
   onOpenCall: (callId: string) => void
-  renderImages: RenderMessageImages
+  renderSlot: PropsRenderSlots<'conversation.trajectory.images'>['renderSlot']
+  loadImage: MessageImageLoader
   t: TrajectoryTranslate
 }) {
+  if (record.cell.sourceBlocks?.length && record.cell.sourceBlocks.every(block =>
+    block.type === 'tool-addition' || block.type === 'tool-removal')) {
+    return <pre className={`${css.payload} ${css.toolUpdatePayload}`}>{record.cell.inputDetail}</pre>
+  }
   if (!rendered && record.cell.sourceBlocks && record.cell.sourceBlocks.length > 0) {
     return (
       <SourceBlocks
         blocks={record.cell.sourceBlocks}
         onOpenCall={onOpenCall}
-        renderImages={renderImages}
         t={t}
       />
     )
@@ -1480,13 +1590,14 @@ function MarkdownRecordContent({
             onClick={() => { onThinkingExpandedChange(!thinkingExpanded) }}
           >
             {t('record.thinking')}
-            <IconChevronRightOutline14 className={css.thinkingChevron} size={12} />
+            <IconChevronRightOutlineRegular className={css.thinkingChevron} size={12} />
           </button>
           {thinkingExpanded && (
             <MarkdownFragment
               text={record.cell.thinkingDetail}
               rendered={rendered}
               preview={preview}
+              variant="compact"
               t={t}
             />
           )}
@@ -1507,25 +1618,27 @@ function MarkdownRecordContent({
           onOpenCall={onOpenCall}
           t={t}
         />
-        <MessageImages
+        <RecordAttachments
           blocks={record.cell.sourceBlocks}
           preview={preview}
-          renderImages={renderImages}
+          renderSlot={renderSlot}
+          loadImage={loadImage}
+          t={t}
         />
       </div>
     )
   }
   const source = markdownSource(record)
-  const hasImages = record.cell.sourceBlocks?.some(block => block.attachment !== undefined) === true
+  const hasAttachments = record.cell.sourceBlocks?.some(block => block.attachment !== undefined || block.file !== undefined) === true
   const hasToolCalls = record.cell.kind === 'message'
     && record.cell.sourceBlocks?.some(block => block.type === 'tool-call') === true
-  if (!source && !hasImages && !hasToolCalls) {
+  if (!source && !hasAttachments && !hasToolCalls) {
     const emptyLabel = isToolCallOnly(record.cell, t)
       ? t('record.toolCallOnly')
       : record.cell.text || t('record.noContent')
     return <p className={css.noPayload}>{emptyLabel}</p>
   }
-  if (!rendered || (!hasImages && !hasToolCalls)) {
+  if (!rendered || (!hasAttachments && !hasToolCalls)) {
     return <MarkdownFragment text={source ?? ''} rendered={rendered} preview={preview} t={t} />
   }
   return (
@@ -1539,19 +1652,26 @@ function MarkdownRecordContent({
           t={t}
         />
       )}
-      <MessageImages blocks={record.cell.sourceBlocks} preview={preview} renderImages={renderImages} />
+      <RecordAttachments blocks={record.cell.sourceBlocks} preview={preview}
+        renderSlot={renderSlot} loadImage={loadImage} t={t} />
     </div>
   )
 }
 
-function RecordTiming({ record, t }: { record: TableRecord; t: TrajectoryTranslate }) {
+function RecordTiming({
+  record,
+  preview = false,
+  t,
+}: { record: TableRecord; preview?: boolean; t: TrajectoryTranslate }) {
   return record.cell.kind === 'message' && record.cell.assistantMetrics !== undefined
     ? <AssistantTimingPanel metrics={record.cell.assistantMetrics} t={t} />
     : (
       <dl className={css.overview}>
         <div><dt>{t('timing.started')}</dt><StartedAtValue timestamp={record.cell.startedAt ?? null} t={t} /></div>
         <div><dt>{t('timing.duration')}</dt><dd>{formatElapsedSeconds(record.cell.timeSeconds, t)}</dd></div>
-        <div><dt>{t('timing.source')}</dt><dd>{record.cell.timeSeconds === null ? t('timing.notAvailable') : t('timing.sessionTimestamps')}</dd></div>
+        {!preview && (
+          <div><dt>{t('timing.source')}</dt><dd>{record.cell.timeSeconds === null ? t('timing.notAvailable') : t('timing.sessionTimestamps')}</dd></div>
+        )}
       </dl>
     )
 }
@@ -1560,14 +1680,16 @@ function RequestTiming({
   assistant,
   anchor,
   request,
+  preview = false,
   t,
 }: {
   assistant: TableRecord | undefined
   anchor: TableRecord | undefined
   request: TrajectoryRequestNumber | undefined
+  preview?: boolean
   t: TrajectoryTranslate
 }) {
-  if (assistant !== undefined) return <RecordTiming record={assistant} t={t} />
+  if (assistant !== undefined) return <RecordTiming record={assistant} preview={preview} t={t} />
   if (request?.startedAt !== undefined) {
     const duration = request.completedAt === null || request.completedAt === undefined
       ? null
@@ -1576,10 +1698,12 @@ function RequestTiming({
       <dl className={css.overview}>
         <div><dt>{t('timing.started')}</dt><StartedAtValue timestamp={request.startedAt} t={t} /></div>
         <div><dt>{t('timing.duration')}</dt><dd>{formatElapsedSeconds(duration, t)}</dd></div>
-        <div>
-          <dt>{t('timing.source')}</dt>
-          <dd>{duration === null ? t('timing.sessionTimestampsRunning') : t('timing.sessionTimestamps')}</dd>
-        </div>
+        {!preview && (
+          <div>
+            <dt>{t('timing.source')}</dt>
+            <dd>{duration === null ? t('timing.sessionTimestampsRunning') : t('timing.sessionTimestamps')}</dd>
+          </div>
+        )}
       </dl>
     )
   }
@@ -1598,13 +1722,17 @@ function RecordPayload({
   record,
   direction,
   preview = false,
-  renderImages,
+  renderSlot,
+  loadImage,
+  stringWrapping,
   t,
 }: {
   record: TableRecord
   direction: 'input' | 'output'
   preview?: boolean
-  renderImages: RenderMessageImages
+  renderSlot: PropsRenderSlots<'conversation.trajectory.images'>['renderSlot']
+  loadImage: MessageImageLoader
+  stringWrapping: JsonTreeProps['stringWrapping']
   t: TrajectoryTranslate
 }) {
   const value = direction === 'input' ? record.cell.inputDetail : record.cell.outputDetail
@@ -1616,7 +1744,7 @@ function RecordPayload({
   const payloadClass = preview ? css.jsonPreview : css.jsonPayload
   const payloadClassName = error ? `${payloadClass} ${css.errorPayload}` : payloadClass
 
-  const json = parseJsonContainer(value)
+  const json = error ? undefined : parseJsonContainer(value)
   const singleTextResult = direction === 'output'
     && record.cell.outputBlocks?.length === 1
     && record.cell.outputBlocks[0]?.type === 'text'
@@ -1624,6 +1752,8 @@ function RecordPayload({
     return (
       <JsonTree
         data={json}
+        stringWrapping={stringWrapping}
+        collapsedStringLines={preview ? 3 : 12}
         label={t('record.resultJson')}
         labels={jsonTreeLabels(t)}
         className={payloadClassName}
@@ -1642,7 +1772,8 @@ function RecordPayload({
         error={error}
         errorDetail={error ? value : undefined}
         preview={preview}
-        renderImages={renderImages}
+        renderSlot={renderSlot}
+        loadImage={loadImage}
       />
     )
   }
@@ -1668,6 +1799,8 @@ function RecordPayload({
     return (
       <JsonTree
         data={json}
+        stringWrapping={stringWrapping}
+        collapsedStringLines={preview ? 3 : 12}
         label={t(direction === 'input' ? 'record.payloadJson' : 'record.outputJson')}
         labels={jsonTreeLabels(t)}
         className={payloadClassName}
@@ -1690,10 +1823,12 @@ function RecordPayload({
 function RecordSchema({
   record,
   preview = false,
+  stringWrapping,
   t,
 }: {
   record: TableRecord
   preview?: boolean
+  stringWrapping: JsonTreeProps['stringWrapping']
   t: TrajectoryTranslate
 }) {
   if (!record.cell.schemaDetail) {
@@ -1711,6 +1846,8 @@ function RecordSchema({
           <h4 className={css.schemaParametersTitle}>{t('record.parameters')}</h4>
           <JsonTree
             data={schema.parameters}
+            stringWrapping={stringWrapping}
+            collapsedStringLines={preview ? 3 : 12}
             label={t('record.namedParametersJson', { name: schema.name })}
             labels={jsonTreeLabels(t)}
             className={css.schemaTree}
@@ -1763,15 +1900,166 @@ function parseJsonContainer(value: string): object | undefined {
   }
 }
 
+function InspectorCopyButton({ text, label, t }: {
+  text: string
+  label: string
+  t: TrajectoryTranslate
+}) {
+  const [state, setState] = useState<'idle' | 'copied' | 'failed'>('idle')
+  useEffect(() => {
+    if (state === 'idle') return
+    const timer = setTimeout(() => { setState('idle') }, 1_500)
+    return () => { clearTimeout(timer) }
+  }, [state])
+  const title = state === 'idle' ? label : t(state === 'copied' ? 'copied' : 'copy.failed')
+  return (
+    <button
+      type="button"
+      className={css.programAction}
+      data-state={state}
+      aria-label={title}
+      title={title}
+      onClick={() => { void writeClipboard(text).then((ok) => { setState(ok ? 'copied' : 'failed') }) }}
+    >
+      {state === 'copied' ? <IconCheckOutlineRegular size={12} /> : <IconCopyOutlineRegular size={12} />}
+    </button>
+  )
+}
+
+function ProgramInput({ program, initialWrapped, stringWrapping, onOpen, t }: {
+  program: CodeProgram
+  initialWrapped: boolean
+  stringWrapping: JsonTreeProps['stringWrapping']
+  onOpen?: () => void
+  t: TrajectoryTranslate
+}) {
+  const contentsId = useId()
+  const [wrapped, setWrapped] = useState(initialWrapped)
+  const [showJson, setShowJson] = useState(false)
+  const actions = (
+    <span className={css.programActions}>
+      {!showJson && program.language !== undefined && (
+        <span className={css.programLanguage}>{program.language}</span>
+      )}
+      {!showJson && (
+        <button
+          type="button"
+          className={css.programAction}
+          aria-label={t('record.wrapLines')}
+          title={t('record.wrapLines')}
+          aria-pressed={wrapped}
+          aria-controls={contentsId}
+          onClick={() => {
+            const next = !wrapped
+            setWrapped(next)
+            stringWrapping?.setDefault(next)
+          }}
+        >
+          <IconWrapLinesOutlineRegular size={12} />
+        </button>
+      )}
+      {onOpen === undefined && (
+        <button
+          type="button"
+          className={css.programAction}
+          aria-label={t('code.originalJson')}
+          title={t('code.originalJson')}
+          aria-pressed={showJson}
+          aria-controls={contentsId}
+          onClick={() => { setShowJson(value => !value) }}
+        >
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="none"
+            stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M6 2H5a2 2 0 0 0-2 2v2a2 2 0 0 1-2 2 2 2 0 0 1 2 2v2a2 2 0 0 0 2 2h1" />
+            <path d="M10 2h1a2 2 0 0 1 2 2v2a2 2 0 0 0 2 2 2 2 0 0 0-2 2v2a2 2 0 0 1-2 2h-1" />
+          </svg>
+        </button>
+      )}
+      <InspectorCopyButton
+        text={showJson ? program.rawInput : program.source}
+        label={t(showJson ? 'copy.json' : 'code.copySource')}
+        t={t}
+      />
+    </span>
+  )
+  const body = (
+    <div id={contentsId} className={css.programContent} data-wrap={wrapped}>
+      {showJson
+        ? <JsonTree data={program.arguments} label={t('record.parametersJson')}
+          labels={jsonTreeLabels(t)} stringWrapping={stringWrapping} />
+        : <CodeBlock code={program.source} lang={program.language} lineNumbers showHeader={false}
+          className={css.programSource} copyLabel={t('code.copySource')} copiedLabel={t('copied')} />}
+    </div>
+  )
+  return onOpen === undefined
+    ? (
+      <section className={css.programPanel}>
+        <header className={css.overviewHeading}>
+          <span>{t('code.source')}</span>
+          {actions}
+        </header>
+        {body}
+      </section>
+    )
+    : <OverviewSection label={t('code.source')} onOpen={onOpen} actions={actions}>{body}</OverviewSection>
+}
+
+function ProgramOutput({ record, stringWrapping, onOpen, t }: {
+  record: TableRecord
+  stringWrapping: JsonTreeProps['stringWrapping']
+  onOpen?: () => void
+  t: TrajectoryTranslate
+}) {
+  const output = record.cell.outputDetail
+  const json = output === undefined || record.cell.isError === true ? undefined : parseJsonContainer(output)
+  const actions = output === undefined ? undefined : (
+    <span className={css.programActions}>
+      <InspectorCopyButton text={output} label={t('code.copyOutput')} t={t} />
+    </span>
+  )
+  const body = (
+    <div className={css.programContent}>
+      {output === undefined || output === ''
+        ? <p className={css.noPayload}>{t(stateOf(record) === 'running' ? 'code.running' : 'record.noOutput')}</p>
+        : json !== undefined
+          ? <JsonTree data={json} label={t('record.outputJson')} labels={jsonTreeLabels(t)}
+            stringWrapping={stringWrapping} collapsedStringLines={onOpen === undefined ? 12 : 3} />
+          : <pre className={`${css.programOutput} ${record.cell.isError === true ? css.programError : ''}`}>{output}</pre>}
+    </div>
+  )
+  return onOpen === undefined
+    ? body
+    : <OverviewSection label={t('code.output')} onOpen={onOpen} actions={actions}>{body}</OverviewSection>
+}
+
 function OverviewSection({
   label,
   onOpen,
+  actions,
   children,
 }: {
   label: string
   onOpen: () => void
+  actions?: ReactNode
   children: ReactNode
 }) {
+  const previewRef = useRef<HTMLDivElement>(null)
+  const [hasMore, setHasMore] = useState(false)
+  const measureOverflow = useCallback((preview: HTMLElement) => {
+    setHasMore(preview.scrollHeight - preview.clientHeight - preview.scrollTop > 1)
+  }, [])
+
+  useLayoutEffect(() => {
+    const preview = previewRef.current as HTMLDivElement
+    const measure = () => { measureOverflow(preview) }
+    measure()
+    if (typeof ResizeObserver === 'undefined') return
+    const observer = new ResizeObserver(measure)
+    observer.observe(preview)
+    for (const child of preview.children) observer.observe(child)
+    return () => { observer.disconnect() }
+  }, [children, measureOverflow])
+
   return (
     <section className={css.overviewSection}>
       <h3 className={css.overviewHeading}>
@@ -1781,12 +2069,16 @@ function OverviewSection({
           onClick={onOpen}
         >
           <span>{label}</span>
-          <IconChevronRightOutline14 className={css.overviewTitleIcon} size={12} />
+          <IconChevronRightOutlineRegular className={css.overviewTitleIcon} size={12} />
         </button>
+        {actions}
       </h3>
       <div
+        ref={previewRef}
         className={`${css.overviewPreview} ${css.summaryScrollRegion}`}
         data-summary-scroll-region=""
+        data-scroll-more={hasMore || undefined}
+        onScroll={(event) => { measureOverflow(event.currentTarget) }}
       >
         {children}
       </div>
@@ -1801,8 +2093,11 @@ function OverviewSection({
  * @returns The ledger and an optional local record inspector.
  */
 export function TrajectoryTable({
+  watchToolResult,
   t,
-  renderImages,
+  stringWrapping,
+  renderSlot,
+  loadImage,
   requestNumbers: sessionRequestNumbers,
   turns,
   streamingCells = [],
@@ -1822,13 +2117,16 @@ export function TrajectoryTable({
   onToggleTurn,
   collapsedAssistants,
   onToggleAssistant,
+  collapsedTools,
+  onToggleTool,
   inspectCallId = null,
   onInspectApplied,
 }: TrajectoryTableProps) {
   const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null)
   const [selectedRequest, setSelectedRequest] = useState<SelectedRequest | null>(null)
   const [activeTab, setActiveTab] = useState<DetailTab>('overview')
-  const [thinkingExpanded, setThinkingExpanded] = useState(false)
+  const [codeWrappingOnOpen, setCodeWrappingOnOpen] = useState(false)
+  const [thinkingDisclosure, setThinkingDisclosure] = useState<{ recordId: string; expanded: boolean }>()
   const [detailsWidth, setDetailsWidth] = useState<number | null>(null)
   const [toolRequestOffset, setToolRequestOffset] = useState<number | null>(null)
   const detailsResizeDrag = useRef<DetailsResizeDrag | null>(null)
@@ -1860,6 +2158,28 @@ export function TrajectoryTable({
   const selected = selectedTemplate === undefined
     ? undefined
     : currentRecord(selectedTemplate)
+  const resultSeq = activeTab === 'output' ? selected?.cell.resultSeq : undefined
+  const [liveResult, setLiveResult] = useState<{ seq: number; owner: WatchToolResult; value: JsonValue | undefined }>()
+  useEffect(() => {
+    setLiveResult(undefined)
+    if (resultSeq === undefined || watchToolResult === undefined) return
+    let active = true
+    const dispose = watchToolResult(resultSeq, (value) => {
+      if (active) setLiveResult({ seq: resultSeq, owner: watchToolResult, value })
+    })
+    return () => { active = false; dispose() }
+  }, [resultSeq, watchToolResult])
+  const resultValue = liveResult?.seq === resultSeq && liveResult?.owner === watchToolResult ? liveResult?.value : undefined
+  const selectedProgram = selected === undefined ? undefined : codeProgram(selected.cell)
+  const thinkingExpanded = thinkingDisclosure?.recordId === selectedRecordId
+    ? thinkingDisclosure.expanded
+    : selected?.cell.kind === 'message'
+      && Boolean(selected.cell.thinkingDetail?.trim())
+  const setThinkingExpanded = (expanded: boolean) => {
+    if (selectedRecordId !== null) {
+      setThinkingDisclosure({ recordId: selectedRecordId, expanded })
+    }
+  }
   const selectedIndex = selected?.cell.index ?? null
   useEffect(() => {
     onSelectedIndexChange?.(selectedIndex)
@@ -1880,10 +2200,13 @@ export function TrajectoryTable({
     const turnRecords = collapsedTurns.size === 0
       ? allRecords
       : collapseTurnRecords(allRecords, collapsedTurns, requestGroups, t)
-    return collapsedAssistants.size === 0
+    const assistantRecords = collapsedAssistants.size === 0
       ? turnRecords
-      : collapseAssistantRecords(turnRecords, collapsedAssistants, t)
-  }, [allRecords, collapsedAssistants, collapsedTurns, requestGroups, searchMatchIndexes, t])
+      : collapseCallRecords(turnRecords, collapsedAssistants, 'assistant', t)
+    return collapsedTools.size === 0
+      ? assistantRecords
+      : collapseCallRecords(assistantRecords, collapsedTools, 'tool', t)
+  }, [allRecords, collapsedAssistants, collapsedTools, collapsedTurns, requestGroups, searchMatchIndexes, t])
   const projectedVirtualRows = useMemo(
     () => groupTrajectoryVirtualRows(records),
     [records],
@@ -1979,7 +2302,7 @@ export function TrajectoryTable({
     ), [allRecords, selectedRequestInfo])
   const selectedRequestRecords = selectedRequestRecordTemplates.map(currentRecord)
   const selectedRequestAssistant = selectedRequestRecords.find(
-    record => record.cell.kind === 'message',
+    record => record.cell.kind === 'message' && record.cell.requestOnly !== true,
   )
   const selectedRequestAnchor = selectedRequestAssistant ?? selectedRequestRecords[0]
   const selectedRequestNumber = selectedRequestInfo?.number
@@ -2060,6 +2383,7 @@ export function TrajectoryTable({
     }
 
   const activateTab = (tab: DetailTab) => {
+    setCodeWrappingOnOpen(stringWrapping?.getDefault() ?? false)
     tabHistory.current.delete(tab)
     tabHistory.current.add(tab)
     setActiveTab(tab)
@@ -2076,6 +2400,7 @@ export function TrajectoryTable({
   }
 
   const selectRecord = useCallback((index: number) => {
+    setCodeWrappingOnOpen(stringWrapping?.getDefault() ?? false)
     const record = allRecords.find(candidate => candidate.cell.index === index)
     onRecordSelect?.(index)
     setSelectedRequest(null)
@@ -2085,7 +2410,7 @@ export function TrajectoryTable({
     const available = new Set(tabs.map(tab => tab.id))
     const recent = [...tabHistory.current].reverse().find(tab => available.has(tab))
     setActiveTab(recent ?? tabs[0]?.id ?? 'overview')
-  }, [allRecords, onRecordSelect])
+  }, [allRecords, onRecordSelect, stringWrapping])
   useEffect(() => {
     if (
       recordSelection === null
@@ -2119,6 +2444,17 @@ export function TrajectoryTable({
   const openRecordSummary = (target: TableRecord) => {
     const targetAt = allRecords.findIndex(record => record.cell.index === target.cell.index)
     if (target.turn !== null && collapsedTurns.has(target.turn)) onToggleTurn(target.turn)
+    if (target.cell.kind === 'subtool') {
+      for (let i = targetAt - 1; i >= 0; i--) {
+        const candidate = allRecords[i]
+        if (candidate === undefined || candidate.cell.kind === 'subtool') continue
+        if (candidate.cell.kind === 'tool') {
+          const toolId = trajectoryRecordId(candidate.cell)
+          if (collapsedTools.has(toolId)) onToggleTool(toolId)
+        }
+        break
+      }
+    }
     if (target.cell.kind === 'tool' || target.cell.kind === 'subtool') {
       for (let i = targetAt - 1; i >= 0; i--) {
         const candidate = allRecords[i]
@@ -2137,6 +2473,22 @@ export function TrajectoryTable({
   const openCallSummary = (callId: string) => {
     const target = allRecords.find(record => record.cell.callId === callId)
     if (target !== undefined) openRecordSummary(target)
+  }
+
+  const expandSummary = (record: TableRecord, kind: NonNullable<TableRecord['collapsedSummaryKind']>) => {
+    switch (kind) {
+      case 'turn':
+        if (record.turn !== null) onToggleTurn(record.turn)
+        return
+      case 'tool':
+        onToggleTool(trajectoryRecordId(record.cell))
+        return
+      case 'assistant':
+        onToggleAssistant(trajectoryRecordId(record.cell))
+        return
+      default:
+        assertNever(kind)
+    }
   }
 
   // Cross-view inspect handoff: resolve the requested call to its record,
@@ -2322,7 +2674,7 @@ export function TrajectoryTable({
         {showInitialLoading && (
           <div className={css.historyLoading} role="status" aria-live="polite">
             <span className={css.historyLoadingBar}>
-              <span className={css.historyLoadingSpinner} aria-hidden="true" />
+              <StateDot state="ongoing" />
               {t('history.loadingTrajectory')}
             </span>
           </div>
@@ -2357,7 +2709,7 @@ export function TrajectoryTable({
                     }}
                   >
                     {olderBusy && (
-                      <span className={css.historyLoadingSpinner} aria-hidden="true" />
+                      <StateDot state="ongoing" />
                     )}
                     <span aria-hidden="true">
                       {olderBusy ? t('history.loadingEarlier') : t('history.loadEarlier')}
@@ -2386,7 +2738,8 @@ export function TrajectoryTable({
                 t={t}
               >
                 {({ displayText, listDisplayText, resultText, toolCallOnly, toolCallText }) => {
-                  const isCollapsedSummary = record.collapsedSummary !== undefined
+                  const summaryKind = record.collapsedSummaryKind
+                  const isCollapsedSummary = summaryKind !== undefined
                   const isRequestOnly = record.cell.requestOnly === true
                   const isInitialSystem = record.cell.kind === 'system'
                 && record.cell.index === allRecords[0]?.cell.index
@@ -2415,15 +2768,16 @@ export function TrajectoryTable({
                   const sectionActive = record.turn === null
                     ? activeSection === record.section
                     : activeTurn === record.turn
+                  const singleToolNotice = record.cell.kind === 'context'
+                    && record.cell.sourceBlocks?.length === 1
+                    && record.cell.sourceBlocks.every(block => block.type === 'tool-addition' || block.type === 'tool-removal')
                   return (
                     <tr
-                      tabIndex={isRequestOnly ? -1 : 0}
+                      tabIndex={isRequestOnly || singleToolNotice ? -1 : 0}
                       aria-rowindex={position + 1 + historyRowOffset}
                       aria-label={isCollapsedSummary
                         ? t('request.collapsedSummary', {
-                          kind: t(record.collapsedSummaryKind === 'turn'
-                            ? 'request.collapsedTurn'
-                            : 'request.collapsedAssistant'),
+                          kind: t(COLLAPSED_SUMMARY_LABEL_KEY[summaryKind]),
                           summary: record.collapsedSummary,
                         })
                         : isRequestOnly
@@ -2452,17 +2806,13 @@ export function TrajectoryTable({
                       data-timeline-focus={isCollapsedSummary || timelineFocusIndexes === null
                         ? undefined
                         : timelineFocusIndexes.has(record.cell.index) ? 'inside' : 'outside'}
-                      onClick={isRequestOnly
+                      onClick={isRequestOnly || singleToolNotice
                         ? undefined
                         : isCollapsedSummary
-                          ? () => {
-                            if (record.collapsedSummaryKind === 'turn' && record.turn !== null) {
-                              onToggleTurn(record.turn)
-                            } else onToggleAssistant(trajectoryRecordId(record.cell))
-                          }
+                          ? () => { expandSummary(record, summaryKind) }
                           : () => { selectRecord(record.cell.index) }}
                       onDoubleClick={(event) => {
-                        if (isCollapsedSummary || isRequestOnly) return
+                        if (isCollapsedSummary || isRequestOnly || singleToolNotice) return
                         if (record.turn !== null && collapsedTurns.has(record.turn)) {
                           event.preventDefault()
                           onToggleTurn(record.turn)
@@ -2486,13 +2836,11 @@ export function TrajectoryTable({
                         onToggleTurn(record.turn)
                       }}
                       onKeyDown={(event) => {
-                        if (isRequestOnly) return
+                        if (isRequestOnly || singleToolNotice) return
                         if (event.key !== 'Enter' && event.key !== ' ') return
                         event.preventDefault()
                         if (isCollapsedSummary) {
-                          if (record.collapsedSummaryKind === 'turn' && record.turn !== null) {
-                            onToggleTurn(record.turn)
-                          } else onToggleAssistant(trajectoryRecordId(record.cell))
+                          expandSummary(record, summaryKind)
                           return
                         }
                         selectRecord(record.cell.index)
@@ -2809,7 +3157,9 @@ export function TrajectoryTable({
             id="trajectory-detail-panel"
             className={activeTab === 'overview'
               ? `${css.detailBody} ${css.detailBodySummary}`
-              : css.detailBody}
+              : selectedProgram !== undefined && activeTab === 'input'
+                ? `${css.detailBody} ${css.detailBodyProgram}`
+                : css.detailBody}
             role="tabpanel"
             aria-labelledby={`trajectory-detail-${activeTab}`}
           >
@@ -2865,15 +3215,19 @@ export function TrajectoryTable({
                   )}
                   {selectedRequestInfo.error !== undefined && (
                     <div>
-                      <dt>{t('details.error')}</dt>
-                      <dd className={css.error}>{requestErrorMessage(selectedRequestInfo, t)}</dd>
+                      <dt>{t(selectedRequestState !== 'error' && selectedRequestInfo.retry !== undefined
+                        ? 'details.lastAttemptError'
+                        : 'details.error')}</dt>
+                      <dd className={selectedRequestState === 'error' ? css.error : undefined}>
+                        {requestErrorMessage(selectedRequestInfo, t)}
+                      </dd>
                     </div>
                   )}
                   {selectedRequestInfo.retry !== undefined && (
                     <div>
                       <dt>{t('details.retry')}</dt>
                       <dd>
-                        {t('details.scheduled')} {selectedRequestInfo.maxRetries === undefined
+                        {selectedRequestInfo.maxRetries === undefined
                           ? selectedRequestInfo.retry
                           : t('request.retryProgress', {
                             retry: selectedRequestInfo.retry,
@@ -2904,7 +3258,7 @@ export function TrajectoryTable({
                               ? t('details.compacted')
                               : t('details.assistantMessage')}
                           </span>
-                          <IconChevronRightOutline14
+                          <IconChevronRightOutlineRegular
                             className={css.overviewHierarchyJumpIconTight}
                             size={11}
                           />
@@ -2916,7 +3270,7 @@ export function TrajectoryTable({
                 <div className={css.overviewSections}>
                   {selectedRequestOptions !== undefined && (
                     <OverviewSection label={t('tab.options')} onOpen={() => { activateTab('options') }}>
-                      <RequestOptions options={selectedRequestOptions} preview t={t} />
+                      <RequestOptions options={selectedRequestOptions} preview stringWrapping={stringWrapping} t={t} />
                     </OverviewSection>
                   )}
                   <OverviewSection label={t('tab.usage')} onOpen={() => { activateTab('usage') }}>
@@ -2927,6 +3281,7 @@ export function TrajectoryTable({
                       assistant={selectedRequestAssistant}
                       anchor={selectedRequestAnchor}
                       request={selectedRequestInfo}
+                      preview
                       t={t}
                     />
                   </OverviewSection>
@@ -2934,7 +3289,7 @@ export function TrajectoryTable({
               </>
             )}
             {selectedRequestInfo !== undefined && activeTab === 'options' && (
-              <RequestOptions options={selectedRequestOptions} t={t} />
+              <RequestOptions options={selectedRequestOptions} stringWrapping={stringWrapping} t={t} />
             )}
             {selectedRequestInfo !== undefined && activeTab === 'usage' && (
               <RequestUsagePanel
@@ -2970,7 +3325,7 @@ export function TrajectoryTable({
                 )
             )}
             {selectedPrompt !== undefined && activeTab === 'tools' && (
-              <ToolCatalog tools={selectedPrompt.tools} t={t} />
+              <ToolCatalog tools={selectedPrompt.tools} stringWrapping={stringWrapping} t={t} />
             )}
             {!promptSelected
               && selected?.cell.kind === 'compacted'
@@ -3003,7 +3358,8 @@ export function TrajectoryTable({
                   >
                     <MarkdownRecordContent
                       record={selected}
-                      renderImages={renderImages}
+                      renderSlot={renderSlot}
+                      loadImage={loadImage}
                       rendered
                       thinkingExpanded={thinkingExpanded}
                       onThinkingExpandedChange={setThinkingExpanded}
@@ -3020,6 +3376,9 @@ export function TrajectoryTable({
               && selectedState !== undefined
               && activeTab === 'overview' && (
               <>
+                {selectedProgram !== undefined && selectedProgram.description !== '' && (
+                  <p className={css.programDescription}>{selectedProgram.description}</p>
+                )}
                 <dl
                   className={`${css.overview} ${css.summaryScrollRegion}`}
                   data-summary-scroll-region=""
@@ -3034,7 +3393,7 @@ export function TrajectoryTable({
                           onClick={() => { activateTab('source') }}
                         >
                           <span>{messageSourceLabel(selected.cell.messageSource, t)}</span>
-                          <IconChevronRightOutline14
+                          <IconChevronRightOutlineRegular
                             className={css.overviewHierarchyJumpIconTight}
                             size={11}
                           />
@@ -3059,7 +3418,7 @@ export function TrajectoryTable({
                             }}
                           >
                             <span>{t('request.label', { request: selectedAssistantRequest ?? '—' })}</span>
-                            <IconChevronRightOutline14
+                            <IconChevronRightOutlineRegular
                               className={css.overviewHierarchyJumpIconTight}
                               size={11}
                             />
@@ -3072,7 +3431,7 @@ export function TrajectoryTable({
                             onClick={() => { openRecordSummary(selectedParentMessage) }}
                           >
                             <span>{t('details.assistantMessage')}</span>
-                            <IconChevronRightOutline14
+                            <IconChevronRightOutlineRegular
                               className={css.overviewHierarchyJumpIconTight}
                               size={11}
                             />
@@ -3085,7 +3444,7 @@ export function TrajectoryTable({
                             onClick={() => { openRecordSummary(selectedParentTool) }}
                           >
                             <span>{t('details.toolCall')}</span>
-                            <IconChevronRightOutline14
+                            <IconChevronRightOutlineRegular
                               className={css.overviewHierarchyJumpIconTight}
                               size={11}
                             />
@@ -3111,40 +3470,51 @@ export function TrajectoryTable({
                   )}
                 </dl>
                 <div className={css.overviewSections}>
-                  {isMarkdownRecord(selected)
+                  {selectedProgram !== undefined
                     ? (
                       <>
-                        <OverviewSection label={t('tab.preview')} onOpen={() => { activateTab('rendered') }}>
-                          <MarkdownRecordContent
-                            record={selected}
-                            renderImages={renderImages}
-                            rendered
-                            preview
-                            thinkingExpanded={thinkingExpanded}
-                            onThinkingExpandedChange={setThinkingExpanded}
-                            onOpenCall={openCallSummary}
-                            t={t}
-                          />
-                        </OverviewSection>
+                        <ProgramInput key={`preview:${selectedRecordId}`} program={selectedProgram}
+                          initialWrapped={codeWrappingOnOpen}
+                          stringWrapping={stringWrapping} onOpen={() => { activateTab('input') }} t={t} />
+                        <ProgramOutput record={selected} stringWrapping={stringWrapping}
+                          onOpen={() => { activateTab('output') }} t={t} />
                       </>
                     )
-                    : (
-                      <>
-                        {selected.cell.inputDetail && (
-                          <OverviewSection label={t('tab.payload')} onOpen={() => { activateTab('input') }}>
-                            <RecordPayload record={selected} direction="input" preview renderImages={renderImages} t={t} />
+                    : isMarkdownRecord(selected)
+                      ? (
+                        <>
+                          <OverviewSection label={t('tab.preview')} onOpen={() => { activateTab('rendered') }}>
+                            <MarkdownRecordContent
+                              record={selected}
+                              renderSlot={renderSlot}
+                              loadImage={loadImage}
+                              rendered
+                              preview
+                              thinkingExpanded={thinkingExpanded}
+                              onThinkingExpandedChange={setThinkingExpanded}
+                              onOpenCall={openCallSummary}
+                              t={t}
+                            />
                           </OverviewSection>
-                        )}
-                        {selected.cell.outputDetail && (
-                          <OverviewSection label={t('tab.result')} onOpen={() => { activateTab('output') }}>
-                            <RecordPayload record={selected} direction="output" preview renderImages={renderImages} t={t} />
+                        </>
+                      )
+                      : (
+                        <>
+                          {selected.cell.inputDetail && (
+                            <OverviewSection label={t('tab.payload')} onOpen={() => { activateTab('input') }}>
+                              <RecordPayload record={selected} direction="input" preview renderSlot={renderSlot} loadImage={loadImage} stringWrapping={stringWrapping} t={t} />
+                            </OverviewSection>
+                          )}
+                          {selected.cell.outputDetail && (
+                            <OverviewSection label={t('tab.result')} onOpen={() => { activateTab('output') }}>
+                              <RecordPayload record={selected} direction="output" preview renderSlot={renderSlot} loadImage={loadImage} stringWrapping={stringWrapping} t={t} />
+                            </OverviewSection>
+                          )}
+                          <OverviewSection label={t('tab.schema')} onOpen={() => { activateTab('schema') }}>
+                            <RecordSchema record={selected} preview stringWrapping={stringWrapping} t={t} />
                           </OverviewSection>
-                        )}
-                        <OverviewSection label={t('tab.schema')} onOpen={() => { activateTab('schema') }}>
-                          <RecordSchema record={selected} preview t={t} />
-                        </OverviewSection>
-                      </>
-                    )}
+                        </>
+                      )}
                   {selectedAssistantRequestTarget !== undefined && (
                     <OverviewSection
                       label={t('timing.request')}
@@ -3152,12 +3522,12 @@ export function TrajectoryTable({
                         selectRequest(selectedAssistantRequestTarget, 'timing')
                       }}
                     >
-                      <RecordTiming record={selected} t={t} />
+                      <RecordTiming record={selected} preview t={t} />
                     </OverviewSection>
                   )}
                   {(selected.cell.kind === 'tool' || selected.cell.kind === 'subtool') && (
                     <OverviewSection label={t('tab.timing')} onOpen={() => { activateTab('timing') }}>
-                      <RecordTiming record={selected} t={t} />
+                      <RecordTiming record={selected} preview t={t} />
                     </OverviewSection>
                   )}
                 </div>
@@ -3166,7 +3536,8 @@ export function TrajectoryTable({
             {!promptSelected && selected !== undefined && activeTab === 'rendered' && (
               <MarkdownRecordContent
                 record={selected}
-                renderImages={renderImages}
+                renderSlot={renderSlot}
+                loadImage={loadImage}
                 rendered
                 thinkingExpanded={thinkingExpanded}
                 onThinkingExpandedChange={setThinkingExpanded}
@@ -3177,7 +3548,8 @@ export function TrajectoryTable({
             {!promptSelected && selected !== undefined && activeTab === 'raw' && (
               <MarkdownRecordContent
                 record={selected}
-                renderImages={renderImages}
+                renderSlot={renderSlot}
+                loadImage={loadImage}
                 rendered={false}
                 thinkingExpanded={thinkingExpanded}
                 onThinkingExpandedChange={setThinkingExpanded}
@@ -3186,16 +3558,43 @@ export function TrajectoryTable({
               />
             )}
             {!promptSelected && selected !== undefined && activeTab === 'source' && (
-              <MessageSource record={selected} t={t} />
+              <MessageSource record={selected} stringWrapping={stringWrapping} t={t} />
             )}
             {!promptSelected && selected !== undefined && activeTab === 'input' && (
-              <RecordPayload record={selected} direction="input" renderImages={renderImages} t={t} />
+              selectedProgram === undefined
+                ? <RecordPayload record={selected} direction="input" renderSlot={renderSlot} loadImage={loadImage} stringWrapping={stringWrapping} t={t} />
+                : <ProgramInput key={`input:${selectedRecordId}`} program={selectedProgram}
+                  initialWrapped={codeWrappingOnOpen}
+                  stringWrapping={stringWrapping} t={t} />
             )}
             {!promptSelected && selected !== undefined && activeTab === 'output' && (
-              <RecordPayload record={selected} direction="output" renderImages={renderImages} t={t} />
+              selected.cell.kind === 'tool' || selected.cell.kind === 'subtool'
+                ? <div className={css.resultSections}>
+                  <section className={css.resultSection} aria-label={t('record.rawResult')}>
+                    <header className={css.overviewHeading}>
+                      <h3 className={css.resultTitle}>{t('record.rawResult')}</h3>
+                    </header>
+                    {resultValue === undefined
+                      ? <p className={css.noPayload}>{t(stateOf(selected) === 'running' ? 'code.running' : 'record.rawResultUnavailable')}</p>
+                      : resultValue !== null && typeof resultValue === 'object'
+                        ? <JsonTree data={resultValue} label={t('record.resultJson')}
+                          labels={jsonTreeLabels(t)} stringWrapping={stringWrapping}
+                          collapsedStringLines={12} className={css.jsonPayload} />
+                        : <pre className={css.programOutput}>{JSON.stringify(resultValue)}</pre>}
+                  </section>
+                  <section className={css.resultSection} aria-label={t('record.renderedResult')}>
+                    <header className={css.overviewHeading}>
+                      <h3 className={css.resultTitle}>{t('record.renderedResult')}</h3>
+                    </header>
+                    {selectedProgram === undefined
+                      ? <RecordPayload record={selected} direction="output" renderSlot={renderSlot} loadImage={loadImage} stringWrapping={stringWrapping} t={t} />
+                      : <ProgramOutput record={selected} stringWrapping={stringWrapping} t={t} />}
+                  </section>
+                </div>
+                : <RecordPayload record={selected} direction="output" renderSlot={renderSlot} loadImage={loadImage} stringWrapping={stringWrapping} t={t} />
             )}
             {!promptSelected && selected !== undefined && activeTab === 'schema' && (
-              <RecordSchema record={selected} t={t} />
+              <RecordSchema record={selected} stringWrapping={stringWrapping} t={t} />
             )}
             {!promptSelected && selected !== undefined && activeTab === 'timing' && (
               <RecordTiming record={selected} t={t} />

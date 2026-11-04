@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-10-29-collapsed-session-search-autofill.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/simplification/2026-10-29-collapsed-session-search-autofill.md
-2026-10-29-collapsed-session-search-autofill.md: d2d6512b56158fec9eda5a6f465f13b43e27e001
-2026-10-29-collapsed-session-search-autofill.zh.md: be45308dad55ceeec7f9e6af42b8d96f9a55e477
+/agent-note-collapsed-session-search-ignores-autofill:
+  en: 49ff5e0399f8a191
+  zh: 43607c4be8071fb4
+/agent-note-collapsed-session-search-ignores-autofill/problem:
+  en: 750166cf828b288f
+  zh: f29fd63c10c05e20
+/agent-note-collapsed-session-search-ignores-autofill/decision:
+  en: 2ad50755571dfc14
+  zh: d871cbf51ec2a97c
+/agent-note-collapsed-session-search-ignores-autofill/alternatives-considered:
+  en: 8a9cc47f93ac0799
+  zh: f5201466a31b7cd8
+/agent-note-collapsed-session-search-ignores-autofill/consequences:
+  en: 5f52f1aead51e612
+  zh: 373a2bacc0a442bb

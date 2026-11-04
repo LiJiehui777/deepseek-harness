@@ -9,11 +9,13 @@
  * `import type` and registers through `ctx.slots`; it never imports this
  * package at runtime.
  *
+ * A contributed tab, such as Discover, installs through the page's own dialog.
+ *
  * Entries accept `page` for the form with its own save control and `summary`
  * for an official card's one-liner or a row's missing-description fallback.
  * Bundle configuration renders only `page`. A detail contribution is rendered
  * with the subject of the open page and decides from it whether to render at
- * all. The page draws the title and crumb; `plugins.item.icon` supplies optional item artwork.
+ * all. The page draws the title, icon, and crumb itself.
  */
 
 import type {} from '@deepseek-ai/dsh-client-ui-slots'
@@ -26,12 +28,6 @@ export interface PluginConfigViewProps {
   readonly view: 'summary' | 'page'
   /** Host-owned configuration values and write actions for this page's entry. */
   readonly form?: ConfigPageForm | undefined
-}
-
-/** Display dimensions for an item's decorative platform mark. */
-export interface PluginItemIconProps {
-  /** Square artwork frame length in CSS pixels. */
-  readonly size: number
 }
 
 /** One row of a bundle as a detail contribution sees it. */
@@ -83,6 +79,33 @@ export interface PluginActivationOwnerProps {
   readonly onOpenDetails: () => void
 }
 
+/** An exact version a tab asks the Plugins page to install, with the text the install dialog shows for it. */
+export interface PluginTabInstall {
+  /** The install spec, such as `name@version` or a pinned `git+https` URL. */
+  readonly spec: string
+  /** The registry to ask first for this install only; absent keeps the dialog's registry choice. */
+  readonly registry?: string
+  /** Display name of the plugin, already localized. */
+  readonly title: string
+  /** The version being installed. */
+  readonly version: string
+}
+
+/** Owner props of a page tab another plugin contributes, such as Discover. */
+export interface PluginTabProps {
+  /**
+   * Install an exact version the person already confirmed: the page's install dialog opens at its check and progress
+   * screens, without the spec form, and names the plugin and version above the spec.
+   * @param target - the spec, optional registry, and display text.
+   */
+  readonly install: (target: PluginTabInstall) => void
+  /**
+   * Switch to the Installed tab and open a bundle's page, whose back button returns to the calling tab.
+   * @param packageName - npm package name of the bundle.
+   */
+  readonly openPackage: (packageName: string) => void
+}
+
 /** Add-plugin menu actions, independent of any selected bundle or Session. */
 export interface PluginAddActionsProps {
   /** Close the add-plugin menu before starting the contributed action. */
@@ -93,6 +116,12 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface SlotMap {
     /** Additional MenuItemButton rows after installation: 72px high, with a title and a description capped at two lines. */
     'plugins.add.actions': { kind: 'list'; scope: 'root'; owner: PluginAddActionsProps }
+    /**
+     * Tabs after the page's own Installed tab, such as Discover: `label` names the tab and `order` places it. The
+     * page renders the selected entry under its header and tabs; the entry draws its own content and installs
+     * through the owner's `install`.
+     */
+    'plugins.tab': { kind: 'list'; scope: 'root'; owner: PluginTabProps }
     /** Optional guidance after the user enables a bundle from the list, keyed by npm package name. */
     'plugins.bundle.activation': { kind: 'keyed'; scope: 'root'; owner: PluginActivationOwnerProps }
     /**
@@ -105,7 +134,7 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
      * `plugins.bundle.config` or `plugins.row.config` instead.
      */
     'plugins.item': { kind: 'list'; scope: 'root'; owner: PluginConfigViewProps }
-    /** Decorative card and detail artwork, keyed by the matching `plugins.item` id; absent entries use built-in artwork. */
+    /** Decorative artwork keyed by the configuration entry id; absent entries use built-in artwork. */
     'plugins.item.icon': { kind: 'keyed'; scope: 'root'; owner: PluginItemIconProps }
     /**
      * A bundle's own configuration, keyed by the bundle's package name and
@@ -133,7 +162,7 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
      */
     'plugins.detail.badge': { kind: 'list'; scope: 'root'; owner: PluginDetailProps }
     /**
-     * Sections under a detail page's own content: after the rows on a bundle's
+     * Sections under a detail page's own content: after the source on a bundle's
      * page, after the configuration on a row's or an official plugin's page.
      * An entry draws its own section chrome and renders null for a subject it
      * has nothing for.
@@ -148,4 +177,10 @@ export interface ConfigPageForm {
   readonly state: ConfigFormSnapshot<Record<string, unknown>>
   /** Submit all field edits together with the revision the editor read. */
   readonly mutate: ConfigForm<Record<string, unknown>>['mutate']
+}
+
+/** Dimensions for an account configuration icon. */
+export interface PluginItemIconProps {
+  /** Square artwork frame length in CSS pixels. */
+  readonly size: number
 }

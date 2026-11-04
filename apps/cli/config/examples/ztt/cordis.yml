@@ -15,3 +15,6 @@
     analysisTimeoutMs: 180000
     lockDurationMs: 300000
     maxTemplates: 32
+
+- id: ui-settings-connectors
+  disabled: false

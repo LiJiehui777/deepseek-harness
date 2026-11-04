@@ -2,16 +2,18 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type {
-  AssistantBlock, AssistantMessageNode, ConvViewProps, MessageImageLoader, RenderMessageImages,
+  AssistantBlock, AssistantMessageNode, ConvViewProps, MessageImageLoader,
   ToolCallBlock,
 } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type { InjectFace, PropsLocale, PropsRenderSlots } from '@deepseek-ai/dsh-client-ui-slots'
 import type { SnapshotStore } from '@deepseek-ai/dsh-client-store'
+import type { JsonTreeProps } from '@deepseek-ai/dsh-client-ui-primitives'
 import {
   TrajectoryTable,
   type TrajectoryRequestNumber,
   type TrajectoryUsage,
 } from './TrajectoryTable.tsx'
+import type { WatchToolResult } from './watch-tool-result.ts'
 import { TrajectoryToolbar } from './TrajectoryToolbar.tsx'
 import { TrajectoryTimeline } from './TrajectoryTimeline.tsx'
 import {
@@ -74,12 +76,15 @@ function partialStructureSignature(partial: TrajectorySnapshot['partial']): stri
 
 /** Session-bound controls not already supplied by the conversation view slot. */
 export interface TrajectoryViewInjected {
+  /** Shared wrapping preference read by expansion handlers. */
+  jsonStringWrapping?: Omit<NonNullable<JsonTreeProps['stringWrapping']>, 'label'>
   hooks: {
     duration: SnapshotStore<boolean>
   }
   loadOlder: () => Promise<boolean>
   loadImage: MessageImageLoader
   setActualDuration: (actualDuration: boolean) => void
+  watchToolResult?: WatchToolResult
 }
 
 interface UsageLike {
@@ -127,19 +132,16 @@ function addUsage(
 }
 
 export function TrajectoryView({
-  useSession, useTrajectory, useDuration, loadOlder, loadImage, setActualDuration,
-  viewRequest, completeViewRequest, renderSlot, t,
+  useSession, useTrajectory, useDuration, watchToolResult, loadOlder, loadImage, setActualDuration,
+  viewRequest, completeViewRequest, renderSlot, t, jsonStringWrapping,
 }: ConvViewProps
-  & PropsRenderSlots<'conversation.trajectory.images'>
+  & Pick<PropsRenderSlots<'conversation.trajectory.images'>, 'renderSlot'>
   & InjectFace<TrajectoryViewInjected>
   & PropsLocale<'trajectory'>) {
   const [collapsedTurns, setCollapsedTurns] = useState<ReadonlySet<number>>(EMPTY_TURN_IDS)
-  const renderImages = useCallback<RenderMessageImages>(
-    owner => renderSlot('conversation.trajectory.images', { ...owner, loadImage }),
-    [loadImage, renderSlot],
-  )
   const [collapsedAssistants, setCollapsedAssistants] =
     useState<ReadonlySet<string>>(EMPTY_RECORD_IDS)
+  const [collapsedTools, setCollapsedTools] = useState<ReadonlySet<string>>(EMPTY_RECORD_IDS)
   const [timelineSelection, setTimelineSelection] = useState<TrajectoryTimeRange | null>(null)
   const actualDuration = useDuration(value => value)
   const [actualTime, setActualTime] = useState(false)
@@ -250,21 +252,24 @@ export function TrajectoryView({
         const turn = request?.turn ?? node?.turn
         const step = request?.step ?? node?.step
         if (turn === undefined || step === undefined) continue
-        const provider = request?.provenance?.provider ?? node?.provenance?.provider
-        const model = request?.provenance?.model ?? node?.provenance?.model
+        const provider = request?.providerMetadata?.provider ?? node?.providerMetadata?.provider
+        const model = request?.providerMetadata?.model ?? node?.providerMetadata?.model
         const requestConfig = request?.requestConfig ?? node?.requestConfig
+        const startedAt = request?.startedAt
+        const completedAt = request === undefined ? node?.time : request.completedAt
+        const resultSeq = request?.resultSeq ?? node?.seq
         numbered.push({
           seq: entry.seq,
           turn,
           step,
           group: t('group.step', { step }),
           number: index + 1,
-          ...(request?.status === undefined ? {} : { status: request.status }),
-          ...(request?.startedAt === undefined ? {} : { startedAt: request.startedAt }),
-          ...(request?.completedAt === undefined ? {} : { completedAt: request.completedAt }),
+          status: request?.status ?? (node?.interrupted === true ? 'error' : 'complete'),
+          ...(startedAt === undefined ? {} : { startedAt }),
+          ...(completedAt === undefined ? {} : { completedAt }),
           ...(request?.error === undefined ? {} : { error: request.error }),
           ...(request?.errorCode === undefined ? {} : { errorCode: request.errorCode }),
-          ...(request?.resultSeq === undefined ? {} : { resultSeq: request.resultSeq }),
+          ...(resultSeq === undefined ? {} : { resultSeq }),
           ...(request?.retry === undefined ? {} : { retry: request.retry }),
           ...(request?.maxRetries === undefined ? {} : { maxRetries: request.maxRetries }),
           ...(request?.retryDelayMs === undefined
@@ -291,13 +296,13 @@ export function TrajectoryView({
         completedAt: request.completedAt,
         ...(request.error === undefined ? {} : { error: request.error }),
         ...(request.errorCode === undefined ? {} : { errorCode: request.errorCode }),
-        resultSeq: request.startSeq,
-        ...(request.provenance?.provider === undefined
+        ...(request.status === 'running' ? {} : { resultSeq: request.startSeq }),
+        ...(request.providerMetadata?.provider === undefined
           ? {}
-          : { provider: request.provenance.provider }),
-        ...(request.provenance?.model === undefined
+          : { provider: request.providerMetadata.provider }),
+        ...(request.providerMetadata?.model === undefined
           ? {}
-          : { model: request.provenance.model }),
+          : { model: request.providerMetadata.model }),
         ...(request.requestConfig === undefined ? {} : { requestConfig: request.requestConfig }),
         ...(usage === undefined ? {} : { usage }),
         ...(cumulativeUsage === undefined ? {} : { cumulativeUsage }),
@@ -328,14 +333,17 @@ export function TrajectoryView({
     runningCalls, requests, inspection.systemPrompts, callSchemas, t,
   ])
   const timelinePartialSignature = partialStructureSignature(partial)
+  const partialStartTime = partial?.timing?.stepStartTime
+  const partialFirstTokenTime = partial?.timing?.firstTokenTime
   const timelinePartial = useMemo<TrajectorySnapshot['partial']>(() => partial === null
     ? null
     : {
       turn: partial.turn,
       step: partial.step,
       blocks: partial.blocks.map(block => timelineBlock(block)),
+      ...(partial.timing === undefined ? {} : { timing: partial.timing }),
     },
-  [partialStep, partialTurn, timelinePartialSignature])
+  [partialStep, partialTurn, timelinePartialSignature, partialStartTime, partialFirstTokenTime])
   const timelineTurns = useMemo(
     () => appendTrajectoryPartialLayout(finalized.turns, timelinePartial, finalized.lastIndex, t),
     [finalized, timelinePartial, t],
@@ -455,6 +463,14 @@ export function TrajectoryView({
   }, [timelineTurns])
   const allAssistantsCollapsed = collapsibleAssistantIds.length > 0
     && collapsibleAssistantIds.every(index => collapsedAssistants.has(index))
+  const collapsibleToolIds = useMemo(() => timelineTurns.flatMap(turn =>
+    turn.groups.flatMap(group => group.cells.flatMap((cell, index) =>
+      cell.kind === 'tool' && group.cells[index + 1]?.kind === 'subtool'
+        ? [trajectoryRecordId(cell)]
+        : []))),
+  [timelineTurns])
+  const allSubCallsCollapsed = collapsibleToolIds.length > 0
+    && collapsibleToolIds.every(id => collapsedTools.has(id))
 
   const toggleTurn = (turn: number) => {
     setCollapsedTurns((current) => {
@@ -498,6 +514,27 @@ export function TrajectoryView({
     })
   }
 
+  const toggleTool = (id: string) => {
+    setCollapsedTools((current) => {
+      const collapsed = new Set(current)
+      if (collapsed.has(id)) collapsed.delete(id)
+      else collapsed.add(id)
+      return collapsed
+    })
+  }
+
+  const toggleAllSubCalls = () => {
+    setCollapsedTools((current) => {
+      const collapsed = new Set(current)
+      if (allSubCallsCollapsed) {
+        for (const id of collapsibleToolIds) collapsed.delete(id)
+      } else {
+        for (const id of collapsibleToolIds) collapsed.add(id)
+      }
+      return collapsed
+    })
+  }
+
   const loadEarlierHistory = useCallback(async () => {
     if (!hasResidentOlderHistory && !await loadOlder()) return false
     setHistoryNodeLimit(limit => limit + HISTORY_PAGE_NODES)
@@ -521,6 +558,8 @@ export function TrajectoryView({
         onToggleAllTurns={toggleAllTurns}
         allAssistantsCollapsed={allAssistantsCollapsed}
         onToggleAllAssistants={toggleAllAssistants}
+        allSubCallsCollapsed={allSubCallsCollapsed}
+        onToggleAllSubCalls={toggleAllSubCalls}
         searchQuery={searchQuery}
         onSearchQueryChange={setSearchQuery}
         t={t}
@@ -541,7 +580,13 @@ export function TrajectoryView({
       <div className={css.ledger}>
         <TrajectoryTable
           t={t}
-          renderImages={renderImages}
+          watchToolResult={watchToolResult}
+          stringWrapping={jsonStringWrapping === undefined ? undefined : {
+            ...jsonStringWrapping,
+            label: t('record.wrapLines'),
+          }}
+          renderSlot={renderSlot}
+          loadImage={loadImage}
           requestNumbers={requestNumbers}
           turns={timelineTurns}
           streamingCells={streamingCells}
@@ -561,6 +606,8 @@ export function TrajectoryView({
           onToggleTurn={toggleTurn}
           collapsedAssistants={collapsedAssistants}
           onToggleAssistant={toggleAssistant}
+          collapsedTools={collapsedTools}
+          onToggleTool={toggleTool}
           inspectCallId={inspectCallId}
           onInspectApplied={completeViewRequest}
         />

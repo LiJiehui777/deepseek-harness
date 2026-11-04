@@ -32,12 +32,12 @@ export function installSelectionPolicy(ctx: Context, selected: (owner: string) =
     if (!choice && exec.name === 'business_workflow_start') return 'WORKFLOW_SELECTION_REQUIRED'
     if (choice && !allowed.has(exec.name)) return 'WORKFLOW_CONVERSATION_REQUIRES_SELECTED_WORKFLOW'
   })
-  ctx.on('system-prompt/assemble', async (_assembly, context, next) => {
-    const result = await next()
-    const owner = ownerFor(context.scope)
-    if (!owner) return result
+  ctx.on('tools/model-denied', (definition, scope) => {
+    const owner = ownerFor(scope)
+    if (!owner) return
     const choice = selected(owner)
-    return { ...result, tools: result.tools.filter(tool => choice ? allowed.has(tool.name) : tool.name !== 'business_workflow_start') }
+    if (choice && !allowed.has(definition.name)) return 'WORKFLOW_CONVERSATION_REQUIRES_SELECTED_WORKFLOW'
+    if (!choice && definition.name === 'business_workflow_start') return 'WORKFLOW_SELECTION_REQUIRED'
   })
   ctx.systemPrompt.context({ name: 'business-workflow:conversation', order: ctx.systemPrompt.getSectionOrder('TOOL_WORKFLOW'),
     text: ({ scope }) => {

@@ -1,3 +1,5 @@
+import * as NativeExecutor from '@deepseek-ai/dsh-tool-executor-native'
+import { executeOne } from './execute.ts'
 import { Context } from '@deepseek-ai/cordis'
 import AgentRegistry from '@deepseek-ai/dsh-agent'
 import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
@@ -13,11 +15,12 @@ it.skipIf(!process.env.RAGFLOW_API_KEY)('lists and retrieves knowledge from an i
     await ctx.plugin(AgentRegistry)
     await ctx.plugin(SystemPrompt)
     await ctx.plugin(Tools)
+    await ctx.plugin(NativeExecutor)
     await ctx.plugin(MemoryCredentials, { RAGFLOW_API_KEY: process.env.RAGFLOW_API_KEY! })
     const config: Connector.Config = { enabled: true, baseURL: process.env.RAGFLOW_BASE_URL ?? 'http://localhost:9380', apiKeyEnv: 'RAGFLOW_API_KEY', datasetIds: [], maxChunks: 10, maxPageSize: 50, maxResultBytes: 262144, timeoutMs: 30000 }
     const discovery = ctx.plugin(Connector, config)
     await discovery
-    const list = await ctx.tools.execute({ callId: ToolCallId('list-live'), name: 'ragflow_list_datasets', arguments: { page_size: 10 }, signal: new AbortController().signal })
+    const list = await executeOne(ctx, { callId: ToolCallId('list-live'), name: 'ragflow_list_datasets', arguments: { page_size: 10 }, signal: new AbortController().signal })
     expect(list.isError).toBe(false)
     const text = list.content.find(item => item.type === 'text')
     if (!text || text.type !== 'text') throw new Error('Missing RAGFlow dataset result')
@@ -27,7 +30,7 @@ it.skipIf(!process.env.RAGFLOW_API_KEY)('lists and retrieves knowledge from an i
     await discovery.dispose()
     config.datasetIds = [id]
     await ctx.plugin(Connector, config)
-    const retrieved = await ctx.tools.execute({ callId: ToolCallId('retrieve-live'), name: 'ragflow_retrieval', arguments: { question: '质量检验要求', max_chunks: 2 }, signal: new AbortController().signal })
+    const retrieved = await executeOne(ctx, { callId: ToolCallId('retrieve-live'), name: 'ragflow_retrieval', arguments: { question: '质量检验要求', max_chunks: 2 }, signal: new AbortController().signal })
     expect(retrieved.isError).toBe(false)
     expect(JSON.stringify(retrieved)).not.toContain(process.env.RAGFLOW_API_KEY!)
   } finally {

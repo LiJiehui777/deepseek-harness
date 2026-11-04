@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-10-08-native-quality-report-plugin.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-10-08-native-quality-report-plugin.md
-2026-10-08-native-quality-report-plugin.md: 600c48aee1737a9940f851d5f53bb3eedbcf303e
-2026-10-08-native-quality-report-plugin.zh.md: 1698f78e73adb2b9a1257dc1e24e424abc2f1f01
+/agent-note-native-quality-report-plugin:
+  en: d5aeeeebf4f48101
+  zh: 4673d227741beab1
+/agent-note-native-quality-report-plugin/problem:
+  en: 8532f30d514af20f
+  zh: 2ac833458e01d9a8
+/agent-note-native-quality-report-plugin/decision:
+  en: dc8bd4629c74ba29
+  zh: 751a974940c98198
+/agent-note-native-quality-report-plugin/alternatives-considered:
+  en: 4abac2241eb8fc74
+  zh: b661fe85e160655e
+/agent-note-native-quality-report-plugin/consequences:
+  en: 1fab999da4dc377d
+  zh: 68dfef0e2be7dd29

@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-10-09-ztt-quality-brand.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-10-09-ztt-quality-brand.md
-2026-10-09-ztt-quality-brand.md: cadc32782fde4f4921a38d08e8ab21364aa0943a
-2026-10-09-ztt-quality-brand.zh.md: c1600df9cf2a34684c20f01ee1abe559670e0c6f
+/agent-note-ztt-quality-application-identity:
+  en: 1dee70e483825131
+  zh: 5742e2c4b4638993
+/agent-note-ztt-quality-application-identity/problem:
+  en: c71189f8f623c999
+  zh: 4b3cbcf50f83f00f
+/agent-note-ztt-quality-application-identity/decision:
+  en: 970815d20c808e36
+  zh: ceaff699a484ba8a
+/agent-note-ztt-quality-application-identity/alternatives-considered:
+  en: 062904777044b94f
+  zh: d2e307159a9b7ce2
+/agent-note-ztt-quality-application-identity/consequences:
+  en: efb919278ab33d1a
+  zh: 493ba971edce9fc8

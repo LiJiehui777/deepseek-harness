@@ -1,12 +1,13 @@
 /** Display labels and toast sentences for global plugin management. */
 
-import type { IncompatiblePlugin, ManagementError, Registry } from '@deepseek-ai/dsh-api-remotes/client'
+import { EXPERIMENTAL_BUNDLES } from '@deepseek-ai/dsh-official-bundles'
+import type { IncompatiblePlugin, ManagementError, Registry, RestartReason } from '@deepseek-ai/dsh-api-remotes/client'
 import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import type { PluginManagerLocaleKey } from './locales.ts'
 import type { FailedAction, ManagerNotice, PackageRow, PackageView, PluginManagerFace } from './manager-store.ts'
 
 /** The translate seat of the manager's dictionary. */
-export type PluginManagerTranslate = PropsLocale<'pluginManager'>['t']
+export type Translate = PropsLocale<'pluginManager'>['t']
 
 /** The registries with a name of their own, by host. */
 const REGISTRY_COPY = new Map<string, PluginManagerLocaleKey>([
@@ -25,7 +26,7 @@ const OFFICIAL_NPM_HOST = 'registry.npmjs.org'
  * @param resolved - the URL pnpm's own configuration names, null while the Host could not read it.
  * @returns the name and the host.
  */
-export function registryText(registry: Registry, t: PluginManagerTranslate, resolved: string | null): { name: string; host: string } {
+export function registryText(registry: Registry, t: Translate, resolved: string | null): { name: string; host: string } {
   const url = registry ?? resolved
   // A configuration the Host could not read names no registry: the entry keeps the neutral default name.
   if (url === null) return { name: t('registryDefault'), host: OFFICIAL_NPM_HOST }
@@ -50,6 +51,7 @@ const CODE_KEYS = {
   'unaddressable': 'reasonUnaddressable',
   'unknown-plugin': 'reasonUnknownPlugin',
   'invalid-spec': 'reasonInvalidSpec',
+  'already-installed': 'reasonAlreadyInstalled',
   'ambiguous-install': 'reasonAmbiguousInstall',
   'not-bundle': 'reasonNotBundle',
   'not-removable': 'reasonNotRemovable',
@@ -57,6 +59,7 @@ const CODE_KEYS = {
   'bundle-in-use': 'reasonBundleInUse',
   'stale-approval': 'reasonStaleApproval',
   'incompatible-version': 'reasonIncompatibleVersionUnnamed',
+  'unsupported-platform': 'reasonUnsupportedPlatform',
   'operation-error': 'reasonOperationError',
 } satisfies Record<ManagementError['code'], PluginManagerLocaleKey>
 
@@ -82,14 +85,14 @@ export function managementText(error: {
   readonly incompatible?: readonly IncompatiblePlugin[]
   /** Set when the refused package is being installed rather than already installed; selects the incompatibility remedy. */
   readonly installing?: true
-}, t: PluginManagerTranslate): string {
+}, t: Translate): string {
   if (error.code === 'incompatible-version') {
     const named = error.incompatible ?? []
     const sentences = named.length === 0
       ? [t('reasonIncompatibleVersionUnnamed')]
       : named.map(plugin => t('reasonIncompatibleVersion', {
         plugin: `${plugin.name}@${plugin.version}`, runtime: plugin.runtimeVersion,
-        peers: Object.entries(plugin.peers).map(([name, range]) => `${name} ${range}`).join(', '),
+        requirements: Object.entries(plugin.requirements).map(([name, range]) => `${name} ${range}`).join(', '),
       }))
     return [...sentences, t(error.installing ? 'reasonIncompatibleInstall' : 'reasonIncompatibleInstalled')].join(t('sentenceSeparator'))
   }
@@ -119,7 +122,7 @@ export function packageText(
   return {
     title: pkg.meta?.title === undefined ? pkg.name : resolveText(pkg.meta.title),
     description: pkg.meta?.description === undefined ? undefined : resolveText(pkg.meta.description) || undefined,
-    beta: pkg.name.startsWith('@deepseek-ai/dsh-experimental-'),
+    beta: EXPERIMENTAL_BUNDLES.has(pkg.name),
   }
 }
 
@@ -138,15 +141,36 @@ export function rowText(
   }
 }
 
+/** The sentence naming why a change waits for a restart. */
+const RESTART_REASON_KEYS = {
+  'no-hmr': 'restartReasonNoHmr',
+  'package-moved': 'restartReasonPackageMoved',
+  'host-module': 'restartReasonHostModule',
+  'unmanaged-plugin': 'restartReasonUnmanagedPlugin',
+  'module-comparison': 'restartReasonModuleComparison',
+} satisfies Record<RestartReason, PluginManagerLocaleKey>
+
+/**
+ * A restart prompt with its reason.
+ * @param key - the prompt's sentence, which takes the reason as `{reason}`.
+ * @param reason - why the change waits for a restart.
+ * @param t - the manager's translate seat.
+ * @returns the prompt.
+ */
+export function restartText(key: 'restartNotice' | 'installDoneRestart', reason: RestartReason | undefined, t: Translate): string {
+  // A Host that names no reason still asks for the restart.
+  return t(key, { reason: reason === undefined ? '' : t(RESTART_REASON_KEYS[reason]) }).trimEnd()
+}
+
 /**
  * The sentence one notice shows.
  * @param notice - the last action's outcome.
  * @param t - the manager's translate seat.
  * @returns the sentence.
  */
-export function noticeText(notice: ManagerNotice, t: PluginManagerTranslate): string {
+export function noticeText(notice: ManagerNotice, t: Translate): string {
   switch (notice.kind) {
-    case 'restart': return t('restartNotice')
+    case 'restart': return restartText('restartNotice', notice.reason, t)
     case 'overridden': return t('overriddenNotice', { name: notice.packageName })
     case 'cancelled': return t('installCancelled')
     case 'refresh-failed': return t('refreshError')

@@ -1,11 +1,11 @@
 import type { ContentBlock, ToolSchema } from '@deepseek-ai/dsh-llm/types'
 import type { SessionEvent } from '@deepseek-ai/dsh-session/types'
 import type {
-  AssistantProvenanceView, AssistantRequestConfig,
+  AssistantProviderMetadataView, AssistantRequestConfig,
 } from './records.ts'
 
 export type {
-  AssistantProvenanceView, AssistantRequestConfig,
+  AssistantProviderMetadataView, AssistantRequestConfig,
 } from './records.ts'
 
 /**
@@ -130,10 +130,11 @@ interface RequestViewBase {
   startedAt: number
   completedAt: number | null
   status: 'running' | 'complete' | 'error'
+  /** Failure detail; with assistant retry metadata, the last failed attempt even while running or after recovery. */
   error?: string
-  /** Stable provider code for localized presentation of known failures. */
+  /** Stable provider code for `error`, including retained attempt failures, for localized presentation. */
   errorCode?: string
-  provenance?: AssistantProvenanceView
+  providerMetadata?: AssistantProviderMetadataView
   requestConfig?: AssistantRequestConfig
   usage?: unknown
   /** Assistant message or compaction summary sequence produced by this request. */

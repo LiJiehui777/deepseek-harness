@@ -61,6 +61,9 @@
     },
     {
       "path": "../user-approval"
+    },
+    {
+      "path": "../../../vendor/loader"
     }
   ]
 }

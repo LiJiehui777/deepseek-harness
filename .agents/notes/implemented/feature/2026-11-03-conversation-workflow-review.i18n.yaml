@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-11-03-conversation-workflow-review.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-11-03-conversation-workflow-review.md
-2026-11-03-conversation-workflow-review.md: 320ee5e982353d54d1712ad506f66ee206e3f8d9
-2026-11-03-conversation-workflow-review.zh.md: 3d1995b0dfc9ee1a990376b4381fc178e5894f18
+/agent-note-conversation-workflow-review:
+  en: de80aaa8a2f91944
+  zh: a5b147c456712a7f
+/agent-note-conversation-workflow-review/problem:
+  en: 73246221db6fc21c
+  zh: 90e242b09ae7e206
+/agent-note-conversation-workflow-review/decision:
+  en: ba6352d4173a3eca
+  zh: 6f0c18ef55f3a4cc
+/agent-note-conversation-workflow-review/alternatives-considered:
+  en: cb0d702437e3a79c
+  zh: d321343d30ac86d7
+/agent-note-conversation-workflow-review/consequences:
+  en: 70295e76aa0ffde1
+  zh: 856b496cfd663f05

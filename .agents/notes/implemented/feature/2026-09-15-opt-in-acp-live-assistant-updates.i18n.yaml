@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-15-opt-in-acp-live-assistant-updates.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-15-opt-in-acp-live-assistant-updates.md
-2026-09-15-opt-in-acp-live-assistant-updates.md: c1117b2b8277235000195e2e4ec31856a5983db0
-2026-09-15-opt-in-acp-live-assistant-updates.zh.md: 623b2a19e2bf725da5c633e1b65e88ff8d971031
+/agent-note-opt-in-acp-live-assistant-updates:
+  en: 10fa80ff27d72060
+  zh: 2b0d20b49d43c9c5
+/agent-note-opt-in-acp-live-assistant-updates/problem:
+  en: 420c2d0a7585b0af
+  zh: 25f520ee10bdcc30
+/agent-note-opt-in-acp-live-assistant-updates/decision:
+  en: 930696a7dbea3258
+  zh: 43a5a2494c59f64c
+/agent-note-opt-in-acp-live-assistant-updates/alternatives-considered:
+  en: 4c764740d5fa37e3
+  zh: 45fa2eb556a68fbd
+/agent-note-opt-in-acp-live-assistant-updates/consequences:
+  en: 8b0a5be43377f7e8
+  zh: 8089de4d83b4de0c

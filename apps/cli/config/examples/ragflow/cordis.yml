@@ -16,3 +16,6 @@
         maxPageSize: 50
         maxResultBytes: 262144
         timeoutMs: 30000
+
+- id: ui-settings-connectors
+  disabled: false

@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-10-08-conversation-channel-readers.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-10-08-conversation-channel-readers.md
-2026-10-08-conversation-channel-readers.md: e7be01c4a3af5fc24c4688c4c4327c7d89e2b453
-2026-10-08-conversation-channel-readers.zh.md: cee9e14fe2aa7f82f23247867eed20f71ee95c10
+/agent-note-conversation-scoped-channel-readers:
+  en: a766941900e978b7
+  zh: 8a94b7784deefb48
+/agent-note-conversation-scoped-channel-readers/problem:
+  en: 181511b17442c8cb
+  zh: e07eb9d630365532
+/agent-note-conversation-scoped-channel-readers/decision:
+  en: 704c047423af388f
+  zh: 302829d33751d151
+/agent-note-conversation-scoped-channel-readers/alternatives-considered:
+  en: fea0ab4143da14ba
+  zh: 11fb7b93f6f5cb25
+/agent-note-conversation-scoped-channel-readers/consequences:
+  en: cce4cd1fc4374449
+  zh: 7775de5d77d18344

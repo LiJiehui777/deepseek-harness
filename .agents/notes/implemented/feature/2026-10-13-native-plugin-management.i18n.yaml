@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-10-13-native-plugin-management.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-10-13-native-plugin-management.md
-2026-10-13-native-plugin-management.md: bf12e1ae9cac6d836e80d96937cfcb19b6a08d5b
-2026-10-13-native-plugin-management.zh.md: 727a86b1223bd49ffdbf6205f6fb5183ffbee8ea
+/agent-note-native-plugin-management-backport:
+  en: 737a6c52b0012121
+  zh: db2c72d12aa81c39
+/agent-note-native-plugin-management-backport/problem:
+  en: 5c37aa5596951f1c
+  zh: b8cbe7c878d9e9c0
+/agent-note-native-plugin-management-backport/decision:
+  en: 465ee72165bce846
+  zh: 111782e92599d66b
+/agent-note-native-plugin-management-backport/alternatives-considered:
+  en: ddbf224a8d0e099c
+  zh: 0891992f54f858f3
+/agent-note-native-plugin-management-backport/consequences:
+  en: d2f416427c05f74b
+  zh: 98b60c7a35a7ba1e
+/agent-note-native-plugin-management-backport/validation:
+  en: c5f5fdc61fb3cffc
+  zh: 38039ef42d708f76

@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-10-27-wecom-office-operations.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-10-27-wecom-office-operations.md
-2026-10-27-wecom-office-operations.md: d7de94fc30f0866532eae2558b89082a34bbac20
-2026-10-27-wecom-office-operations.zh.md: c5bac31e65c67c22caeabee7654b7a0f5403402d
+/agent-note-schema-guided-wecom-office-operations:
+  en: 1bac2cf12c999cf1
+  zh: c568c002eb8fa85c
+/agent-note-schema-guided-wecom-office-operations/problem:
+  en: 3e7c3c0049e3ec2f
+  zh: 27c481128e1631a2
+/agent-note-schema-guided-wecom-office-operations/decision:
+  en: e2d5a75720ff79d3
+  zh: dd1c31d45509f434
+/agent-note-schema-guided-wecom-office-operations/alternatives-considered:
+  en: 0060fe26b57b672a
+  zh: 88138a952689c934
+/agent-note-schema-guided-wecom-office-operations/consequences:
+  en: 9cbcd08eabca5ae3
+  zh: df667fc464a7d3c5

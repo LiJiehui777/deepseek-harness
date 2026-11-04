@@ -1,8 +1,10 @@
 /** Linux user-systemd scope launch and managed-range ownership. */
 
+import { controlPipe } from './control-spawn.ts'
 import { execFile, spawn, spawnSync } from 'node:child_process'
 import { randomBytes } from 'node:crypto'
-import { existsSync } from 'node:fs'
+import { existsSync, readFileSync, statSync } from 'node:fs'
+import { join } from 'node:path'
 import { setTimeout as sleepMs } from 'node:timers/promises'
 import type {
   SubprocessOutcome,
@@ -39,6 +41,8 @@ export interface LinuxScopeInternals {
   runnerAvailable?: (invocation: RunnerInvocation) => boolean
   loadLinuxExecve?: typeof loadLinuxExecve
   sleep?: (delayMs: number, signal?: AbortSignal) => Promise<void>
+  /** Kernel unix socket table read by the user-manager confirmation; defaults to /proc/net/unix. */
+  unixSocketTable?: string
 }
 
 interface SystemctlResult {
@@ -51,6 +55,16 @@ interface SystemctlResult {
 const SYSTEMCTL_TIMEOUT_MS = 5_000
 const SCOPE_INITIAL_POLL_INTERVAL_MS = 50
 const MISSING_UNIT = /\bunit\b[^\r\n]*(?:could not be found|not found|not loaded)/iu
+const LITERAL_ARGV_OPTION = '--expand-environment=no'
+// systemd-run before v254 rejects the option; its scope mode passes argv to execvpe unexpanded.
+const LITERAL_ARGV_OPTION_REJECTED = /unrecognized option\b.*expand-environment/u
+// The spelling before systemctl v252 and an unambiguous prefix of the later `--kill-whom`.
+const KILL_ALL_MEMBERS = '--kill-who=all'
+/** Flags bit that /proc/net/unix sets on a listening socket (__SO_ACCEPTCON). */
+const UNIX_SOCKET_ACCEPTING = 0x10000
+
+/** systemd-run options that keep target argv literal; empty where scope mode never expands argv. */
+export type LiteralArgvOptions = readonly string[]
 
 function managerEnvironment(): NodeJS.ProcessEnv {
   const environment = childEnv({ LC_ALL: 'C' })
@@ -107,32 +121,52 @@ export function probeLinuxBootstrap(internals: LinuxScopeInternals = {}): boolea
 /**
  * Confirm current literal-argv transient-scope support before selecting native launch.
  * @param internals - optional systemd command seams used by tests.
- * @returns whether the current user manager supports the required scope invocation.
+ * @returns the options that keep target argv literal, or undefined when the user manager cannot create the scope.
  */
-export function probeLinuxScope(internals: LinuxScopeInternals = {}): boolean {
-  const unitBase = unitStem('dsh-subprocess-probe')
-  const result = (internals.spawnSync ?? spawnSync)(internals.systemdRun ?? 'systemd-run', [
-    '--user',
-    '--scope',
-    '--quiet',
-    '--collect',
-    '--expand-environment=no',
-    `--unit=${unitBase}`,
-    '--',
-    internals.systemctl ?? 'systemctl',
-    '--user',
-    'show',
-    `${unitBase}.scope`,
-    '--property=ActiveState',
-    '--value',
-  ], { env: quietSystemdEnvironment(), stdio: 'ignore', timeout: SYSTEMCTL_TIMEOUT_MS })
-  return result.error === undefined && result.status === 0
+export function probeLinuxScope(internals: LinuxScopeInternals = {}): LiteralArgvOptions | undefined {
+  const attempt = (literalArgv: LiteralArgvOptions): { created: boolean; stderr: string } => {
+    const unitBase = unitStem('dsh-subprocess-probe')
+    const result = (internals.spawnSync ?? spawnSync)(internals.systemdRun ?? 'systemd-run', [
+      '--user',
+      '--scope',
+      '--quiet',
+      '--collect',
+      ...literalArgv,
+      `--unit=${unitBase}`,
+      '--',
+      internals.systemctl ?? 'systemctl',
+      '--user',
+      'show',
+      `${unitBase}.scope`,
+      '--property=ActiveState',
+      '--value',
+    ], {
+      encoding: 'utf8',
+      env: quietSystemdEnvironment(),
+      stdio: ['ignore', 'ignore', 'pipe'],
+      timeout: SYSTEMCTL_TIMEOUT_MS,
+    })
+    return { created: result.error === undefined && result.status === 0, stderr: result.stderr }
+  }
+  const current = attempt([LITERAL_ARGV_OPTION])
+  if (current.created) return [LITERAL_ARGV_OPTION]
+  if (!LITERAL_ARGV_OPTION_REJECTED.test(current.stderr)) return undefined
+  return attempt([]).created ? [] : undefined
 }
 
 /**
- * Confirm that the current user manager remains reachable after a positive deep probe.
+ * Check every Linux native prerequisite on each call.
+ * @param internals - optional native capability seams used by tests.
+ * @returns the literal-argv scope options when Linux native containment is available, otherwise undefined.
+ */
+export function probeLinuxNative(internals: LinuxScopeInternals = {}): LiteralArgvOptions | undefined {
+  return probeLinuxBootstrap(internals) ? probeLinuxScope(internals) : undefined
+}
+
+/**
+ * Query the user manager once through systemctl.
  * @param internals - optional systemctl seam used by tests.
- * @returns whether one lightweight manager query succeeds.
+ * @returns whether the query succeeds.
  */
 export function probeLinuxManager(internals: LinuxScopeInternals = {}): boolean {
   const result = (internals.spawnSync ?? spawnSync)(internals.systemctl ?? 'systemctl', [
@@ -145,18 +179,88 @@ export function probeLinuxManager(internals: LinuxScopeInternals = {}): boolean 
 }
 
 /**
- * Re-check every Linux native prerequisite for one eligible spawn.
- * @param internals - optional native capability seams used by tests.
- * @returns whether the Linux native containment path is currently available.
+ * Find the socket a process in this network namespace listens on at path. The kernel lists a
+ * bound socket only while a process holds it open, so a socket file that a stopped or crashed
+ * listener left behind does not count.
  */
-export function probeLinuxNative(internals: LinuxScopeInternals = {}): boolean {
-  return probeLinuxBootstrap(internals)
-    && probeLinuxScope(internals)
+function unixSocketListener(path: string, table: string): string | undefined {
+  let text: string
+  try {
+    text = readFileSync(table, 'utf8')
+  } catch (_unreadableSocketTable) {
+    // Without the socket table nothing is known, so callers fall back to systemctl or keep their verdict.
+    return undefined
+  }
+  const suffix = ` ${path}`
+  for (const line of text.split('\n')) {
+    if (!line.endsWith(suffix)) continue
+    const fields = line.trim().split(/\s+/u)
+    if (fields.slice(7).join(' ') === path && (Number.parseInt(String(fields[3]), 16) & UNIX_SOCKET_ACCEPTING) !== 0) {
+      return String(fields[6])
+    }
+  }
+  return undefined
+}
+
+/**
+ * Identify the user manager's listener on `$XDG_RUNTIME_DIR/systemd/private`, the socket
+ * `systemd-run --user` connects through.
+ * @param internals - optional socket-table seam used by tests.
+ * @returns the listening socket's inode from the kernel socket table, or undefined when
+ *   XDG_RUNTIME_DIR is unset or nothing in this network namespace listens there.
+ */
+export function linuxManagerListener(internals: LinuxScopeInternals = {}): string | undefined {
+  const runtimeDirectory = childEnv().XDG_RUNTIME_DIR
+  if (runtimeDirectory === undefined || runtimeDirectory === '') return undefined
+  return unixSocketListener(join(runtimeDirectory, 'systemd', 'private'), internals.unixSocketTable ?? '/proc/net/unix')
+}
+
+/**
+ * Identify the systemd-run binary that scope launches resolve through PATH, so a package upgrade
+ * that replaces it triggers another probe of its literal-argv options.
+ * @param internals - optional systemd-run seam used by tests.
+ * @returns the device, inode, size, and modification time of the first match, or undefined when none resolves.
+ */
+export function systemdRunIdentity(internals: LinuxScopeInternals = {}): string | undefined {
+  const command = internals.systemdRun ?? 'systemd-run'
+  const candidates = command.includes('/')
+    ? [command]
+    : (childEnv().PATH ?? '').split(':').filter(directory => directory !== '').map(directory => join(directory, command))
+  for (const candidate of candidates) {
+    let stats: ReturnType<typeof statSync>
+    try {
+      stats = statSync(candidate, { throwIfNoEntry: false })
+    } catch (_unreadableCandidate) {
+      // A PATH entry that is not a searchable directory cannot hold systemd-run.
+      continue
+    }
+    if (stats?.isFile() === true) return `${String(stats.dev)}:${String(stats.ino)}:${String(stats.size)}:${String(stats.mtimeMs)}`
+  }
+  return undefined
+}
+
+/**
+ * Confirm the user manager before a scope launch. A listener on its private socket confirms it
+ * without a child process; otherwise one systemctl query decides. A hung manager that still
+ * listens passes, and its scope launch fails with LinuxScopeNotStartedError.
+ * @param internals - optional socket-table and systemctl seams used by tests.
+ * @returns whether a scope launch can reach the user manager.
+ */
+export function confirmLinuxManager(internals: LinuxScopeInternals = {}): boolean {
+  return linuxManagerListener(internals) !== undefined || probeLinuxManager(internals)
 }
 
 interface DirectRange {
   running(): boolean
-  signal(signal: 'SIGTERM' | 'SIGKILL'): void
+  /** True for group TERM delivery, direct signal submission, or proven direct-PID absence. */
+  signal(signal: 'SIGTERM' | 'SIGKILL'): boolean
+  /** Direct exit/error settlement, independent of output drain and managed-range completion. */
+  settled: Promise<unknown>
+}
+
+/** A scope launch whose bootstrap never consumed its launch request, so its target never ran. */
+export class LinuxScopeNotStartedError extends Error {
+  override readonly name = 'LinuxScopeNotStartedError'
 }
 
 class LinuxScopeStartup {
@@ -169,7 +273,9 @@ class LinuxScopeStartup {
     if (startup !== undefined) throw deserializeRunnerError(startup.error)
     if (existsSync(this.files.requestPath)
       && !(outcome.signal !== null && this.terminationSignals.has(outcome.signal))) {
-      throw new Error(`${this.kind} scope exited before its bootstrap consumed the launch request`)
+      throw new LinuxScopeNotStartedError(
+        `${this.kind} scope exited before its bootstrap consumed the launch request; the provider probes native containment again before its next command`,
+      )
     }
     return outcome
   }
@@ -181,6 +287,7 @@ class SystemdScopeOwner implements BoundProcessOwner {
   private terminationRequested = false
   private observation: Promise<void> | undefined
   private killFailure: Error | undefined
+  private directKillSettlement: Promise<void> | undefined
   private wakeGeneration = 0
   private wakeWaiter: { generation: number; resolve: () => void } | undefined
 
@@ -194,32 +301,49 @@ class SystemdScopeOwner implements BoundProcessOwner {
     private readonly sleep: (delayMs: number, signal?: AbortSignal) => Promise<void>,
   ) {}
 
+  inspectTaskCount(): number | undefined {
+    const result = this.runSync(this.systemctl, [
+      '--user', 'show', '--property=LoadState', '--property=ActiveState', '--property=TasksCurrent', this.unit,
+    ], { encoding: 'utf8', env: managerEnvironment(), timeout: SYSTEMCTL_TIMEOUT_MS })
+    if (result.error !== undefined || result.status !== 0 || typeof result.stdout !== 'string') return undefined
+    const state = this.parseUnitState(result.stdout)
+    return state.loadState === 'loaded' && state.activeState === 'active' ? state.tasksCurrent : undefined
+  }
+
   signal(signal: 'SIGTERM' | 'SIGKILL'): void {
     if (this.stopped) return
     this.terminationRequested = true
     if (this.direct.running()) this.startup.terminationSignals.add(signal)
     this.observeRequestConsumption()
     const directFallbackRequired = this.establishment === 'pending'
-    if (directFallbackRequired && this.direct.running()) this.direct.signal(signal)
+    let directSignalled = false
+    if (directFallbackRequired && this.direct.running()) directSignalled = this.direct.signal(signal)
     const result = this.runSync(this.systemctl, [
       '--user',
       'kill',
-      '--kill-whom=all',
+      KILL_ALL_MEMBERS,
       `--signal=${signal}`,
       this.unit,
     ], { encoding: 'utf8', env: managerEnvironment(), timeout: SYSTEMCTL_TIMEOUT_MS })
     this.wakeObservation()
     if (result.error === undefined && result.status === 0) {
-      if (signal === 'SIGKILL') this.killFailure = undefined
+      if (signal === 'SIGKILL') {
+        this.killFailure = undefined
+        this.directKillSettlement = undefined
+      }
       return
     }
-    if (!directFallbackRequired && this.direct.running()) this.direct.signal(signal)
+    if (!directFallbackRequired && this.direct.running()) directSignalled = this.direct.signal(signal)
     if (signal === 'SIGKILL') {
       const output = `${result.stdout}\n${result.stderr}`
       if (!MISSING_UNIT.test(output)) {
         this.killFailure = result.error ?? new Error(
           `systemctl could not signal ${this.unit}: ${output.trim() || `exit ${String(result.status)}`}`,
         )
+        // The direct outcome retains errors; this barrier only joins its physical settlement.
+        this.directKillSettlement = directSignalled
+          ? this.direct.settled.then(() => {}, () => {})
+          : undefined
       }
     }
   }
@@ -233,7 +357,7 @@ class SystemdScopeOwner implements BoundProcessOwner {
       this.runSync(this.systemctl, [
         '--user',
         'kill',
-        '--kill-whom=all',
+        KILL_ALL_MEMBERS,
         '--signal=SIGKILL',
         this.unit,
       ], { env: managerEnvironment(), stdio: 'ignore', timeout: SYSTEMCTL_TIMEOUT_MS })
@@ -262,12 +386,13 @@ class SystemdScopeOwner implements BoundProcessOwner {
    * Prove an active unit with no processes is the empty managed range rather
    * than a launch still placing its payload. systemd ends a scope only on the
    * populated-to-empty transition, so a payload killed before it entered the
-   * cgroup leaves the unit active forever. Requested termination plus a
-   * departed client makes that leftover conclusive: the client forked every
-   * process it will ever fork.
+   * cgroup leaves the unit active forever. A departed client cannot add another
+   * payload; a consumed request proves the payload already entered the scope,
+   * even while its direct-process exit notification is pending.
    */
   private emptyRange(tasksCurrent: number | undefined): boolean {
-    return this.terminationRequested && tasksCurrent === 0 && !this.direct.running()
+    return this.terminationRequested && tasksCurrent === 0
+      && (!this.direct.running() || !existsSync(this.startup.files.requestPath))
   }
 
   /** Release a leftover empty scope so the transient unit is collected and cannot accumulate. */
@@ -318,6 +443,8 @@ class SystemdScopeOwner implements BoundProcessOwner {
 
   private async rangeActive(): Promise<boolean> {
     this.observeRequestConsumption()
+    const generation = this.wakeGeneration
+    const directRunning = this.direct.running()
     const result = await this.query(this.systemctl, [
       '--user',
       'show',
@@ -326,6 +453,8 @@ class SystemdScopeOwner implements BoundProcessOwner {
       '--property=ActiveState',
       '--property=TasksCurrent',
     ])
+    // A signal invalidates state queried before its delivery and direct fallback.
+    if (generation !== this.wakeGeneration) return true
     const output = `${result.stdout}\n${result.stderr}`
     if (result.status === 0) {
       const { loadState, activeState, tasksCurrent } = this.parseUnitState(result.stdout)
@@ -340,10 +469,19 @@ class SystemdScopeOwner implements BoundProcessOwner {
       if (!['active', 'activating', 'reloading', 'deactivating'].includes(activeState)) {
         throw new Error(`systemctl returned unknown ActiveState for ${this.unit}: ${JSON.stringify(activeState)}`)
       }
-      if (this.killFailure !== undefined) throw this.killFailure
       if (this.emptyRange(tasksCurrent)) {
         this.releaseEmptyRange()
         return false
+      }
+      if (this.killFailure !== undefined) {
+        if (directRunning && this.directKillSettlement !== undefined) {
+          const settlement = this.directKillSettlement
+          this.directKillSettlement = undefined
+          await settlement
+          // A query preceding direct exit cannot prove that its signalled processes survived.
+          return this.rangeActive()
+        }
+        throw this.killFailure
       }
       return true
     }
@@ -401,13 +539,18 @@ class SystemdScopeOwner implements BoundProcessOwner {
   }
 }
 
-function scopeArgs(unitBase: string, invocation: RunnerInvocation, argv: readonly string[]): string[] {
+function scopeArgs(
+  unitBase: string,
+  literalArgv: LiteralArgvOptions,
+  invocation: RunnerInvocation,
+  argv: readonly string[],
+): string[] {
   return [
     '--user',
     '--scope',
     '--quiet',
     '--collect',
-    '--expand-environment=no',
+    ...literalArgv,
     `--unit=${unitBase}`,
     '--',
     ...invocation,
@@ -441,12 +584,33 @@ function directOutcome(
   })
 }
 
-function signalChildGroup(child: ReturnType<typeof spawn>, signal: 'SIGTERM' | 'SIGKILL'): void {
+/**
+ * Send a direct-process signal, distinguishing an absent PID from failed delivery.
+ * @param pid - owned direct-process identity whose exit notification can still be pending.
+ * @param send - platform signal operation; true means the signal was submitted.
+ * @returns whether the signal was submitted or the owned PID is already absent.
+ */
+export function signalLinuxDirectProcess(pid: number, send: () => boolean): boolean {
   try {
-    process.kill(-(child.pid as number), signal)
-  } catch {
-    try { child.kill(signal) } catch { /* The direct process already exited. */ }
+    if (send()) return true
+  } catch { /* A failed signal still permits an independent absence observation. */ }
+  try {
+    process.kill(pid, 0)
+    return false
+  } catch (error) {
+    return (error as NodeJS.ErrnoException).code === 'ESRCH'
   }
+}
+
+function signalChildGroup(child: ReturnType<typeof spawn>, signal: 'SIGTERM' | 'SIGKILL'): boolean {
+  let groupSignalled = false
+  try {
+    groupSignalled = process.kill(-(child.pid as number), signal)
+  } catch { /* A missing or inaccessible group still permits a direct-process attempt. */ }
+  if (groupSignalled && signal === 'SIGTERM') return true
+  // Group success can reflect another member; joining direct exit requires its own SIGKILL submission.
+  // ChildProcess.kill can emit an error that settles directOutcome before the real exit.
+  return signalLinuxDirectProcess(child.pid as number, () => process.kill(child.pid as number, signal))
 }
 
 /** Linux PTY invocation and owner for the exact one-shot scope/bootstrap. */
@@ -464,12 +628,14 @@ export interface LinuxTerminalScopeLaunch {
  * Prepare one Linux PTY scope using the same launch request and bootstrap core.
  * @param spec - terminal target request.
  * @param targetEnv - validated complete target environment.
+ * @param literalArgv - options from the provider's positive scope probe.
  * @param internals - optional runner and systemd seams used by tests.
  * @returns invocation and ownership callbacks; requested termination preserves the observed signal even before bootstrap consumption.
  */
 export function prepareLinuxTerminalScope(
   spec: SubprocessTerminalSpawnSpec,
   targetEnv: Record<string, string>,
+  literalArgv: LiteralArgvOptions,
   internals: LinuxScopeInternals = {},
 ): LinuxTerminalScopeLaunch {
   const invocation = internals.runnerInvocation ?? spawnRunnerInvocation()
@@ -478,7 +644,7 @@ export function prepareLinuxTerminalScope(
   const unitBase = unitStem('dsh-terminal')
   return {
     command: internals.systemdRun ?? 'systemd-run',
-    args: scopeArgs(unitBase, invocation, spec.argv),
+    args: scopeArgs(unitBase, literalArgv, invocation, spec.argv),
     cwd: process.cwd(),
     env: runnerEnvironment(files.requestPath, invocation),
     bindOwner: direct => new SystemdScopeOwner(
@@ -499,22 +665,28 @@ export function prepareLinuxTerminalScope(
  * Launch one ordinary target inside a transient user scope.
  * @param spec - ordinary target request.
  * @param targetEnv - validated complete target environment.
+ * @param literalArgv - options from the provider's positive scope probe.
  * @param internals - optional runner and systemd seams used by tests.
  * @returns streams, result, and scope owner; requested termination preserves the observed signal even before bootstrap consumption.
  */
 export function launchLinuxScope(
   spec: SubprocessSpawnSpec,
   targetEnv: Record<string, string>,
+  literalArgv: LiteralArgvOptions,
   internals: LinuxScopeInternals = {},
 ): ManagedProcessLaunch {
   const invocation = internals.runnerInvocation ?? spawnRunnerInvocation()
-  const files = createLinuxLaunchFiles({ cwd: spec.cwd, env: targetEnv })
+  const files = createLinuxLaunchFiles({
+    cwd: spec.cwd, env: targetEnv,
+    ...spec.stdio.control === undefined ? {} : { control: spec.stdio.control },
+  })
   const startup = new LinuxScopeStartup(files, 'subprocess')
   const unitBase = unitStem('dsh-subprocess')
   let child: ReturnType<typeof spawn>
   try {
     child = (internals.spawn ?? spawn)(internals.systemdRun ?? 'systemd-run', scopeArgs(
       unitBase,
+      literalArgv,
       invocation,
       spec.argv,
     ), {
@@ -527,12 +699,14 @@ export function launchLinuxScope(
     cleanupLinuxLaunchFiles(files)
     throw error
   }
+  const direct = directOutcome(child, startup)
   const owner = new SystemdScopeOwner(
     `${unitBase}.scope`,
     startup,
     {
       running: () => child.pid !== undefined && child.exitCode === null && child.signalCode === null,
-      signal: (signal) => { signalChildGroup(child, signal) },
+      signal: signal => signalChildGroup(child, signal),
+      settled: direct,
     },
     internals.systemctl ?? 'systemctl',
     internals.spawnSync ?? spawnSync,
@@ -543,7 +717,8 @@ export function launchLinuxScope(
     stdin: child.stdin,
     stdout: child.stdout,
     stderr: child.stderr,
-    direct: directOutcome(child, startup),
+    control: controlPipe(child, spec.stdio.control),
+    direct,
     owner,
   }
 }

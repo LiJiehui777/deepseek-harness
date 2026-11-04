@@ -8,16 +8,16 @@
     - text: 读取授权消息与文档，收发消息并联动 DH 任务。
   - listitem:
     - button "查看 企业微信连接器": 企业微信连接器
-    - text: 通过智能机器人长连接收发消息并联动 DH 任务。
+    - text: 扫码连接办公能力，并按需启用机器人消息与 DH 任务。
   - listitem:
-    - button "查看 Subagent": Subagent
-    - text: 控制 Agent 为 Subagent 选择模型的权限。
+    - button "查看 子智能体": 子智能体
+    - text: 设置子智能体的递归层级、数量和模型。
   - listitem:
-    - button "查看 网页搜索": 网页搜索
-    - text: DeepSeek 搜索提供方。
+    - button "查看 网页搜索与获取": 网页搜索与获取
+    - text: 选择网页搜索与网页获取使用的提供方。
   - listitem:
     - button "查看 Agent 循环": Agent 循环
-    - text: Agent 如何派发工具调用。
+    - text: 控制 Agent 派发工具调用的方式。
   - listitem:
     - button "查看 终端": 终端
-    - text: 限制 agent 运行的每一条命令。
+    - text: 限制每条命令最多能跑多久、最多输出多少内容。

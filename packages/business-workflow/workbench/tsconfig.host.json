@@ -47,6 +47,9 @@
     },
     {
       "path": "../../core/system-prompt"
+    },
+    {
+      "path": "../../core/tool-executor-native"
     }
   ],
   "include": [

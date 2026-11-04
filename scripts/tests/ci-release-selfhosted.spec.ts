@@ -21,7 +21,16 @@ interface Workflow {
   on: Record<string, unknown>
   permissions: Record<string, string>
   concurrency?: Record<string, unknown>
-  jobs: Record<string, { name: string; 'runs-on': string; steps: Step[] }>
+  jobs: Record<string, {
+    name: string
+    'runs-on': string
+    steps: Step[]
+    uses?: string
+    if?: string
+    with?: Record<string, unknown>
+    needs?: string
+    permissions?: Record<string, string>
+  }>
 }
 
 function workflow(file: string): Workflow {
@@ -33,9 +42,12 @@ function workflow(file: string): Workflow {
 // Missing context properties use the Actions empty-string value.
 function evaluate(expression: string, context: Record<string, string | boolean>): unknown {
   const source = expression.trim().replace(/^\$\{\{|\}\}$/g, '')
-    .replace(/\b(?:github|vars|runner)(?:\.[a-zA-Z_][a-zA-Z_0-9]*)+/g,
+    .replace(/\b(?:github|vars|runner|inputs|needs)(?:\.[a-zA-Z_][a-zA-Z_0-9-]*)+/g,
       key => JSON.stringify(context[key] ?? ''))
-  return runInNewContext(source, { fromJSON: JSON.parse }, { timeout: 1000 }) as unknown
+  return runInNewContext(source, {
+    fromJSON: JSON.parse, startsWith: (value: string, prefix: string) => value.startsWith(prefix),
+    cancelled: () => context['cancelled'] ?? false,
+  }, { timeout: 1000 })
 }
 
 function assertSharedPersistentStore(run: string | undefined): void {
@@ -102,7 +114,7 @@ for (const [file, jobIds] of [['release.yml', ['dependencies', 'pack']], ['relea
           expect(evaluate(job['runs-on'], context)).toBe(hosted)
         })
         it('cleans stale checkout output and isolates setup before any pnpm invocation', () => {
-          expect(job.steps[0]).toMatchObject({ uses: 'actions/checkout@v6', with: { clean: true, 'persist-credentials': false } })
+          expect(job.steps[0]).toMatchObject({ uses: 'actions/checkout@v7.0.1', with: { clean: true, 'persist-credentials': false } })
           const cacheIndex = job.steps.findIndex(step => step.run?.includes('NODE_COMPILE_CACHE='))
           const pnpmIndex = job.steps.findIndex(step => step.uses?.startsWith('pnpm/') || /\bpnpm\b/.test(step.run ?? ''))
           expect(cacheIndex).toBeGreaterThan(0)
@@ -110,7 +122,7 @@ for (const [file, jobIds] of [['release.yml', ['dependencies', 'pack']], ['relea
           expect(job.steps[cacheIndex]?.run).toContain('echo "NODE_COMPILE_CACHE=${{ runner.temp }}/node-compile-cache" >> "$GITHUB_ENV"')
           expect(job.steps[cacheIndex]?.run).toContain('echo "npm_config_devdir=${{ runner.temp }}/node-gyp" >> "$GITHUB_ENV"')
           expect(job.steps[cacheIndex]?.run).toContain('echo "TMPDIR=${{ runner.temp }}" >> "$GITHUB_ENV"')
-          expect(job.steps.find(step => step.uses === 'pnpm/action-setup@v4')?.with?.dest)
+          expect(job.steps.find(step => step.uses === 'pnpm/action-setup@v5.0.0')?.with?.dest)
             .toBe('${{ runner.temp }}/setup-pnpm-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.job }}')
           expect(job.steps.find(step => step.name === 'Install (immutable)')?.run).toBe('pnpm install --frozen-lockfile')
         })
@@ -127,30 +139,34 @@ for (const [file, jobIds] of [['release.yml', ['dependencies', 'pack']], ['relea
         it('uses the shared persistent store without remote cache reads or writes on self-hosted', () => {
           assertSharedPersistentStore(job.steps.find(step => step.name === 'Configure pnpm store path')?.run)
           const caches = job.steps.filter(step => step.uses?.startsWith('actions/cache'))
-          expect(caches.map(step => step.uses)).toEqual(['actions/cache/restore@v4'])
+          expect(caches.map(step => step.uses)).toEqual(['actions/cache/restore@v6.1.0'])
           for (const step of caches) {
             expect(evaluate(step.if!, { 'runner.environment': 'self-hosted' })).toBe(false)
             expect(evaluate(step.if!, { 'runner.environment': 'github-hosted' })).toBe(true)
           }
-          const nodeSetup = job.steps.find(step => step.uses === 'actions/setup-node@v6')
+          const nodeSetup = job.steps.find(step => step.uses === 'actions/setup-node@v7.0.0')
           expect(nodeSetup?.with?.cache).toBeUndefined()
           expect(nodeSetup?.with?.['package-manager-cache']).toBe(false)
         })
         it('retains the dependency and pack verification commands', () => {
           const commands = job.steps.flatMap(step => step.run === undefined ? [] : [step.run])
           if (jobId === 'dependencies') {
-            expect(commands).toContain('pnpm run verify-package-dependencies')
-            expect(commands).toContain('pnpm run verify-npm-install-layout')
+            // Both verifications share one step so the lane pays the longer half.
+            const combined = commands.find(command => command.includes('verify-package-dependencies'))
+            expect(combined).toContain('verify-npm-install-layout')
+            expect(combined).toContain('wait "$layout_pid"')
           } else {
             const family = file === 'release.yml' ? 'dsh' : 'vendor'
             const output = family === 'dsh' ? 'dist/npm' : 'dist/npm-vendor'
             expect(job.steps[0]?.with?.['fetch-depth']).toBe(0)
             expect(commands).toContain('pnpm run release:verify --family ' + family)
-            expect(commands).toContain('pnpm run ' + (family === 'dsh' ? 'build:official' : 'build:lib:host'))
+            expect(commands).toContain(family === 'dsh'
+              ? "${{ github.event_name == 'pull_request' && 'pnpm run build:artifacts --profile official' || 'pnpm run build:official' }}"
+              : "${{ github.event_name == 'pull_request' && 'pnpm exec tsx scripts/compile-referenced-projects.ts host-libraries' || 'pnpm run build:lib:host' }}")
             expect(commands).toContain('pnpm run release:pack --family ' + family + ' --out ' + output + ' --concurrency 8')
             expect(commands).toContain('pnpm run release:verify-packed-install --family ' + family + ' --from ' + output
               + (family === 'dsh' ? ' --from dist/npm-vendor --from dist/npm-landlock' : ''))
-            expect(job.steps.at(-1)).toMatchObject({ uses: 'actions/upload-artifact@v4', with: { path: output + '/*', 'retention-days': 7 } })
+            expect(job.steps.at(-1)).toMatchObject({ uses: 'actions/upload-artifact@v7.0.1', with: { path: output + '/*', 'retention-days': 7 } })
           }
           expect(JSON.stringify(job)).not.toMatch(/secrets\.|release:publish|npm-publish/)
         })
@@ -159,8 +175,80 @@ for (const [file, jobIds] of [['release.yml', ['dependencies', 'pack']], ['relea
   })
 }
 
-it.each(['release-publish.yml', 'release-vendor-publish.yml'])('keeps %s manual and entirely hosted', (file) => {
-  const publish = workflow(file)
-  expect(publish.on).toEqual({ workflow_dispatch: null })
+it('keeps vendor publication manual and entirely hosted', () => {
+  const publish = workflow('release-vendor-publish.yml')
+  expect(Object.keys(publish.on)).toEqual(['workflow_dispatch'])
   for (const job of Object.values(publish.jobs)) expect(job['runs-on']).toBe(hosted)
+})
+it('keeps DSH publication manual with hosted npm jobs and an explicit signed-helper producer', () => {
+  const publish = workflow('release-publish.yml')
+  expect(Object.keys(publish.on)).toEqual(['workflow_dispatch'])
+  for (const [name, job] of Object.entries(publish.jobs)) {
+    if (name === 'cua-helper') {
+      expect(job).toEqual({
+        if: "(startsWith(github.ref, 'refs/tags/dsh-v') || inputs.skip-tag-check) && inputs.cua_run_id == '' && inputs.cua_run_attempt == ''",
+        uses: './.github/workflows/cua-helper-package.yml',
+        with: { source_ref: '${{ github.ref }}', preset: 'production' },
+      })
+    } else expect(job['runs-on']).toBe(hosted)
+  }
+})
+it.each([
+  ['refs/tags/dsh-v0.2.1-rc.4', false, '', '', true],
+  ['refs/heads/master', false, '', '', false],
+  ['refs/heads/master', true, '', '', true],
+  ['refs/tags/dsh-v0.2.1-rc.4', false, '123', '', false],
+  ['refs/heads/master', true, '123', '2', false],
+  ['refs/tags/dsh-v0.2.1-rc.4', false, '', '2', false],
+] as const)('selects the helper producer for ref %s, skip=%s, run=%s, attempt=%s', (ref, skip, runId, attempt, expected) => {
+  const expression = workflow('release-publish.yml').jobs['cua-helper']!.if!
+  expect(evaluate(expression, { 'github.ref': ref, 'inputs.skip-tag-check': skip,
+    'inputs.cua_run_id': runId, 'inputs.cua_run_attempt': attempt })).toBe(expected)
+})
+
+it.each([
+  ['success', '', '', false, true],
+  ['failure', '', '', false, false],
+  ['failure', '123', '', false, false],
+  ['cancelled', '', '', false, false],
+  ['skipped', '', '', false, false],
+  ['skipped', '123', '', false, true],
+  ['skipped', '123', '2', false, true],
+  ['skipped', '', '2', false, true],
+  ['skipped', '123', '2', true, false],
+] as const)('gates npm packing with helper=%s, run=%s, attempt=%s, cancelled=%s', (result, runId, attempt, cancelled, expected) => {
+  const pack = workflow('release-publish.yml').jobs['pack']!
+  expect(pack.needs).toBe('cua-helper')
+  expect(evaluate(pack.if!, { 'needs.cua-helper.result': result,
+    'inputs.cua_run_id': runId, 'inputs.cua_run_attempt': attempt, cancelled })).toBe(expected)
+})
+
+it('validates retained attempts before downloading exactly one artifact with read-only Actions access', () => {
+  const publish = workflow('release-publish.yml')
+  expect(publish.permissions).toEqual({ contents: 'read' })
+  const pack = publish.jobs['pack']!
+  expect(pack.permissions).toEqual({ contents: 'read', actions: 'read' })
+  const select = pack.steps.find(step => step.name === 'Select retained CUA helper')!
+  const retained = pack.steps.find(step => step.name === 'Download retained CUA helper')!
+  const fresh = pack.steps.find(step => step.name === 'Download freshly built CUA helper')!
+  expect(select.run).toBe('pnpm exec tsx scripts/cua-helper/select-artifact.ts')
+  expect(pack.steps.indexOf(select)).toBeLessThan(pack.steps.indexOf(retained))
+  expect(retained).toMatchObject({ uses: 'actions/download-artifact@v8.0.1', with: {
+    'artifact-ids': '${{ steps.retained-cua.outputs.artifact-id }}', 'run-id': '${{ inputs.cua_run_id }}',
+    'github-token': '${{ github.token }}', path: 'dist/cua-helper',
+  } })
+  expect(retained.with?.name).toBeUndefined()
+  expect(fresh.with).toEqual({ name: '${{ needs.cua-helper.outputs.artifact }}', path: 'dist/cua-helper' })
+  for (const [runId, attempt, reuse] of [['', '', false], ['123', '', true], ['123', '2', true], ['', '2', true]] as const) {
+    const context = { 'inputs.cua_run_id': runId, 'inputs.cua_run_attempt': attempt }
+    expect(evaluate(select.if!, context)).toBe(reuse)
+    expect(evaluate(retained.if!, context)).toBe(reuse)
+    expect(evaluate(fresh.if!, context)).toBe(!reuse)
+  }
+  const stage = pack.steps.find(step => step.name === 'Stage verified native helper applications')!
+  expect(stage.if).toBeUndefined()
+  expect(stage.run).toContain('scripts/cua-helper/stage.ts --from dist/cua-helper/extracted')
+  expect(pack.steps.indexOf(stage)).toBeGreaterThan(pack.steps.indexOf(retained))
+  expect(pack.steps.indexOf(stage)).toBeGreaterThan(pack.steps.indexOf(fresh))
+  expect(pack.steps.indexOf(stage)).toBeLessThan(pack.steps.findIndex(step => step.name === 'Pack release tarballs'))
 })

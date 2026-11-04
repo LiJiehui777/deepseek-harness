@@ -1,8 +1,10 @@
+import { connectFreshWorkspace } from './support.ts'
+import type {} from '@deepseek-ai/dsh-user-approval'
 /** Native QR settings, managed CLI transport and a logged local Agent tool round. */
 import { WebSocketServer } from 'ws'
 import { once } from 'node:events'
 import { existsSync } from 'node:fs'
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -78,7 +80,7 @@ it.skipIf(MODE === 'record')('reads office resources and writes only after nativ
   const fixture = fileURLToPath(new URL('../../../packages/interaction/enterprise-connectors/tests/fixtures/wecom-office-cli.mjs', import.meta.url))
   await writeFile(join(directory, 'inline-mail'), '')
   const overlay = join(directory, 'office.patch.yml')
-  await writeFile(overlay, '- id: agent-default-model\n  config:\n    provider: office-fixture\n    model: fixture\n- insert:\n    - id: office-authorization\n      name: "@deepseek-ai/dsh-authorization"\n    - id: office-connector\n      name: "@deepseek-ai/dsh-enterprise-connectors"\n      config:\n        wecom:\n          websocketURL: ws://127.0.0.1:'+String(address.port)+'\n        wecomOfficeRuntime:\n          directory: '+JSON.stringify(join(directory, 'account'))+'\n          command: '+JSON.stringify([process.execPath, fixture, directory])+'\n        timeoutMs: 10000\n')
+  await writeFile(overlay, '- id: agent-default-model\n  config:\n    provider: office-fixture\n    model: fixture\n- insert:\n    - id: enterprise-connectors\n      name: "@deepseek-ai/dsh-enterprise-connectors"\n      config:\n        wecom:\n          websocketURL: ws://127.0.0.1:'+String(address.port)+'\n        wecomOfficeRuntime:\n          directory: '+JSON.stringify(join(directory, 'account'))+'\n          command: '+JSON.stringify([process.execPath, fixture, directory])+'\n        timeoutMs: 10000\n- id: ui-settings-connectors\n  disabled: false\n')
   const bootstrap = MODE === 'refresh' && !existsSync(FIXTURE)
   scaffold = await launchWebScaffold({ extraOverlayPath: overlay, ...(bootstrap ? {} : { replayFixture: FIXTURE, compareReplaySession: true,
     replayProviders: [{ id: 'office-fixture', name: 'Office fixture', models: [{ id: 'fixture', name: 'Fixture', contextWindow: 128000 }] }] }) })
@@ -90,10 +92,9 @@ it.skipIf(MODE === 'record')('reads office resources and writes only after nativ
   const page = await browser.newPage({ locale: 'en-US', viewport: { width: 1440, height: 1000 } })
   const tripwire = watchConsole(page)
   await page.goto(owner.authenticatedUrl)
-  await page.getByRole('button', { name: 'Settings', exact: true }).click()
-  const settings = page.getByRole('dialog', { name: 'Settings', exact: true })
-  await settings.getByRole('button', { name: 'Plugins', exact: true }).click()
-  await settings.getByRole('button', { name: 'Show settings: WeCom connector', exact: true }).click()
+  await page.getByRole('button', { name: 'Plugins', exact: true }).click()
+  await page.locator('[data-plugin-item="wecom-connector"] button').first().click()
+  const settings = page.locator('[data-plugin-item-detail="wecom-connector"]')
   const office = settings.getByRole('region', { name: 'Office account', exact: true })
   expect(await office.getByRole('checkbox').count()).toBe(0)
   await page.screenshot({ path: '/tmp/dh-wecom-office-simple.png' })
@@ -108,20 +109,12 @@ it.skipIf(MODE === 'record')('reads office resources and writes only after nativ
   await office.getByText('Quality user', { exact: false }).waitFor()
   expect(await office.getByRole('button').count()).toBe(1)
   expect(await office.getByRole('checkbox').count()).toBe(0)
-  const document = await readFile(join(owner.harnessHome, 'settings.yaml'), 'utf8')
-  expect(document).toContain('wecom-office-connector:')
+  const document = await readFile(join(owner.harnessHome, 'profiles/scaffold/cordis.patch.yml'), 'utf8')
+  expect(document).toContain('wecomOffice:')
   expect(document).not.toContain('fixture-secret')
   expect(await settings.getByRole('textbox', { name: 'Bot ID', exact: true }).count()).toBe(0)
-  await settings.getByRole('button', { name: 'Close', exact: true }).click()
-  const workspace = join(owner.workspaceCwd, 'workspace')
-  await mkdir(workspace, { recursive: true })
-  await page.getByRole('textbox', { name: 'Choose workspace' }).click()
-  const picker = page.getByRole('dialog', { name: 'Select Workspace Directory' })
-  await picker.getByRole('button', { name: 'Edit path' }).click()
-  const path = picker.getByRole('textbox', { name: 'Edit path' })
-  await path.fill(workspace)
-  await path.press('Enter')
-  await picker.getByRole('button', { name: 'Open', exact: true }).click()
+  await page.getByRole('button', { name: 'New session', exact: true }).first().click()
+  await connectFreshWorkspace(page, owner.workspaceCwd)
   await page.locator('[data-composer-input][contenteditable="true"]').waitFor()
   const input = page.locator('[data-composer-input]').first()
   const settled = owner.whenTurnSettled()

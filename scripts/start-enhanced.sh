@@ -2,4 +2,6 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 export DSH_HOME="${DSH_ENHANCED_HOME:-$PWD/.local/enhanced-home}"
-exec node --import tsx/esm apps/cli/src/bin.ts --profile enhanced --patch apps/cli/config/examples/ztt/cordis.yml --host 127.0.0.1 --port "${DSH_ENHANCED_PORT:-3001}" --no-open "$@"
+source scripts/enhanced-node.sh
+"$enhanced_node" --import tsx/esm scripts/migrate-enhanced-settings.ts "$DSH_HOME"
+exec "$enhanced_node" --import tsx/esm apps/cli/src/bin.ts --profile enhanced --patch apps/cli/config/examples/ztt/cordis.yml --host 127.0.0.1 --port "${DSH_ENHANCED_PORT:-3001}" --no-open "$@"

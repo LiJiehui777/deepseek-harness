@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-11-02-business-workflow-workbench.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-11-02-business-workflow-workbench.md
-2026-11-02-business-workflow-workbench.md: ec0bc65c5d3e1f0183319903d28349291f96c0c4
-2026-11-02-business-workflow-workbench.zh.md: 9487edc67e11476aad2862ca7a52acd22af49f3a
+/agent-note-isolated-business-workflow-workbench:
+  en: 58da40c58ad86848
+  zh: 2982d5dad8901087
+/agent-note-isolated-business-workflow-workbench/problem:
+  en: 16e26545ed0d563b
+  zh: 47a6f956c0961ba1
+/agent-note-isolated-business-workflow-workbench/decision:
+  en: bddeb3a83d4a7738
+  zh: d8e9fccd9deac6dc
+/agent-note-isolated-business-workflow-workbench/alternatives-considered:
+  en: 70bafd2c87cb1335
+  zh: e71348564b06f64a
+/agent-note-isolated-business-workflow-workbench/consequences:
+  en: d479af72c52043b7
+  zh: 8b81a7f37722326e

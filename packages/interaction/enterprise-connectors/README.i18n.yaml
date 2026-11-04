@@ -1,6 +1,40 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/interaction/enterprise-connectors/README.md
-README.md: c5f9b558cc565974df1c14b7c71e39e8e31c3b9b
-README.zh.md: 0a1bd8b890425d0befbd6eb36623aafe827e4fbb
+/:
+  en: 0b07a70a9b428bef
+  zh: 16febe5de10ade6b
+/deepseek-ai-dsh-enterprise-connectors:
+  en: 9ea92b48c2e0216a
+  zh: 555f4928cd3becdf
+/deepseek-ai-dsh-enterprise-connectors/summary:
+  en: fb3d4b81d5ca35cf
+  zh: b98a87b1822f77c8
+/deepseek-ai-dsh-enterprise-connectors/table-of-contents:
+  en: 915fd82850e37f7d
+  zh: 79e06089ad1e5cee
+/deepseek-ai-dsh-enterprise-connectors/use-this-package:
+  en: 5091618cacf66052
+  zh: c8b08291be12af05
+/deepseek-ai-dsh-enterprise-connectors/model-experience:
+  en: 215e7ba838619b7b
+  zh: a311da3843709f90
+/deepseek-ai-dsh-enterprise-connectors/model-experience/enterprise-tools-and-remote-tasks:
+  en: 9ef171045a1cf08e
+  zh: 724c8ebbb2428b5e
+/deepseek-ai-dsh-enterprise-connectors/model-experience/enterprise-tools-and-remote-tasks/what-the-model-sees:
+  en: d48d108272fcbb2d
+  zh: a583bef9139c245e
+/deepseek-ai-dsh-enterprise-connectors/model-experience/enterprise-tools-and-remote-tasks/token-effect:
+  en: c63acc9da9ad54c0
+  zh: b6fdfb600c54034f
+/deepseek-ai-dsh-enterprise-connectors/model-experience/enterprise-tools-and-remote-tasks/kv-cache-effect:
+  en: 01da17f0a43a12c9
+  zh: 52aad1f4784c7cae
+/deepseek-ai-dsh-enterprise-connectors/known-limitations-and-deferred-work:
+  en: 330642f098ed8688
+  zh: 9830733f21361d4f
+/deepseek-ai-dsh-enterprise-connectors/known-limitations-and-deferred-work/dev-note:
+  en: 4a8b9f58eae8e473
+  zh: ca8ca733d5e4f931

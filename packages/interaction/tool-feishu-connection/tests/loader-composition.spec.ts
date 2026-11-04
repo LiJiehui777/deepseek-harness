@@ -1,3 +1,5 @@
+import * as NativeExecutor from '@deepseek-ai/dsh-tool-executor-native'
+import { executeOne } from './execute.ts'
 import { copyFile, mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -28,7 +30,7 @@ async function boot(): Promise<Context> {
   ctx = new Context()
   await ctx.plugin(Loader)
   ctx.loader.builtins.include = Include
-  const modules = new Map<string, unknown>([['@deepseek-ai/dsh-agent', AgentRegistry], ['@deepseek-ai/dsh-system-prompt', SystemPrompt], ['@deepseek-ai/dsh-tools', Tools], ['@deepseek-ai/dsh-tool-feishu-connection', Records]])
+  const modules = new Map<string, unknown>([['@deepseek-ai/dsh-agent', AgentRegistry], ['@deepseek-ai/dsh-system-prompt', SystemPrompt], ['@deepseek-ai/dsh-tools', Tools], ['@deepseek-ai/dsh-tool-executor-native', NativeExecutor], ['@deepseek-ai/dsh-tool-feishu-connection', Records]])
   ctx.loader.internal = { version: 'v2', import(name: string) { return Promise.resolve(modules.get(name)) } } as unknown as NonNullable<typeof ctx.loader.internal>
   fixtureRoot = await mkdtemp(join(tmpdir(), 'feishu-loader-'))
   const fixturePath = join(fixtureRoot, 'cordis.yml')
@@ -41,12 +43,12 @@ async function configured(overrides: Partial<Records.Config> = {}): Promise<Cont
   ctx = new Context()
   await ctx.plugin(AgentRegistry)
   await ctx.plugin(SystemPrompt)
-  await ctx.plugin(Tools)
+  await ctx.plugin(Tools); await ctx.plugin(NativeExecutor)
   await ctx.plugin(Records, { ...config, ...overrides })
   return ctx
 }
 function execute(root: Context, name = 'feishu_read_messages', arguments_: Record<string, unknown> = { chat_id: 'room' }) {
-  return root.tools.execute({ callId: ToolCallId('read-records'), name, arguments: arguments_, signal: new AbortController().signal })
+  return executeOne(root, { callId: ToolCallId('read-records'), name, arguments: arguments_, signal: new AbortController().signal })
 }
 function requestBody(request: RequestInit): Record<string, unknown> {
   if (typeof request.body !== 'string') throw new Error('Expected a JSON string request body')
@@ -129,7 +131,7 @@ it('registers only selected reads and removes all contributions on Loader unload
   const root = await boot()
   const names = root.tools.schemas().map(tool => tool.name)
   expect(names).toEqual(['feishu_list_chats', 'feishu_read_messages', 'feishu_read_document', 'feishu_list_tables', 'feishu_list_fields', 'feishu_read_records'])
-  const entry = root.loader.entries().find(entry => entry.options.id === 'feishu-connection')!
+  const entry = [...root.loader.entries()].find(entry => entry.options.id === 'feishu-connection')!
   await entry.fiber!.dispose()
   expect(root.tools.schemas()).toEqual([])
   await root.plugin(Records, { ...config, capabilities: ['documents'] })
@@ -150,5 +152,5 @@ it('reads documents and Base fields through their declared tools without model a
   expect(requestBody(mock.mock.calls[0]![1])).toEqual({ channel: 'feishu', operation: 'document', resource: 'https://team.feishu.cn/docx/DocA' })
   expect((await execute(root, 'feishu_list_fields', { resource: 'BaseA', table_id: 'tblA', cursor: 'next' })).isError).toBe(false)
   expect(requestBody(mock.mock.calls[1]![1])).toEqual({ channel: 'feishu', operation: 'fields', resource: 'BaseA', table_id: 'tblA', page_size: 20, cursor: 'next' })
-  for (const endpoint of ['https://bridge.test/read?token=x', 'https://bridge.test/read#secret']) expect(() => Records.apply(root, { ...config, endpoint })).toThrow('HTTP endpoint')
+  for (const endpoint of ['https://bridge.test/read?token=x', 'https://bridge.test/read#secret']) expect(() =>{  Records.apply(root, { ...config, endpoint }) }).toThrow('HTTP endpoint')
 })

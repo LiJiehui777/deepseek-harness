@@ -24,6 +24,9 @@
       "path": "../app-boot"
     },
     {
+      "path": "../../util/official-bundles"
+    },
+    {
       "path": "../../util/atomic-write"
     },
     {
@@ -48,6 +51,9 @@
       "path": "../../util/values"
     },
     {
+      "path": "../hmr"
+    },
+    {
       "path": "../../../vendor/timer"
     },
     {
@@ -63,7 +69,13 @@
       "path": "../../interaction/user-approval"
     },
     {
-      "path": "../app-boot"
+      "path": "../../util/plugin-detail"
+    },
+    {
+      "path": "../../util/timeout"
+    },
+    {
+      "path": "../../client/connection/tsconfig.host.json"
     }
   ]
 }

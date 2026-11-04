@@ -27,9 +27,12 @@ it.each([undefined, { schema_version: 99 }, { schema_version: 1, review_status: 
 })
 
 it('renders the recorded native review result from Session history', () => {
-  const events = readFileSync(resolve('snapshots/session/quality-report-review/session.v3.jsonl'), 'utf8').trim().split('\n').map(line => JSON.parse(line))
-  const event = events.find(item => item.type === 'tool/result')
-  const meta = event.data.meta
+  const events = readFileSync(resolve('snapshots/session/quality-report-review/session.v3.jsonl'), 'utf8').trim().split('\n').map((line): unknown => JSON.parse(line))
+  const event = events.find(item => typeof item === 'object' && item !== null && 'type' in item && item.type === 'tool/result')
+  if (typeof event !== 'object' || event === null || !('data' in event)) throw new Error('Missing tool result fixture')
+  const data = event.data
+  if (typeof data !== 'object' || data === null || !('meta' in data)) throw new Error('Missing presentation metadata')
+  const meta = data.meta
   render(<QualityReportCard {...props(meta)} />)
   expect(screen.getByText('Synthetic quality draft')).toBeTruthy()
   expect(screen.getByText(zh.passed)).toBeTruthy()

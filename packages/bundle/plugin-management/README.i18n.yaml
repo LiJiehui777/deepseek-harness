@@ -1,6 +1,43 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/bundle/plugin-management/README.md
-README.md: c4001b3e32afc56fdc39ce38561e2337b0333655
-README.zh.md: a85bd2feca485802582fe1413c6e68d17c426d12
+/:
+  en: bac5de71238c0f95
+  zh: 3af9d88ccd6e8779
+/deepseek-ai-dsh-plugin-management:
+  en: 855b10bee7200f19
+  zh: e6deb006a581b638
+/deepseek-ai-dsh-plugin-management/summary:
+  en: 51c6cf6aa8aecbcd
+  zh: 18fa54db5e0c1a12
+/deepseek-ai-dsh-plugin-management/table-of-contents:
+  en: 122f0d41696980b1
+  zh: 4e8e5aca9a51c070
+/deepseek-ai-dsh-plugin-management/use-this-package:
+  en: 73c704d8e05c7728
+  zh: d4e4dca34bff365e
+/deepseek-ai-dsh-plugin-management/understand-the-implementation:
+  en: 04bb520a968b0160
+  zh: 89a80c7c8d532b0c
+/deepseek-ai-dsh-plugin-management/model-experience:
+  en: 215e7ba838619b7b
+  zh: a311da3843709f90
+/deepseek-ai-dsh-plugin-management/model-experience/composition:
+  en: 1ff253c3946b4ebe
+  zh: 103f66630a01e5f8
+/deepseek-ai-dsh-plugin-management/model-experience/composition/what-the-model-sees:
+  en: c61ecdfa1e8557a3
+  zh: d4ad3cc1eb86edf2
+/deepseek-ai-dsh-plugin-management/model-experience/composition/token-effect:
+  en: 59ef030ced35fa79
+  zh: 636da7971b777d81
+/deepseek-ai-dsh-plugin-management/model-experience/composition/kv-cache-effect:
+  en: 248f497c03e95828
+  zh: a5b32b1b24156185
+/deepseek-ai-dsh-plugin-management/known-limitations-and-deferred-work:
+  en: cb98ee1f23bc1231
+  zh: 16dc063921a97a21
+/deepseek-ai-dsh-plugin-management/known-limitations-and-deferred-work/dev-note:
+  en: ea7ed1a487142f2f
+  zh: c15624730e86c6a8

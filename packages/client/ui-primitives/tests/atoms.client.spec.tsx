@@ -1,12 +1,82 @@
 // @vitest-environment jsdom
+import { createRef, useState } from 'react'
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
-import { Button, ConnectionIndicator, Input, Menu, Modal, Pill } from '@deepseek-ai/dsh-client-ui-primitives'
+import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest'
+import { Button, ConnectionIndicator, Input, Menu, MenuItemButton, Modal, Pill } from '@deepseek-ai/dsh-client-ui-primitives'
 import { POINTER_GRACE_MS } from '../src/pointer-grace.ts'
+import { focusWithoutRing } from '../src/focus.ts'
+import buttonCss from '../src/Button.module.css'
 
 afterEach(cleanup)
 
+describe('isMobileDevice', () => {
+  beforeEach(() => { vi.resetModules() })
+
+  it.each([
+    { name: 'iPhone', userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_6 like Mac OS X)', platform: 'iPhone', maxTouchPoints: 5, mobile: true },
+    { name: 'iPad', userAgent: 'Mozilla/5.0 (iPad; CPU OS 18_6 like Mac OS X)', platform: 'iPad', maxTouchPoints: 5, mobile: true },
+    { name: 'iPod', userAgent: 'Mozilla/5.0 (iPod; U; CPU like Mac OS X; en)', platform: 'iPod', maxTouchPoints: 5, mobile: true },
+    { name: 'Android phone', userAgent: 'Mozilla/5.0 (Linux; Android 10; K) Mobile', platform: 'Linux armv8l', maxTouchPoints: 0, mobile: true },
+    { name: 'Android tablet', userAgent: 'Mozilla/5.0 (Linux; Android 10; K)', platform: 'Linux armv8l', maxTouchPoints: 5, mobile: true },
+    { name: 'desktop-mode iPad', userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)', platform: 'MacIntel', maxTouchPoints: 5, mobile: true },
+    { name: 'Mac', userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)', platform: 'MacIntel', maxTouchPoints: 0, mobile: false },
+    { name: 'Windows touchscreen', userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)', platform: 'Win32', maxTouchPoints: 5, mobile: false },
+    { name: 'native networking UA', userAgent: 'DeepSeek%20Chat/0 CFNetwork/3860.400.51 Darwin/25.3.0', platform: '', maxTouchPoints: 0, mobile: false },
+    { name: 'unknown UA', userAgent: 'Unrecognized/1.0', platform: '', maxTouchPoints: 0, mobile: false },
+  ])('classifies $name', async ({ userAgent, platform, maxTouchPoints, mobile }) => {
+    for (const [name, value] of Object.entries({ userAgent, platform, maxTouchPoints })) {
+      const descriptor = Object.getOwnPropertyDescriptor(navigator, name)
+      Object.defineProperty(navigator, name, { configurable: true, value })
+      onTestFinished(() => {
+        if (descriptor === undefined) Reflect.deleteProperty(navigator, name)
+        else Object.defineProperty(navigator, name, descriptor)
+      })
+    }
+    const { isMobileDevice } = await import('../src/focus.ts')
+    expect(isMobileDevice()).toBe(mobile)
+  })
+
+  it.each([true, false])('shares a cached %s result between callers until the module reloads', async (mobile) => {
+    const mobileUA = 'Mozilla/5.0 (iPhone)'
+    const desktopUA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)'
+    const ua = vi.spyOn(navigator, 'userAgent', 'get').mockReturnValue(mobile ? mobileUA : desktopUA)
+    onTestFinished(() => { ua.mockRestore() })
+    const first = await import('../src/focus.ts')
+    expect(first.isMobileDevice()).toBe(mobile)
+
+    ua.mockReturnValue(mobile ? desktopUA : mobileUA)
+    const other = await import('@deepseek-ai/dsh-client-ui-primitives/src/focus.ts')
+    expect(other.isMobileDevice()).toBe(mobile)
+    expect(ua).toHaveBeenCalledTimes(1)
+
+    vi.resetModules()
+    const reloaded = await import('../src/focus.ts')
+    expect(reloaded.isMobileDevice()).toBe(!mobile)
+    expect(ua).toHaveBeenCalledTimes(2)
+  })
+})
+
+it('retains automatic focus styling while typing and restores it for keyboard navigation', () => {
+  render(<button>Automatic destination</button>)
+  const button = screen.getByRole('button')
+  focusWithoutRing(button)
+  fireEvent.keyDown(button, { key: 'a' })
+  expect(button.hasAttribute('data-dsh-automatic-focus')).toBe(true)
+  fireEvent.keyDown(button, { key: 'ArrowDown' })
+  expect(button.hasAttribute('data-dsh-automatic-focus')).toBe(false)
+})
+
 describe('Button', () => {
+  it('exposes its native button for focus and releases the ref on unmount', () => {
+    const ref = createRef<HTMLButtonElement>()
+    const { unmount } = render(<Button ref={ref}>Focus</Button>)
+    expect(ref.current).toBe(screen.getByRole('button', { name: 'Focus' }))
+    ref.current?.focus()
+    expect(document.activeElement).toBe(ref.current)
+    unmount()
+    expect(ref.current).toBeNull()
+  })
+
   it('renders children, icon, and forwards clicks', () => {
     const onClick = vi.fn()
     render(<Button variant="primary" icon={<svg data-testid="ic" />} onClick={onClick}>Go</Button>)
@@ -23,9 +93,27 @@ describe('Button', () => {
     expect(onClick).not.toHaveBeenCalled()
   })
 
-  it('outline variant renders a bordered cancel-style button', () => {
-    render(<Button variant="outline">Cancel</Button>)
-    expect(screen.getByRole('button', { name: 'Cancel' })).toBeDefined()
+  it('selects the outline stylesheet for outlined actions only', () => {
+    const { rerender } = render(<Button variant="outline">Cancel</Button>)
+    const button = screen.getByRole('button', { name: 'Cancel' })
+    expect(button.classList.contains(buttonCss.outline!)).toBe(true)
+    for (const variant of ['primary', 'ghost', 'toolbar'] as const) {
+      rerender(<Button variant={variant}>Cancel</Button>)
+      expect(button.classList.contains(buttonCss.outline!)).toBe(false)
+    }
+  })
+
+  it('keeps the native element and focus when the variant changes', () => {
+    const ref = createRef<HTMLButtonElement>()
+    const { rerender } = render(<Button ref={ref} variant="outline">Open</Button>)
+    const button = screen.getByRole('button')
+    button.focus()
+    rerender(<Button ref={ref} variant="primary">Open</Button>)
+    expect(ref.current).toBe(button)
+    expect(document.activeElement).toBe(button)
+    rerender(<Button ref={ref} variant="outline">Open</Button>)
+    expect(ref.current).toBe(button)
+    expect(document.activeElement).toBe(button)
   })
 })
 
@@ -48,6 +136,16 @@ describe('Pill', () => {
 })
 
 describe('Input', () => {
+  it('exposes its native input for focus and releases the ref on unmount', () => {
+    const ref = createRef<HTMLInputElement>()
+    const { unmount } = render(<Input ref={ref} aria-label="Search" />)
+    expect(ref.current).toBe(screen.getByRole('textbox', { name: 'Search' }))
+    ref.current?.focus()
+    expect(document.activeElement).toBe(ref.current)
+    unmount()
+    expect(ref.current).toBeNull()
+  })
+
   it('forwards value/onChange and renders the leading icon', () => {
     const onChange = vi.fn()
     render(<Input icon={<svg data-testid="ic" />} value="q" onChange={onChange} placeholder="search" />)
@@ -59,7 +157,26 @@ describe('Input', () => {
   })
 })
 
+describe('MenuItemButton', () => {
+  it('exposes the current page without preventing activation and clears it when selection moves', () => {
+    const onSelect = vi.fn()
+    const { rerender } = render(<MenuItemButton current onSelect={onSelect}>Notes</MenuItemButton>)
+    const row = screen.getByRole('menuitem', { name: 'Notes' })
+    expect(row.getAttribute('aria-current')).toBe('page')
+    fireEvent.click(row)
+    expect(onSelect).toHaveBeenCalledOnce()
+    rerender(<MenuItemButton current={false} onSelect={onSelect}>Notes</MenuItemButton>)
+    expect(row.hasAttribute('aria-current')).toBe(false)
+    rerender(<MenuItemButton onSelect={onSelect}>Notes</MenuItemButton>)
+    expect(row.hasAttribute('aria-current')).toBe(false)
+  })
+})
+
 describe('Menu', () => {
+  beforeEach(() => {
+    vi.stubGlobal('CSS', { supports: (property: string) => property === '-webkit-backdrop-filter' })
+  })
+  afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals() })
   const items = [
     { id: 'a', label: 'Alpha' },
     { id: 'b', label: 'Beta', disabled: true },
@@ -74,6 +191,105 @@ describe('Menu', () => {
       <Menu open anchor={<span>trigger</span>} items={items} selectedId="a" onSelect={onSelect} onClose={() => {}} />)
     fireEvent.click(screen.getByRole('menuitem', { name: 'Alpha' }))
     expect(onSelect).toHaveBeenCalledWith('a')
+  })
+
+  it('walks component rows with the data rows and returns focus to the trigger after one is activated', async () => {
+    const onAction = vi.fn()
+    function Harness() {
+      const [open, setOpen] = useState(true)
+      return (
+        <Menu
+          open={open}
+          anchor={<button type="button">trigger</button>}
+          items={[{ id: 'a', label: 'Alpha' }]}
+          onSelect={() => {}}
+          onClose={() => { setOpen(false) }}
+        >
+          <MenuItemButton separatorBefore shortcut={{ keys: ['Ctrl', 'P'], aria: 'Control+P' }} onSelect={() => { onAction(); setOpen(false) }}>Publish</MenuItemButton>
+        </Menu>
+      )
+    }
+    render(<Harness />)
+    const trigger = screen.getByRole('button', { name: 'trigger' })
+    expect(screen.getAllByRole('menuitem').map(item => item.textContent)).toEqual(['Alpha', 'PublishCtrlP'])
+    // The component row starts a group: one hairline, between the data row and it.
+    const publishWrap = screen.getByRole('menuitem', { name: 'Publish' }).parentElement
+    expect(screen.getByRole('separator').nextElementSibling).toBe(screen.getByRole('menuitem', { name: 'Publish' }))
+    expect(publishWrap?.contains(screen.getByRole('separator'))).toBe(true)
+    const publish = screen.getByRole('menuitem', { name: 'Publish' })
+    expect(publish.getAttribute('aria-keyshortcuts')).toBe('Control+P')
+    trigger.focus()
+    fireEvent.keyDown(trigger, { key: 'End' })
+    expect(document.activeElement).toBe(publish)
+    fireEvent.keyDown(publish, { key: 'ArrowUp' })
+    expect(document.activeElement).toBe(screen.getByRole('menuitem', { name: 'Alpha' }))
+    fireEvent.click(publish)
+    expect(onAction).toHaveBeenCalledOnce()
+    expect(screen.queryByRole('menu')).toBeNull()
+    await act(async () => { await Promise.resolve() })
+    expect(document.activeElement).toBe(trigger)
+  })
+
+  it('explains an unavailable component row on hover and focus without activating it', () => {
+    vi.useFakeTimers()
+    vi.stubGlobal('matchMedia', vi.fn(() => ({ matches: true })))
+    try {
+      const onSelect = vi.fn()
+      const reason = 'Available at 15:51:37.'
+      const menu = (explanation: string | undefined) => (
+        <Menu open anchor={<button type="button">trigger</button>} onClose={() => {}}>
+          <MenuItemButton disabled={explanation !== undefined} disabledReason={explanation} onSelect={onSelect}>Run now</MenuItemButton>
+        </Menu>
+      )
+      const { rerender } = render(menu(reason))
+      const row = screen.getByRole('menuitem', { name: 'Run now', description: reason })
+      expect(row.hasAttribute('disabled')).toBe(false)
+      expect(row.getAttribute('aria-disabled')).toBe('true')
+      fireEvent.click(row)
+      expect(onSelect).not.toHaveBeenCalled()
+      fireEvent.pointerEnter(row, { pointerType: 'mouse' })
+      act(() => { vi.advanceTimersByTime(499) })
+      expect(screen.queryByRole('tooltip')).toBeNull()
+      act(() => { vi.advanceTimersByTime(1) })
+      expect(screen.getByRole('tooltip').textContent).toBe(reason)
+      fireEvent.pointerLeave(row, { pointerType: 'mouse' })
+      expect(screen.queryByRole('tooltip')).toBeNull()
+      // The arrow walk reaches the row, and keyboard focus shows the reason at once.
+      const trigger = screen.getByRole('button', { name: 'trigger' })
+      fireEvent.keyDown(document.body, { key: 'Tab' })
+      trigger.focus()
+      fireEvent.keyDown(trigger, { key: 'ArrowDown' })
+      expect(document.activeElement).toBe(row)
+      expect(screen.getByRole('tooltip').textContent).toBe(reason)
+      // A reason that goes away keeps the focused row mounted and makes it an ordinary row.
+      rerender(menu(undefined))
+      expect(document.activeElement).toBe(row)
+      expect(row.hasAttribute('aria-disabled')).toBe(false)
+      expect(row.hasAttribute('aria-describedby')).toBe(false)
+      expect(screen.queryByRole('tooltip')).toBeNull()
+      fireEvent.click(row)
+      expect(onSelect).toHaveBeenCalledOnce()
+    } finally {
+      vi.useRealTimers()
+      vi.unstubAllGlobals()
+    }
+  })
+
+  it('closes an explained unavailable row on Tab and returns focus to the trigger', () => {
+    const onClose = vi.fn()
+    const onSelect = vi.fn()
+    render(<Menu open anchor={<button type="button">trigger</button>} onClose={onClose}>
+      <MenuItemButton disabled disabledReason="Wait for the next run interval" onSelect={onSelect}>Run now</MenuItemButton>
+    </Menu>)
+    const trigger = screen.getByRole('button', { name: 'trigger' })
+    trigger.focus()
+    fireEvent.keyDown(trigger, { key: 'ArrowDown' })
+    const row = screen.getByRole('menuitem', { name: 'Run now' })
+    expect(document.activeElement).toBe(row)
+    fireEvent.keyDown(row, { key: 'Tab' })
+    expect(onClose).toHaveBeenCalledOnce()
+    expect(onSelect).not.toHaveBeenCalled()
+    expect(document.activeElement).toBe(trigger)
   })
 
   it('disabled item does not select; Escape and outside pointerdown close', () => {
@@ -175,6 +391,87 @@ describe('Menu', () => {
       />)
     expect(screen.getByTestId('ic')).toBeDefined()
     expect(screen.getByRole('separator')).toBeDefined()
+  })
+
+  it('Tab settles the focused row; Shift+Tab closes back to the anchor', () => {
+    const onSelect = vi.fn()
+    const onClose = vi.fn()
+    render(
+      <Menu open autoFocus anchor={<button type="button">trigger</button>} items={items} onSelect={onSelect} onClose={onClose} />)
+    // autoFocus parks the keyboard on the first row; Tab settles it like Enter.
+    const alpha = screen.getByRole('menuitem', { name: 'Alpha' })
+    expect(document.activeElement).toBe(alpha)
+    expect(alpha.getAttribute('data-dsh-automatic-focus')).toBe('')
+    expect(fireEvent.keyDown(alpha, { key: 'Tab' })).toBe(false)
+    expect(alpha.getAttribute('data-dsh-automatic-focus')).toBeNull()
+    expect(onSelect).toHaveBeenCalledExactlyOnceWith('a')
+
+    // Shift+Tab leaves like Escape: closed, with the trigger taking the keyboard.
+    fireEvent.keyDown(alpha, { key: 'Tab', shiftKey: true })
+    expect(onClose).toHaveBeenCalledTimes(1)
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'trigger' }))
+  })
+
+  it('Tab from the trigger enters the open list, and elsewhere on the page stays native', () => {
+    render(
+      <Menu open anchor={<button type="button">trigger</button>} items={items} onSelect={() => {}} onClose={() => {}} />)
+    const trigger = screen.getByRole('button', { name: 'trigger' })
+    trigger.focus()
+    expect(fireEvent.keyDown(trigger, { key: 'Tab' })).toBe(false)
+    expect(document.activeElement).toBe(screen.getByRole('menuitem', { name: 'Alpha' }))
+
+    // A keyboard outside both the anchor and the list keeps the traversal.
+    const outside = document.createElement('button')
+    document.body.append(outside)
+    outside.focus()
+    expect(fireEvent.keyDown(outside, { key: 'Tab' })).toBe(true)
+    outside.remove()
+  })
+
+  it('walks the list with the arrows without autoFocus, wrapping at both ends', () => {
+    const onClose = vi.fn()
+    const rows = [
+      { id: 'a', label: 'Alpha' },
+      { id: 'b', label: 'Beta' },
+      { id: 'c', label: 'Gamma' },
+    ]
+    render(
+      <Menu open anchor={<button type="button">trigger</button>} items={rows} onSelect={() => {}} onClose={onClose} />)
+    const trigger = screen.getByRole('button', { name: 'trigger' })
+    const alpha = screen.getByRole('menuitem', { name: 'Alpha' })
+    const beta = screen.getByRole('menuitem', { name: 'Beta' })
+    const gamma = screen.getByRole('menuitem', { name: 'Gamma' })
+    trigger.focus()
+    // autoFocus is off: the menu opens with the keyboard on the anchor, and the
+    // first step enters at the near end.
+    expect(document.activeElement).toBe(trigger)
+    expect(fireEvent.keyDown(trigger, { key: 'ArrowDown' })).toBe(false)
+    expect(document.activeElement).toBe(alpha)
+    fireEvent.keyDown(alpha, { key: 'ArrowDown' })
+    fireEvent.keyDown(beta, { key: 'ArrowDown' })
+    expect(document.activeElement).toBe(gamma)
+    fireEvent.keyDown(gamma, { key: 'ArrowDown' }) // wraps forwards
+    expect(document.activeElement).toBe(alpha)
+    fireEvent.keyDown(alpha, { key: 'ArrowUp' }) // wraps backwards
+    expect(document.activeElement).toBe(gamma)
+    fireEvent.keyDown(gamma, { key: 'Home' })
+    expect(document.activeElement).toBe(alpha)
+    fireEvent.keyDown(alpha, { key: 'End' })
+    expect(document.activeElement).toBe(gamma)
+    // Escape closes and hands the keyboard back to the anchor.
+    fireEvent.keyDown(gamma, { key: 'Escape' })
+    expect(onClose).toHaveBeenCalledTimes(1)
+    expect(document.activeElement).toBe(trigger)
+  })
+
+  it('enters at the last enabled row on ↑ and steps over a disabled one', () => {
+    render(
+      <Menu open anchor={<button type="button">trigger</button>} items={items} onSelect={() => {}} onClose={() => {}} />)
+    const trigger = screen.getByRole('button', { name: 'trigger' })
+    trigger.focus()
+    // Beta is disabled: it is not a step target, so Alpha is the only row.
+    expect(fireEvent.keyDown(trigger, { key: 'ArrowUp' })).toBe(false)
+    expect(document.activeElement).toBe(screen.getByRole('menuitem', { name: 'Alpha' }))
   })
 
   it('renders a non-interactive heading label and a danger row', () => {
@@ -283,6 +580,32 @@ describe('Menu', () => {
     expect(rowClick).not.toHaveBeenCalled()
   })
 
+  it('closes an open submenu when the pointer or focus reaches a component row', () => {
+    render(
+      <Menu
+        open
+        anchor={<span>trigger</span>}
+        items={[{ id: 'p', label: 'Parent', submenu: [{ id: 's', label: 'Sub' }] }]}
+        onSelect={() => {}}
+        onClose={() => {}}
+      >
+        <MenuItemButton onSelect={() => {}}>Row</MenuItemButton>
+      </Menu>,
+    )
+    const parent = screen.getByRole('menuitem', { name: 'Parent' })
+    fireEvent.focus(parent)
+    expect(screen.getByRole('menuitem', { name: 'Sub' })).toBeDefined()
+    // Rows inside the card are not top-level rows: focusing one keeps it open.
+    fireEvent.focus(screen.getByRole('menuitem', { name: 'Sub' }))
+    expect(screen.getByRole('menuitem', { name: 'Sub' })).toBeDefined()
+    fireEvent.focus(screen.getByRole('menuitem', { name: 'Row' }))
+    expect(screen.queryByRole('menuitem', { name: 'Sub' })).toBeNull()
+    fireEvent.mouseEnter(parent.parentElement as HTMLElement)
+    expect(screen.getByRole('menuitem', { name: 'Sub' })).toBeDefined()
+    fireEvent.mouseOver(screen.getByRole('menuitem', { name: 'Row' }))
+    expect(screen.queryByRole('menuitem', { name: 'Sub' })).toBeNull()
+  })
+
   it('opens a submenu on hover and selects a nested item', () => {
     const onSelect = vi.fn()
     render(
@@ -296,7 +619,7 @@ describe('Menu', () => {
             id: 'new',
             label: 'New Workspace',
             submenu: [
-              { id: 'ok', label: 'Create ok', icon: <svg data-testid="sub-ic" /> },
+              { id: 'ok', label: 'Create ok', icon: <svg data-testid="sub-ic" />, shortcut: { keys: ['⌘', 'N'], aria: 'Meta+N' } },
             ],
           },
         ]}
@@ -313,6 +636,8 @@ describe('Menu', () => {
     fireEvent.focus(parent)
     fireEvent.mouseEnter(wrap)
     expect(screen.getByTestId('sub-ic')).toBeDefined()
+    expect(screen.getByRole('menuitem', { name: 'Create ok' }).getAttribute('aria-keyshortcuts')).toBe('Meta+N')
+    expect(screen.getByRole('menuitem', { name: 'Create ok' }).querySelectorAll('kbd')).toHaveLength(2)
     fireEvent.click(screen.getByRole('menuitem', { name: 'Create ok' }))
     expect(onSelect).toHaveBeenCalledWith('ok')
     fireEvent.mouseLeave(wrap)
@@ -349,6 +674,87 @@ describe('Menu', () => {
         onClose={() => {}}
       />)
     expect(screen.queryByRole('menu')).toBeNull()
+  })
+
+  it('shows and focuses a portal menu when its host anchor becomes available', () => {
+    vi.useFakeTimers({ toFake: ['requestAnimationFrame', 'cancelAnimationFrame'] })
+    let rect: DOMRect | null = null
+    try {
+      render(<Menu portal open autoFocus getAnchorRect={() => rect} anchor={null}
+        items={[...items, { id: 'c', label: 'Gamma' }]} onClose={() => {}} />)
+      expect(screen.queryByRole('menu')).toBeNull()
+      rect = new DOMRect(40, 100, 32, 28)
+      act(() => { vi.advanceTimersToNextFrame() })
+      expect(screen.getByRole('menu').style.left).toBe('40px')
+      expect(document.activeElement).toBe(screen.getByRole('menuitem', { name: 'Alpha' }))
+      screen.getByRole('menuitem', { name: 'Gamma' }).focus()
+      rect = new DOMRect(80, 100, 32, 28)
+      act(() => { vi.advanceTimersToNextFrame() })
+      expect(screen.getByRole('menu').style.left).toBe('80px')
+      expect(document.activeElement).toBe(screen.getByRole('menuitem', { name: 'Gamma' }))
+    } finally {
+      cleanup()
+      vi.useRealTimers()
+    }
+  })
+
+  it('keeps a portal menu aligned through WebKit zoom and visual-viewport panning', () => {
+    const viewport = Object.assign(new EventTarget(), { width: 500, height: 400, offsetLeft: 40, offsetTop: 60 })
+    vi.stubGlobal('visualViewport', viewport)
+    vi.stubGlobal('CSS', { supports: (property: string) => property === '-webkit-backdrop-filter' })
+    vi.spyOn(HTMLDivElement.prototype, 'offsetWidth', 'get').mockReturnValue(120)
+    vi.spyOn(HTMLDivElement.prototype, 'offsetHeight', 'get').mockReturnValue(80)
+    const remove = vi.spyOn(viewport, 'removeEventListener')
+    const ui = render(<Menu portal open align="end" getAnchorRect={() => new DOMRect(100, 200, 200, 20)}
+      anchor={null} items={items} onClose={() => {}} />)
+    const menu = screen.getByRole('menu')
+    expect(menu.style.left).toBe('220px')
+    expect(menu.style.top).toBe('284px')
+    act(() => { viewport.dispatchEvent(new Event('resize')) })
+    expect(menu.style.left).toBe('220px')
+    expect(menu.style.top).toBe('284px')
+    act(() => {
+      viewport.offsetLeft = 100
+      viewport.offsetTop = 120
+      viewport.dispatchEvent(new Event('scroll'))
+    })
+    expect(menu.style.left).toBe('280px')
+    expect(menu.style.top).toBe('344px')
+    act(() => {
+      viewport.height = 200
+      viewport.dispatchEvent(new Event('resize'))
+    })
+    expect(menu.style.top).toBe('228px')
+    ui.unmount()
+    expect(remove.mock.calls.map(([type]) => type)).toEqual(expect.arrayContaining(['scroll', 'resize']))
+  })
+
+  it('follows an anchor moving without scroll or resize and stops tracking when closed or unmounted', () => {
+    vi.useFakeTimers({ toFake: ['requestAnimationFrame', 'cancelAnimationFrame'] })
+    let rect = new DOMRect(40, 100, 32, 28)
+    const getAnchorRect = vi.fn(() => rect)
+    const props = { portal: true, anchor: null, items, getAnchorRect, onClose: () => {} }
+    try {
+      const view = render(<Menu {...props} open />)
+      rect = new DOMRect(140, 180, 32, 28)
+      act(() => { vi.advanceTimersToNextFrame() })
+      expect(screen.getByRole('menu').style.left).toBe('140px')
+      expect(screen.getByRole('menu').style.top).toBe('212px')
+
+      view.rerender(<Menu {...props} open={false} />)
+      getAnchorRect.mockClear()
+      act(() => { vi.advanceTimersToNextFrame() })
+      expect(getAnchorRect).not.toHaveBeenCalled()
+
+      view.rerender(<Menu {...props} open />)
+      view.unmount()
+      getAnchorRect.mockClear()
+      act(() => { vi.advanceTimersToNextFrame() })
+      expect(getAnchorRect).not.toHaveBeenCalled()
+    } finally {
+      cleanup()
+      vi.useRealTimers()
+    }
   })
 
   it('portal mode renders the list under body, positions it fixed, and still closes on outside pointerdown', () => {
@@ -416,6 +822,52 @@ describe('Menu', () => {
       />)
     expect(screen.getByRole('menu').className).not.toMatch(/scrollable/)
   })
+
+  it('keeps the near viewport margin when the list cannot fit the visible viewport', () => {
+    // jsdom lays nothing out, so the list's own size and the viewport it has to
+    // fit inside are stubbed: this is the tall workspace list on a phone, where
+    // the browser chrome leaves less height than the list needs.
+    const height = vi.spyOn(HTMLDivElement.prototype, 'offsetHeight', 'get').mockReturnValue(900)
+    const width = vi.spyOn(HTMLDivElement.prototype, 'offsetWidth', 'get').mockReturnValue(900)
+    vi.stubGlobal('innerHeight', 600)
+    vi.stubGlobal('innerWidth', 600)
+    try {
+      render(<Menu portal open anchor={null} items={items} onSelect={() => {}} onClose={() => {}} />)
+      const menu = screen.getByRole('menu')
+      expect(menu.style.top).toBe('12px')
+      expect(menu.style.left).toBe('12px')
+    } finally {
+      height.mockRestore()
+      width.mockRestore()
+      vi.unstubAllGlobals()
+    }
+  })
+
+  it('clamps inside the visual viewport where the browser reports a smaller one', () => {
+    // Mobile browser chrome: the visual viewport is what the user sees, while
+    // window.innerHeight keeps the taller layout viewport.
+    const height = vi.spyOn(HTMLDivElement.prototype, 'offsetHeight', 'get').mockReturnValue(400)
+    vi.stubGlobal('innerHeight', 900)
+    vi.stubGlobal('innerWidth', 900)
+    vi.stubGlobal('visualViewport', Object.assign(new EventTarget(), { width: 500, height: 500, offsetLeft: 0, offsetTop: 0 }))
+    try {
+      render(
+        <Menu
+          portal
+          open
+          getAnchorRect={() => new DOMRect(10, 700, 40, 20)}
+          anchor={null}
+          items={items}
+          onSelect={() => {}}
+          onClose={() => {}}
+        />)
+      // 500 - 400 - 12, not the layout viewport's 900.
+      expect(screen.getByRole('menu').style.top).toBe('88px')
+    } finally {
+      height.mockRestore()
+      vi.unstubAllGlobals()
+    }
+  })
 })
 
 describe('Modal', () => {
@@ -446,13 +898,30 @@ describe('Modal', () => {
     expect(onClose).toHaveBeenCalledTimes(2)
   })
 
+  it('places a decorative warning icon in the title only for warning dialogs', () => {
+    const view = render(<Modal open tone="warning" title="Confirm change" closeLabel="Close" onClose={() => {}}>
+      <p>Review the consequences.</p>
+    </Modal>)
+    const heading = screen.getByRole('heading', { name: 'Confirm change' })
+    const icon = heading.querySelector('svg')
+    expect(icon).not.toBeNull()
+    expect(icon?.getAttribute('aria-hidden')).toBe('true')
+    expect(screen.getByText('Review the consequences.').querySelector('svg')).toBeNull()
+    view.rerender(<Modal open title="Confirm change" closeLabel="Close" onClose={() => {}}>Body</Modal>)
+    expect(screen.getByRole('heading', { name: 'Confirm change' }).querySelector('svg')).toBeNull()
+    view.rerender(<Modal open headless tone="warning" title="Confirm change" onClose={() => {}}>Body</Modal>)
+    expect(screen.queryByRole('heading')).toBeNull()
+    expect(screen.getByRole('dialog').querySelector('svg')).toBeNull()
+  })
+
   it('renders headless content without the default close chrome', () => {
     render(
-      <Modal open onClose={() => {}} title="Custom surface" headless>
+      <Modal open onClose={() => {}} title="Custom surface" headless backdropBlur={false}>
         <span>Custom body</span>
       </Modal>,
     )
     expect(screen.getByRole('dialog', { name: 'Custom surface' })).toBeDefined()
+    expect((screen.getByRole('dialog').previousElementSibling as HTMLElement).style.backdropFilter).toBe('none')
     expect(screen.getByText('Custom body')).toBeDefined()
     expect(screen.queryByRole('button')).toBeNull()
   })
@@ -462,8 +931,7 @@ describe('ConnectionIndicator', () => {
   it('renders outage, attempt progress, and recovered states without a native tooltip', () => {
     const reconnect = vi.fn()
     const labels = {
-      disconnectedLabel: 'Disconnected',
-      reconnectLabel: 'Reconnect',
+      disconnectedLabel: 'Disconnected, retry',
       connectingLabel: 'Connecting',
       recoveredLabel: 'Connected',
       reconnectActionLabel: 'Disconnected, reconnect now',
@@ -476,19 +944,42 @@ describe('ConnectionIndicator', () => {
     expect(container.firstChild).toBeNull()
     rerender(<ConnectionIndicator state="disconnected" {...labels} />)
     const indicator = screen.getByRole('button', { name: 'Disconnected, reconnect now' })
-    expect(indicator.textContent).toContain('Disconnected')
-    expect(indicator.textContent).toContain('Reconnect')
+    expect(indicator.textContent).toContain('Disconnected, retry')
     expect(indicator.hasAttribute('title')).toBe(false)
     expect(indicator.querySelector('svg')).toBeTruthy()
     fireEvent.click(indicator)
     expect(reconnect).toHaveBeenCalledOnce()
 
     rerender(<ConnectionIndicator state="connecting" {...labels} />)
-    expect(screen.getByRole('button', { name: 'Connecting, restart now' }).textContent)
-      .toContain('Connecting...')
+    const connecting = screen.getByRole('button', { name: 'Connecting, restart now' })
+    expect(connecting.textContent).toContain('Connecting...')
+    expect(connecting.querySelector('[data-state="ongoing"]')).not.toBeNull()
 
     rerender(<ConnectionIndicator state="recovered" {...labels} />)
     expect(screen.queryByRole('button')).toBeNull()
     expect(screen.getByRole('status', { name: 'Connected' })).toBeTruthy()
+  })
+
+  it('fades out for the exit duration before unmounting', () => {
+    vi.useFakeTimers()
+    try {
+      const labels = {
+        disconnectedLabel: 'Disconnected, retry',
+        connectingLabel: 'Connecting',
+        recoveredLabel: 'Connected',
+        reconnectActionLabel: 'Disconnected, reconnect now',
+        restartActionLabel: 'Connecting, restart now',
+        onReconnect: vi.fn(),
+      }
+      const { container, rerender } = render(
+        <ConnectionIndicator state="disconnected" {...labels} />,
+      )
+      rerender(<ConnectionIndicator state={undefined} {...labels} />)
+      expect(screen.getByRole('button', { name: 'Disconnected, reconnect now' })).toBeTruthy()
+      act(() => { vi.advanceTimersByTime(150) })
+      expect(container.firstChild).toBeNull()
+    } finally {
+      vi.useRealTimers()
+    }
   })
 })

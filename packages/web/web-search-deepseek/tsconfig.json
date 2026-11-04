@@ -8,6 +8,7 @@
     "src"
   ],
   "references": [
+    { "path": "../../llm/llm-deepseek" },
     {
       "path": "../../util/launch-environment"
     },
@@ -33,7 +34,7 @@
       "path": "../../credentials/credentials"
     },
     {
-      "path": "../../settings/settings"
+      "path": "../../credentials/deepseek-account"
     },
     {
       "path": "../../util/http-proxy"

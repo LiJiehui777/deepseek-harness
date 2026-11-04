@@ -1,3 +1,4 @@
+import { executeOne } from './execute.ts'
 /** Actual Flowable and shipped connector execution, with fixture CLI and model responses. */
 import { randomUUID } from 'node:crypto'
 import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
@@ -82,7 +83,7 @@ describe.skipIf(!baseUrl || !password || MODE === 'record')('WeCom → DH → Fl
       .replace('tenantId: dh-business', `tenantId: ${tenant}`)
       .replace('baseUrl: http://127.0.0.1:8082/flowable-rest/', `baseUrl: ${baseUrl}`)
     await writeFile(overlayPath, base + '\n- id: agent-default-model\n  config:\n    provider: wecom-workflow-fixture\n    model: fixture\n'
-      + '- insert:\n    - id: office-authorization\n      name: "@deepseek-ai/dsh-authorization"\n'
+      + '- insert:\n'
       + '    - id: office-connector\n      name: "@deepseek-ai/dsh-enterprise-connectors"\n      config:\n'
       + '        wecom:\n          websocketURL: ws://127.0.0.1:1\n        wecomOffice:\n          enabled: true\n          todos: true\n'
       + `        wecomOfficeRuntime:\n          directory: ${JSON.stringify(join(directory, 'account'))}\n`
@@ -103,7 +104,7 @@ describe.skipIf(!baseUrl || !password || MODE === 'record')('WeCom → DH → Fl
       for (const [name, args] of [
         ['wecom_office_list_todos', { page_size: 20, status_filter: ['proceed'] }],
         ['wecom_office_write', {}],
-      ] as const) denials.push(agent.ctx.tools.execute({ agent, name, arguments: args,
+      ] as const) denials.push(executeOne(agent.ctx, { agent, name, arguments: args,
         callId: brandString<ToolCallId>(`denial-${name}`), signal: new AbortController().signal,
       }).then(result => result.isError))
     })
@@ -147,7 +148,7 @@ describe.skipIf(!baseUrl || !password || MODE === 'record')('WeCom → DH → Fl
       expect(await scaffold.ctx.businessWorkflows.list()).toEqual([])
       const ordinaryOwner = scaffold.ctx.agents.get(ordinaryId)
       if (!ordinaryOwner) throw new Error('Ordinary conversation missing')
-      const ordinaryStart = await ordinaryOwner.ctx.tools.execute({ agent: ordinaryOwner, name: 'business_workflow_start',
+      const ordinaryStart = await executeOne(ordinaryOwner.ctx, { agent: ordinaryOwner, name: 'business_workflow_start',
         arguments: { workflowId: 'wecom-todos', version: 1, inputs: {} },
         callId: brandString<ToolCallId>('ordinary-denied'), signal: new AbortController().signal })
       expect(ordinaryStart.isError).toBe(true)
@@ -212,7 +213,7 @@ describe.skipIf(!baseUrl || !password || MODE === 'record')('WeCom → DH → Fl
       expect(run.workflowVersion).toBe(1)
       const owner = scaffold.ctx.agents.get(brandString<SessionId>(run.ownerSessionId))
       if (!owner) throw new Error('Workflow chat owner missing')
-      const call = (name: string, args: unknown, callId: string, agent = owner) => agent.ctx.tools.execute({ agent, name, arguments: args,
+      const call = (name: string, args: unknown, callId: string, agent = owner) => executeOne(agent.ctx, { agent, name, arguments: args,
         callId: brandString<ToolCallId>(callId), signal: new AbortController().signal })
       expect(owner.status).toBe('running')
       expect(boundaries.filter(event => event.id === owner.id && event.type === 'turn/end')).toEqual([])

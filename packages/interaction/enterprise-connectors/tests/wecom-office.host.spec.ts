@@ -1,8 +1,12 @@
+import SessionStore from '@deepseek-ai/dsh-session'
+import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
+import * as NativeExecutor from '@deepseek-ai/dsh-tool-executor-native'
+import { executeOne } from './execute.ts'
 /** Real Loader and native subprocess composition with a deterministic external CLI fixture. */
 import { mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises'
 import { once } from 'node:events'
 import { WebSocketServer } from 'ws'
-import { MemorySettings } from '../../../settings/settings/tests/memory.ts'
+import { profileComposition } from '../../../settings/settings/tests/profile-composition.ts'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
@@ -48,20 +52,20 @@ async function boot(options: Record<string, unknown> = {}, approval = false): Pr
   const address = socketServer.address()
   if (!address || typeof address !== 'object') throw new Error('Missing SDK fixture port')
   root = new Context()
+  root.baseUrl = pathToFileURL(directory + '/').href
   await root.plugin(Loader)
   root.loader.builtins.include = Include
   const modules = new Map<string, unknown>([
-    ['settings', MemorySettings], ['agents', Agents], ['system-prompt', SystemPrompt], ['tools', Tools], ['authorization', Authorization],
-    ['subprocess', SubprocessLocal], ['enterprise', Enterprise], ['approval', Approval],
+    ['agents', Agents], ['system-prompt', SystemPrompt], ['tools', Tools], ['native-executor', NativeExecutor], ['authorization', Authorization],
+    ['subprocess', SubprocessLocal], ['enterprise', Enterprise], ['approval', Approval], ['session-store', SessionStore], ['session-projections', SessionProjectionRegistry],
     ['credentials', { apply(ctx: Context) { ctx.plugin(MemoryCredentials, {}) } }],
   ])
   root.loader.internal = { version: 'v2', import(name: string) { return Promise.resolve(modules.get(name)) } } as unknown as NonNullable<typeof root.loader.internal>
   const config = { wecom: { websocketURL: `ws://127.0.0.1:${address.port}` }, wecomOffice: { enabled: true, documents: true, files: true, calendar: true, todos: true },
     wecomOfficeRuntime: { directory: join(directory, 'account'), command: [process.execPath, fixture, directory] }, timeoutMs: 10000, ...options }
   const file = join(directory, 'cordis.yml')
-  await writeFile(file, (approval ? '- name: approval\n' : '') + '- name: settings\n- name: agents\n- name: system-prompt\n- name: tools\n- name: credentials\n- name: authorization\n- name: subprocess\n- name: enterprise\n  config: '+JSON.stringify(config)+'\n')
-  await root.loader.create({ name: 'cordis:include', config: { path: pathToFileURL(file).href } })
-  await root.loader.await()
+  await writeFile(file, (approval ? '- name: session-store\n- name: session-projections\n- name: approval\n' : '') + '- name: agents\n- name: system-prompt\n- name: tools\n- name: native-executor\n- name: credentials\n- name: authorization\n- name: subprocess\n- id: enterprise-connectors\n  name: enterprise\n  config: '+JSON.stringify(config)+'\n')
+  await profileComposition(root, directory, file)
   return root
 }
 async function authorize(ctx: Context): Promise<void> {
@@ -76,7 +80,7 @@ function execute(ctx: Context, operation: string, args: unknown = {}, id = 'loca
   const session = Session.create(SessionId(id))
   // The policy consumes only the trusted Session header; no Agent behavior is stubbed by this fixture.
   const agent = { session } as Agent
-  return ctx.tools.execute({ name: `wecom_office_${operation}`, callId: ToolCallId(`office-${operation}`), arguments: args,
+  return executeOne(ctx, { name: `wecom_office_${operation}`, callId: ToolCallId(`office-${operation}`), arguments: args,
     agent, signal: new AbortController().signal })
 }
 
@@ -133,7 +137,7 @@ describe('managed office CLI composition', { timeout: 30000 }, () => {
     expect(await list.execute({}, exec as never)).toContain('"items":[]')
     await rm(join(directory!, 'empty-chats'))
     const send = ctx.tools.get('wecom_send_message')!
-    const denied = await ctx.tools.execute({ name: 'wecom_send_message', callId: ToolCallId('qr-no-approval'),
+    const denied = await executeOne(ctx, { name: 'wecom_send_message', callId: ToolCallId('qr-no-approval'),
       arguments: { chat_id: 'qr_chat', text: 'Quality update' }, ...exec })
     expect(denied.isError).toBe(true)
     const before = await readFile(join(directory!, 'calls.ndjson'), 'utf8')
@@ -159,7 +163,7 @@ describe('managed office CLI composition', { timeout: 30000 }, () => {
     send('not-approved')
     await expect.poll(() => ctx.enterpriseConnectors.status()[1]?.lastSenderId).toBe('approved_member')
     expect(ctx.enterpriseConnectors.status()[1]?.receivedMessages).toBe(0)
-    await ctx.settings.update('wecom-connector', { allowedSenders: ['approved_member'] })
+    await ctx.settings.update('enterprise-connectors', { wecom: { allowedSenders: ['approved_member'] } })
     await ctx.enterpriseConnectors.reconnect('wecom')
     const current = [...socketServer!.clients].find(client => client.readyState === 1)!
     current.send(JSON.stringify({ cmd: 'aibot_msg_callback', headers: { req_id: 'approved' }, body: {
@@ -177,7 +181,7 @@ describe('managed office CLI composition', { timeout: 30000 }, () => {
     const before = await readFile(join(directory!, 'calls.ndjson'), 'utf8')
     const remote = await execute(ctx, 'search_documents', { keywords: ['inspection'] }, 'enterprise-fixture')
     expect(remote.isError).toBe(true)
-    const anonymous = await ctx.tools.execute({ name: 'wecom_office_search_documents', callId: ToolCallId('anonymous'),
+    const anonymous = await executeOne(ctx, { name: 'wecom_office_search_documents', callId: ToolCallId('anonymous'),
       arguments: { keywords: ['inspection'] }, signal: new AbortController().signal })
     expect(anonymous.isError).toBe(true)
     expect(await readFile(join(directory!, 'calls.ndjson'), 'utf8')).toBe(before)
@@ -259,7 +263,7 @@ describe('office capability dispatch through the Loader', { timeout: 30000 }, ()
   function call(ctx: Context, mode: 'describe' | 'read' | 'write', method: string, payload: unknown, session?: Session) {
     session ??= Session.create(SessionId('office-api-local'), [], { ...Session.create(SessionId('office-api-local')).header, cwd: directory! })
     const agent = { session } as Agent
-    return ctx.tools.execute({ name: `wecom_office_${mode}`, callId: ToolCallId(`api-${method}`),
+    return executeOne(ctx, { name: `wecom_office_${mode}`, callId: ToolCallId(`api-${method}`),
       arguments: { method, ...(mode === 'describe' ? {} : { arguments_json: JSON.stringify(payload) }) },
       agent, signal: new AbortController().signal })
   }
@@ -332,7 +336,7 @@ describe('office capability dispatch through the Loader', { timeout: 30000 }, ()
     const session = Session.create(base.id, [], { ...base.header, cwd: directory! })
     session.append('turn/start', { turn: 1 })
     ctx.on('approval/request', async () => {
-      await ctx.settings.update('wecom-office-connector', { documents: false })
+      await ctx.settings.update('enterprise-connectors', { wecomOffice: { documents: false } })
       return 'allowed-once' as const
     })
     const denied = await call(ctx, 'write', 'doc.contents.append', { docid: 'doc_quality', content: 'Never submit.' }, session)

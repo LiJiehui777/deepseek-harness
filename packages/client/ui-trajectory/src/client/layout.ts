@@ -12,12 +12,12 @@ import type {
   ToolCallBlock,
   ToolResultNode,
 } from '@deepseek-ai/dsh-client-ui-conversation/client'
-import type { ImageAttachmentRef } from '@deepseek-ai/dsh-attachment'
+import type { FileAttachmentRef, ImageAttachmentRef } from '@deepseek-ai/dsh-attachment'
 import type {
   TrajectoryCellProps,
   TrajectorySourceBlock,
 } from './trajectory-record.ts'
-import type { TrajectorySnapshot } from './trajectory-contract.ts'
+import type { TrajectoryPartialAssistant, TrajectorySnapshot } from './trajectory-contract.ts'
 import { formatElapsedSeconds } from './trajectory-record.ts'
 import type { TrajectoryTranslate } from './locales.ts'
 import { COMPACTION_INTERRUPTED_ERROR } from './copy-codes.ts'
@@ -122,15 +122,36 @@ function inputCellDetail(node: InputNode, t: TrajectoryTranslate): Pick<
   | 'timeSeconds'
   | 'startedAt'
 > {
-  // An empty text block yields an empty preview; treat it as absent so an
-  // image-bearing record still labels its row instead of rendering blank.
+  if (node.kind === 'context' && node.content.length > 0
+    && node.content.every(block => block.type === 'tool-addition' || block.type === 'tool-removal')) {
+    const added = node.content.flatMap(block => block.type === 'tool-addition' ? [block.toolName] : [])
+    const removed = node.content.flatMap(block => block.type === 'tool-removal' ? [block.toolName] : [])
+    const single = node.content.length === 1 ? node.content[0] : undefined
+    const summary = added.length > 0 && removed.length > 0
+      ? t('layout.toolsChanged', { added: added.length, removed: removed.length })
+      : added.length > 0 ? t('layout.toolsAddedCount', { count: added.length })
+        : t('layout.toolsRemovedCount', { count: removed.length })
+    return {
+      text: single !== undefined
+        ? t(single.type === 'tool-addition' ? 'layout.toolAdded' : 'layout.toolRemoved', { name: single.toolName })
+        : `${t('layout.toolUpdateNotice')} · ${summary}`,
+      sourceSeq: node.seq,
+      sourceBlocks: node.content.map(block => ({ type: block.type, content: block.toolName })),
+      ...(single !== undefined ? {} : { inputDetail: [
+        ...added.length > 0 ? [t('layout.toolsAdded', { names: added.join(', ') })] : [],
+        ...removed.length > 0 ? [t('layout.toolsRemoved', { names: removed.join(', ') })] : [],
+      ].join('\n') }),
+      timeSeconds: 0,
+      startedAt: finiteTime(node.time),
+    }
+  }
   const preview = previewContent(node.content)
   const previewMarkdown = preview === '' ? undefined : preview
   const images = imageBlockCount(node.content)
   const files = fileBlockCount(node.content)
   const attachmentSummary = [
-    previewMarkdown === undefined && images > 0
-      ? t('layout.imageOnly', { count: images })
+    images > 0
+      ? t('layout.imageCount', { count: images })
       : undefined,
     files > 0 ? t('layout.fileAttachments', { count: files }) : undefined,
   ].filter((value): value is string => value !== undefined).join(' · ')
@@ -148,6 +169,7 @@ function inputCellDetail(node: InputNode, t: TrajectoryTranslate): Pick<
 
 /**
  * Fold a snapshot into turn → Message/Step groups with expanded cells.
+ * Inputs admitted to the same Step retain log order before its response.
  * @param input - nodes plus in-flight partial/runningCalls.
  * @param t - Trajectory locale translator.
  * @returns turns ordered by first appearance.
@@ -170,6 +192,7 @@ export function deriveTrajectoryLayout(
     if (startedAt !== null) callStartById.set(result.callId, startedAt)
   }
   for (const call of runningCalls) {
+    if (call.phase === 'preparing') continue
     const startedAt = finiteTime(call.time)
     if (startedAt !== null) callStartById.set(call.callId, startedAt)
   }
@@ -302,10 +325,7 @@ export function deriveTrajectoryLayout(
     }
     if (entry.kind === 'system') {
       const { change, request } = entry
-      const turn = change.kind === 'initial'
-        ? firstVisibleTurn(nodes, partial)
-        : enclosingPromptTurn(nodes, change.seq, partial)
-      pushMessage(turn, {
+      const laid: LaidCell = {
         absTime: finiteTime(change.time),
         cell: {
           index: ++index,
@@ -320,7 +340,15 @@ export function deriveTrajectoryLayout(
           timeSeconds: 0,
           startedAt: finiteTime(change.time),
         },
-      })
+      }
+      if (request !== undefined) {
+        pushStepInput(request.turn, request.step, [laid])
+      } else {
+        const turn = change.kind === 'initial'
+          ? firstVisibleTurn(nodes, partial)
+          : enclosingPromptTurn(nodes, change.seq, partial)
+        pushMessage(turn, laid)
+      }
       prevAbsTime = finiteTime(change.time) ?? prevAbsTime
       continue
     }
@@ -378,35 +406,21 @@ export function deriveTrajectoryLayout(
       continue
     }
     const { node, nodeIndex: i } = entry
-    if (node.kind === 'user') {
-      // user/message has no turn on the wire; enclose it in the next assistant
-      // (or partial) turn, else open the turn after the last assistant.
-      const turn = enclosingUserTurn(followingAssistants[i], partial, lastAssistantTurn)
-      pushMessage(turn, {
-        absTime: finiteTime(node.time),
-        cell: {
-          index: ++index,
-          kind: 'user',
-          ...inputCellDetail(node, t),
-          opensTurn: true,
-        },
-      })
-      prevAbsTime = finiteTime(node.time) ?? prevAbsTime
-      continue
-    }
-    if (node.kind === 'steering') {
-      const placement = steeringPlacement(
+    if (node.kind === 'user' || node.kind === 'steering' || node.kind === 'context') {
+      // Without request location, steering stays in the preceding turn; other inputs open the next.
+      const placement = inputPlacement(
         followingAssistants[i],
         partial,
-        lastAssistantTurn,
         eventLocations?.get(node.seq),
+        node.kind === 'steering' ? lastAssistantTurn ?? 1 : (lastAssistantTurn ?? 0) + 1,
       )
-      const laid = {
+      const laid: LaidCell = {
         absTime: finiteTime(node.time),
         cell: {
           index: ++index,
-          kind: 'user' as const,
+          kind: node.kind === 'context' ? 'context' : 'user',
           ...inputCellDetail(node, t),
+          ...(node.kind === 'user' ? { opensTurn: true } : {}),
         },
       }
       if (placement.step === undefined) pushMessage(placement.turn, laid)
@@ -425,19 +439,6 @@ export function deriveTrajectoryLayout(
       if (last !== undefined) index = last.cell.index
       prevAbsTime = finiteTime(node.time) ?? prevAbsTime
       lastAssistantTurn = node.turn
-      continue
-    }
-    if (node.kind === 'context') {
-      const turn = enclosingUserTurn(followingAssistants[i], partial, lastAssistantTurn)
-      pushMessage(turn, {
-        absTime: finiteTime(node.time),
-        cell: {
-          index: ++index,
-          kind: 'context',
-          ...inputCellDetail(node, t),
-        },
-      })
-      prevAbsTime = finiteTime(node.time) ?? prevAbsTime
       continue
     }
     if (node.kind === 'compaction') {
@@ -464,6 +465,7 @@ export function deriveTrajectoryLayout(
               : resultAsText(resultPreview)),
             ...(node.call !== null ? { inputDetail: node.call.argsRaw } : {}),
             outputDetail: detailResult(node, t),
+            resultSeq: node.seq,
             outputBlocks: node.content.map(block => sourceBlock(block)),
             ...resultPreview,
             callId: node.callId,
@@ -495,7 +497,7 @@ export function deriveTrajectoryLayout(
       callStartById,
       callById,
       t,
-      { streaming: true },
+      { streaming: true, timing: partial.timing },
     ), t)
     if (partial.step > 0) pushStep(partial.turn, partial.step, laidList)
     else for (const laid of laidList) pushMessage(partial.turn, laid)
@@ -505,7 +507,7 @@ export function deriveTrajectoryLayout(
 
   const seenCalls = collectCallIds(turns)
   for (const call of runningCalls) {
-    if (seenCalls.has(call.callId)) continue
+    if (call.phase === 'preparing' || seenCalls.has(call.callId)) continue
     const laidList: LaidCell[] = [{
       absTime: null,
       toolName: call.name,
@@ -709,14 +711,15 @@ function expandAssistant(
   callStarts: ReadonlyMap<string, number>,
   calls: ReadonlyMap<string, ToolCallBlock>,
   t: TrajectoryTranslate,
-  opts?: { streaming?: boolean },
+  opts?: { streaming?: boolean; timing?: TrajectoryPartialAssistant['timing'] },
 ): LaidCell[] {
   if (opts?.streaming === true && node.blocks.length === 0) return []
   const out: LaidCell[] = []
   let index = startIndex - 1
   const usage = node.usage as UsageLike | undefined
   const streaming = opts?.streaming === true
-  const recordedStart = finiteTime(node.timing?.stepStartTime)
+  const timing = opts?.timing ?? node.timing
+  const recordedStart = finiteTime(timing?.stepStartTime)
   const messageDuration = streaming
     ? null
     : durationSeconds(node.time, recordedStart ?? prevAbsTime)
@@ -745,14 +748,15 @@ function expandAssistant(
     ...(messageText !== '' ? { outputDetail: messageText } : {}),
     ...(thinkingText !== '' ? { thinkingDetail: thinkingText } : {}),
     sourceBlocks: node.blocks.map(block => assistantSourceBlock(block)),
+    ...(node.interrupted === true ? { isError: true } : {}),
     timeSeconds: messageDuration,
     startedAt: recordedStart,
   }
   attachUsage(message, usage)
   message.assistantMetrics = {
-    timingRecorded: node.timing !== undefined,
-    stepStartTime: node.timing?.stepStartTime ?? null,
-    firstTokenTime: node.timing?.firstTokenTime ?? null,
+    timingRecorded: timing !== undefined,
+    stepStartTime: timing?.stepStartTime ?? null,
+    firstTokenTime: timing?.firstTokenTime ?? null,
     completedTime: streaming ? null : finiteTime(node.time),
     usageProvided: usage !== undefined,
     outputTokens: Number.isFinite(usage?.outputTokens) ? usage?.outputTokens ?? null : null,
@@ -782,6 +786,7 @@ function expandAssistant(
         ...(result !== undefined
           ? {
             outputDetail: detailResult(result, t),
+            resultSeq: result.seq,
             outputBlocks: result.content.map(block => sourceBlock(block)),
             ...resultPreview,
             isError: result.isError,
@@ -808,7 +813,7 @@ function summarizeAssistantActivity(
     return t('layout.toolCallOnly')
   }
   const images = blocks.filter(block => block.kind === 'image').length
-  if (images > 0) return t('layout.imageOnly', { count: images })
+  if (images > 0) return t('layout.imageCount', { count: images })
   return ''
 }
 
@@ -829,7 +834,7 @@ function assistantSourceBlock(block: AssistantBlock): TrajectorySourceBlock {
       callId: block.callId,
       toolName: block.name,
     }
-    case 'image': return { type: 'image', content: '', attachment: block.attachment }
+    case 'image': return sourceBlock({ type: 'image', attachment: block.attachment })
     case 'other': return sourceBlock(block.block)
   }
 }
@@ -844,14 +849,20 @@ function sourceBlock(value: unknown): TrajectorySourceBlock {
     return { type: type === 'reasoning' ? 'thinking' : type, content: block.text }
   }
   if (
-    type === 'image'
+    (type === 'image' || type === 'file')
     && typeof block.attachment === 'object' && block.attachment !== null
     && typeof (block.attachment as Record<string, unknown>).attachmentId === 'string'
   ) {
     // Session-log content is validated into core ContentBlocks by the
     // Conversation node assembly; the `attachmentId` guard only keeps
     // wire-shaped 'other' blocks with an unrelated `attachment` member out.
-    return { type, content: '', attachment: block.attachment as ImageAttachmentRef }
+    return {
+      type,
+      content: stringifySourceValue(value),
+      ...(type === 'image'
+        ? { attachment: block.attachment as ImageAttachmentRef }
+        : { file: block.attachment as FileAttachmentRef }),
+    }
   }
   return { type, content: stringifySourceValue(value) }
 }
@@ -869,26 +880,11 @@ function stringifySourceValue(value: unknown): string {
   return json || String(value)
 }
 
-/**
- * Turn that encloses a user/message: next assistant turn, else the
- * in-flight partial, else the turn after the last finalized assistant (or 1).
- */
-function enclosingUserTurn(
+function inputPlacement(
   followingAssistant: AssistantMessageNode | undefined,
   partial: TrajectorySnapshot['partial'],
-  lastAssistantTurn: number | null,
-): number {
-  if (followingAssistant !== undefined) return followingAssistant.turn
-  if (partial !== null) return partial.turn
-  if (lastAssistantTurn !== null) return lastAssistantTurn + 1
-  return 1
-}
-
-function steeringPlacement(
-  followingAssistant: AssistantMessageNode | undefined,
-  partial: TrajectorySnapshot['partial'],
-  lastAssistantTurn: number | null,
   location: ConversationLocation | undefined,
+  fallbackTurn: number,
 ): { turn: number; step?: number } {
   if (location?.kind === 'step') {
     return { turn: location.turn.turn, step: location.step.step }
@@ -905,7 +901,7 @@ function steeringPlacement(
     return { turn: partial.turn, ...(partial.step > 0 ? { step: partial.step } : {}) }
   }
   if (locatedTurn !== undefined) return { turn: locatedTurn }
-  return { turn: lastAssistantTurn ?? 1 }
+  return { turn: fallbackTurn }
 }
 
 function indexFollowingAssistants(
@@ -1016,6 +1012,7 @@ function expandSubCalls(
   const out: LaidCell[] = []
   let index = startIndex
   for (const sub of subs) {
+    if (!('kind' in sub) && sub.phase === 'preparing') continue
     const settled = 'kind' in sub
     const resultPreview = settled ? summarizeResult(sub, t) : undefined
     const laid: LaidCell = {
@@ -1037,6 +1034,7 @@ function expandSubCalls(
         ...(settled
           ? {
             outputDetail: detailResult(sub, t),
+            resultSeq: sub.seq,
             outputBlocks: sub.content.map(block => sourceBlock(block)),
             ...resultPreview,
             isError: sub.isError,
@@ -1062,8 +1060,9 @@ function expandSubCalls(
 function summarizeCall(
   name: string,
   argsRaw: string,
-): Pick<TrajectoryCellProps, 'text' | 'previewMarkdown'> {
+): Pick<TrajectoryCellProps, 'text' | 'previewMarkdown' | 'toolName'> {
   return {
+    toolName: name,
     text: name,
     ...(argsRaw === '' ? {} : { previewMarkdown: argsRaw }),
   }
@@ -1073,16 +1072,16 @@ function summarizeResult(
   node: ToolResultNode,
   t: TrajectoryTranslate,
 ): Pick<TrajectoryCellProps, 'result' | 'resultPreviewMarkdown'> {
-  if (node.isError) {
-    return { result: node.error?.code ?? 'error' }
-  }
   for (const block of node.content) {
     if (block.type === 'text' && typeof block.text === 'string' && block.text !== '') {
       return { result: '', resultPreviewMarkdown: block.text }
     }
   }
+  if (node.isError) {
+    return { result: node.error?.code ?? 'error' }
+  }
   const images = imageBlockCount(node.content)
-  if (images > 0) return { result: t('layout.imageOnly', { count: images }) }
+  if (images > 0) return { result: t('layout.imageCount', { count: images }) }
   return { result: t('record.noOutput') }
 }
 
@@ -1098,18 +1097,19 @@ function resultAsText(
 }
 
 function detailResult(node: ToolResultNode, t: TrajectoryTranslate): string {
+  const text = node.content
+    .filter(block => block.type === 'text' && typeof block.text === 'string')
+    .map(block => block.type === 'text' ? block.text : '')
+    .join('\n')
+  if (text !== '' && (!node.isError || node.content.some(block =>
+    block.type === 'text' && typeof block.text === 'string' && block.text !== ''))) return text
   if (node.isError) {
     return node.error === undefined
       ? 'error'
       : `${node.error.name}: ${node.error.code}`
   }
-  const text = node.content
-    .filter(block => block.type === 'text' && typeof block.text === 'string')
-    .map(block => block.type === 'text' ? block.text : '')
-    .join('\n')
-  if (text !== '') return text
   const images = imageBlockCount(node.content)
-  if (images > 0) return t('layout.imageOnly', { count: images })
+  if (images > 0) return t('layout.imageCount', { count: images })
   if (
     node.content.length === 0
     || node.content.every(block =>

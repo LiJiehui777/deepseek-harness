@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-28-configurable-host-return-action.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-28-configurable-host-return-action.md
-2026-09-28-configurable-host-return-action.md: b26e323937d64417d409c3de00d70f2b824f4a74
-2026-09-28-configurable-host-return-action.zh.md: 0c93bf2b97e8f0a14dd4fe88812f3b994934e9d9
+/agent-note-configurable-host-return-action:
+  en: ebe6658d284c4d4e
+  zh: a589313c6f3f90a7
+/agent-note-configurable-host-return-action/problem:
+  en: 23f755d9b57f8bb2
+  zh: 9801e1118621ac46
+/agent-note-configurable-host-return-action/decision:
+  en: f52070071c82541c
+  zh: 4d0c8f6a646bec4e
+/agent-note-configurable-host-return-action/alternatives-considered:
+  en: 1f30bc391f2e5744
+  zh: f788ca3da6ba745c
+/agent-note-configurable-host-return-action/consequences:
+  en: 83e3d3461f985e62
+  zh: b64a88747059a30a

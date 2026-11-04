@@ -27,10 +27,9 @@ import type {
 export const DEEPSEEK_PROVIDER_ID = 'deepseek-official'
 
 /**
- * Default endpoint: DeepSeek's Anthropic-compatible API, `/v1` included
- * (`/messages` is appended). This is NOT the chat-completions base
- * (`https://api.deepseek.com`) `@deepseek-ai/dsh-llm-deepseek` uses, so this
- * provider does NOT reuse `$DEEPSEEK_BASE_URL` — only the API key is shared.
+ * Default auxiliary-search endpoint, including `/v1`; `/messages` is appended.
+ * `$DEEPSEEK_SEARCH_BASE_URL` overrides it independently of the conversation
+ * adapter's endpoint. Both providers share the API key.
  */
 export const DEEPSEEK_DEFAULT_BASE_URL = 'https://api.deepseek.com/anthropic/v1'
 
@@ -74,6 +73,13 @@ export interface DeepSeekSearchLlmRequest {
       readonly name: 'web_search'
       readonly max_uses: number
     }]
+    /**
+     * Thinking mode for the auxiliary turn. The provider always sends
+     * `disabled`: it discards the generated text, so reasoning tokens have no
+     * consumer. Absent means the request omitted the field and the provider
+     * applied its default.
+     */
+    readonly thinking?: { readonly type: 'disabled' }
   }
 }
 
@@ -86,6 +92,14 @@ declare module '@deepseek-ai/dsh-session/types' {
 
 /** Resolved provider options (the plugin's `apply` supplies credential and constant defaults). */
 export interface DeepSeekSearchProviderOptions {
+  /**
+   * Resolve the DeepSeek account token for one search endpoint. A token takes
+   * precedence over every API key and is sent only as `x-dsh-auth-token`;
+   * `undefined` selects API-key authentication.
+   */
+  resolveAccountToken?: (endpoint: string) => Promise<string | undefined>
+  /** Invalidate the exact account token rejected by HTTP 401; failures must not replace the search error. */
+  rejectAccountToken?: (token: string) => Promise<void>
   /** Literal DeepSeek API key; when present it wins over {@link resolveApiKey}. */
   apiKey?: string
   /** Resolve the current DeepSeek API key for one search operation. */
@@ -173,12 +187,33 @@ export function mapAnthropicResponse(response: AnthropicResponse): WebSearchResu
   return { sources, truncated: false }
 }
 
+/** Authentication headers for one search, tagged by the credential that produced them. */
+interface SearchAuth {
+  /** `account` for a DeepSeek account token, `api-key` for an API key. */
+  readonly kind: 'account' | 'api-key'
+  /** Headers carrying the credential. */
+  readonly headers: Readonly<Record<string, string>>
+  /** Request-bound invalidation, present only when an account token was sent. */
+  readonly reject?: () => Promise<void>
+}
+
 /**
  * The DeepSeek-backed search provider. HTTP redirects fail as `WEB_PROVIDER_ERROR`;
  * failures after dispatch name the endpoint and tell the model how the user can configure it.
  */
 export class DeepSeekSearchProvider implements WebSearchProvider {
   readonly id = DEEPSEEK_PROVIDER_ID
+  /** Picker description: what this provider suits and what it costs or cannot do. */
+  readonly description: NonNullable<WebSearchProvider['description']> = {
+    en: 'Runs server-side web search inside a full Messages model call, adding model latency and token usage on every search. Requires a DeepSeek account or API key.',
+    zh: '通过完整模型调用在服务端执行网页搜索，每次搜索都会产生模型延迟与 token 消耗。需 DeepSeek 账号或 API Key',
+    ja: '完全な Messages モデル呼び出しの中でサーバー側の Web 検索を実行するため、検索のたびにモデルの待ち時間とトークン消費が発生します。DeepSeek アカウントまたは API キーが必要です。',
+    es: 'Ejecuta la búsqueda web en el servidor dentro de una llamada completa al modelo de Messages, lo que añade latencia del modelo y consumo de tokens en cada búsqueda. Requiere una cuenta de DeepSeek o una clave de API.',
+    fr: 'Exécute la recherche web côté serveur dans un appel complet au modèle Messages, ce qui ajoute la latence du modèle et une consommation de jetons à chaque recherche. Nécessite un compte DeepSeek ou une clé API.',
+    de: 'Führt die Websuche serverseitig innerhalb eines vollständigen Messages-Modellaufrufs aus, was bei jeder Suche Modelllatenz und Tokenverbrauch verursacht. Erfordert ein DeepSeek-Konto oder einen API-Schlüssel.',
+    ru: 'Выполняет веб-поиск на сервере в рамках полного вызова модели Messages, поэтому каждый поиск добавляет задержку модели и расход токенов. Требуется учётная запись DeepSeek или ключ API.',
+    pt: 'Executa a pesquisa na web no servidor dentro de uma chamada completa ao modelo Messages, adicionando latência do modelo e consumo de tokens a cada pesquisa. Requer uma conta DeepSeek ou uma chave de API.',
+  }
 
   /**
    * @param resolveOptions - the options for the NEXT operation, snapshotted
@@ -191,7 +226,7 @@ export class DeepSeekSearchProvider implements WebSearchProvider {
 
   available(): boolean {
     const options = this.resolveOptions()
-    return ((options.apiKey?.length ?? 0) > 0 || options.resolveApiKey !== undefined)
+    return ((options.apiKey?.length ?? 0) > 0 || options.resolveApiKey !== undefined || options.resolveAccountToken !== undefined)
       && URL.canParse(options.baseURL)
       && isPositiveInteger(options.maxTokens)
       && isPositiveInteger(options.maxUses)
@@ -202,9 +237,9 @@ export class DeepSeekSearchProvider implements WebSearchProvider {
     // settings write landing inside that await must not send the key resolved
     // from the old section to the endpoint named by the new one.
     const options = this.resolveOptions()
-    const apiKey = await this.apiKey(options, signal)
-    throwIfSearchAborted(signal)
     const endpoint = `${options.baseURL}/messages`
+    const auth = await this.authHeaders(options, endpoint, signal)
+    throwIfSearchAborted(signal)
     const body: DeepSeekSearchLlmRequest['body'] = {
       model: options.model,
       max_tokens: options.maxTokens,
@@ -213,6 +248,7 @@ export class DeepSeekSearchProvider implements WebSearchProvider {
         content: [{ type: 'text', text: `Perform a web search for the query: ${request.query}` }],
       }],
       tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: options.maxUses }],
+      thinking: { type: 'disabled' },
     }
     options.recordRequest?.({
       endpoint,
@@ -226,10 +262,7 @@ export class DeepSeekSearchProvider implements WebSearchProvider {
         method: 'POST',
         redirect: 'error',
         headers: {
-          // Official DeepSeek expects `x-api-key`; an Anthropic-compatible proxy
-          // may expect `Authorization: Bearer` — send both so either resolves.
-          'x-api-key': apiKey,
-          'authorization': `Bearer ${apiKey}`,
+          ...auth.headers,
           'anthropic-version': options.apiVersion,
           'content-type': 'application/json',
           'accept': 'application/json',
@@ -250,6 +283,7 @@ export class DeepSeekSearchProvider implements WebSearchProvider {
     if (!response.ok) {
       const status = response.status
       let message = `DeepSeek API error (HTTP ${status})`
+      let aborted: WebError | undefined
       try {
         const parsed = await response.json() as AnthropicError
         const detail = typeof parsed.error === 'string' ? parsed.error : parsed.error?.message ?? parsed.message
@@ -258,11 +292,21 @@ export class DeepSeekSearchProvider implements WebSearchProvider {
         // An abort fired mid-body must surface as WEB_ABORTED, not be swallowed
         // into a generic HTTP-error message — cancellation is not a provider
         // error (the seam's cancellation contract).
-        if (signal?.aborted === true || isAbortError(error)) throw searchAborted(signal, error)
+        if (signal?.aborted === true || isAbortError(error)) aborted = searchAborted(signal, error)
         // Otherwise: the HTTP status is already captured in `message` above; a
         // malformed/non-JSON error body (normal for gateway 5xx/429s) can only
         // cost a richer provider message, never the real error.
       }
+      // The account service released this token only for its inference
+      // origin, so the endpoint is not what the user must change.
+      if (status === 401 && auth.kind === 'account') {
+        // Invalidation can cancel this Session; finish reading the HTTP failure before it does. A cancelled read
+        // still invalidates the token the status rejected.
+        try { await auth.reject?.() }
+        catch (_credentialRemovalFailed) { /* Report the original failure even if credential removal fails. */ }
+        throw aborted ?? accountRejectedError(message)
+      }
+      if (aborted !== undefined) throw aborted
       throw searchEndpointError(endpoint, message)
     }
 
@@ -279,7 +323,31 @@ export class DeepSeekSearchProvider implements WebSearchProvider {
   }
 
   /**
-   * Resolve one operation's credential without retaining it on the provider.
+   * Resolve one operation's authentication headers without retaining a credential on the provider.
+   * @param options - the caller's snapshot, so the credential and the endpoint it is sent to come from one section.
+   * @param endpoint - the Messages endpoint this operation dispatches to.
+   * @param signal - abort signal for the surrounding search.
+   * @returns the account-token header when one resolves, otherwise the API-key headers, tagged by credential kind.
+   */
+  private async authHeaders(
+    options: DeepSeekSearchProviderOptions, endpoint: string, signal?: AbortSignal,
+  ): Promise<SearchAuth> {
+    const { resolveAccountToken, rejectAccountToken } = options
+    const token = resolveAccountToken === undefined
+      ? undefined
+      : await resolveCredential(() => resolveAccountToken(endpoint), signal)
+    if (token !== undefined && token.length > 0) return {
+      kind: 'account', headers: { 'x-dsh-auth-token': token },
+      ...rejectAccountToken === undefined ? {} : { reject: () => rejectAccountToken(token) },
+    }
+    const apiKey = await this.apiKey(options, signal)
+    // Official DeepSeek expects `x-api-key`; an Anthropic-compatible proxy
+    // may expect `Authorization: Bearer` — send both so either resolves.
+    return { kind: 'api-key', headers: { 'x-api-key': apiKey, 'authorization': `Bearer ${apiKey}` } }
+  }
+
+  /**
+   * Resolve one operation's API key without retaining it on the provider.
    * @param options - the caller's snapshot, so the key and the endpoint it is sent to come from one section.
    * @param signal - abort signal for the surrounding search.
    * @returns the resolved key.
@@ -287,37 +355,61 @@ export class DeepSeekSearchProvider implements WebSearchProvider {
   private async apiKey(options: DeepSeekSearchProviderOptions, signal?: AbortSignal): Promise<string> {
     throwIfSearchAborted(signal)
     if (options.apiKey !== undefined && options.apiKey.length > 0) return options.apiKey
-    let resolved: string | undefined
-    try {
-      resolved = await abortable(options.resolveApiKey?.() ?? Promise.resolve(undefined), signal)
-    } catch (error: unknown) {
-      if (signal?.aborted === true || isAbortError(error)) throw searchAborted(signal, error)
-      throw new WebError(
-        `DeepSeek search credential resolution failed: ${String(error)}`,
-        'WEB_PROVIDER_ERROR',
-        { cause: error },
-      )
-    }
+    const { resolveApiKey } = options
+    const resolved = resolveApiKey === undefined ? undefined : await resolveCredential(resolveApiKey, signal)
     if (resolved !== undefined && resolved.length > 0) return resolved
     const ref = options.apiKeyEnv ?? 'DEEPSEEK_API_KEY'
     throw new WebError(
       `DeepSeek search has no API key for "${ref}"; store it through the credentials service`
       + ' (the web Models page writes it), export it in the launching environment, or set a literal'
-      + ' "apiKey" in the web-search-deepseek config',
+      + ' "apiKey" in the web-search-deepseek config; a conversation using a DeepSeek Account model'
+      + ' searches with the account sign-in instead',
       'WEB_PROVIDER_CREDENTIAL_MISSING',
     )
   }
 }
 
+/**
+ * Run one credential resolver under the search's cancellation signal. An
+ * already-cancelled search never starts the resolver.
+ * @param resolve - the resolver; a synchronous throw is mapped like a rejection.
+ * @param signal - abort signal for the surrounding search.
+ * @returns the resolved credential, or undefined when the resolver supplied none.
+ * @throws {@link WebError} `WEB_ABORTED` on cancellation, `WEB_PROVIDER_ERROR` when the resolver fails.
+ */
+async function resolveCredential(
+  resolve: () => Promise<string | undefined>, signal?: AbortSignal,
+): Promise<string | undefined> {
+  throwIfSearchAborted(signal)
+  try {
+    return await abortable(resolve(), signal)
+  } catch (error: unknown) {
+    if (signal?.aborted === true || isAbortError(error)) throw searchAborted(signal, error)
+    throw new WebError(
+      `DeepSeek search credential resolution failed: ${String(error)}`,
+      'WEB_PROVIDER_ERROR',
+      { cause: error },
+    )
+  }
+}
+
+/** Replace endpoint guidance with sign-in guidance when DeepSeek rejects the account token. */
+function accountRejectedError(message: string): WebError {
+  return new WebError(
+    `${message}\n\nDeepSeek rejected the account sign-in used for this web search. `
+    + 'Guide the user to sign in to DeepSeek again; the search endpoint does not need changing.',
+    'WEB_PROVIDER_ERROR',
+  )
+}
+
 /** Add endpoint recovery instructions to failures that occur after request dispatch begins. */
 function searchEndpointError(endpoint: string, message: string, cause?: unknown): WebError {
   return new WebError(
-    `${message}\n\nThe web search request used endpoint ${JSON.stringify(endpoint)}. `
+    `${message}\n\nThe web request used endpoint ${JSON.stringify(endpoint)}. `
     + 'Search endpoint configuration is separate from chat. If that endpoint is not intended, '
-    + 'guide the user to Settings > Plugins > Plugin configuration > Web search, where they can '
-    + 'change and save Endpoint. If that settings page is unavailable, the user can set '
-    + 'DEEPSEEK_SEARCH_BASE_URL or configure web-search-deepseek.baseURL to a trusted '
-    + 'Anthropic-compatible Messages API base. Only the user should choose or change the endpoint.',
+    + 'guide the user to Plugins > Built-in plugin settings > Web search and fetch, select DeepSeek (legacy) under Search, '
+    + 'and change and save its Base URL. If that settings page is unavailable, the user can set '
+    + 'web-search-deepseek.baseURL to a trusted DeepSeek endpoint. Only the user should choose or change the endpoint.',
     'WEB_PROVIDER_ERROR',
     cause === undefined ? undefined : { cause },
   )

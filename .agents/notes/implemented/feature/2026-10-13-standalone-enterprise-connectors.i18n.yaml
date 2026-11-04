@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-10-13-standalone-enterprise-connectors.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-10-13-standalone-enterprise-connectors.md
-2026-10-13-standalone-enterprise-connectors.md: 6d6ef0976f799c41da9d2810fd050e74809c6165
-2026-10-13-standalone-enterprise-connectors.zh.md: 9d0e497a6932f4b0c0aa4cda6e203903b576f572
+/agent-note-standalone-enterprise-connectors:
+  en: 35e86638f6830c19
+  zh: 43fe7e9e43e8927a
+/agent-note-standalone-enterprise-connectors/problem:
+  en: 7ef1580adc31ff38
+  zh: ae5b230fc190fdc2
+/agent-note-standalone-enterprise-connectors/decision:
+  en: c41d66ac1a7fc8c1
+  zh: 375c3b20f1ae5bd9
+/agent-note-standalone-enterprise-connectors/alternatives-considered:
+  en: cbdadefde09a5ca5
+  zh: 729d83a60f67ea93
+/agent-note-standalone-enterprise-connectors/consequences:
+  en: 9923b3ce8ae6f6fd
+  zh: bdfe3fc4aab8713f

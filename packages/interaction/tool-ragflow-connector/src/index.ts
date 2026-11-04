@@ -1,3 +1,4 @@
+import type { Volatile } from '@deepseek-ai/cordis'
 /** Standalone RAGFlow knowledge access over its public REST API. */
 import type { Context } from '@deepseek-ai/cordis'
 import Schema from '@deepseek-ai/schemastery'
@@ -29,7 +30,7 @@ export interface Config {
   timeoutMs: number
 }
 /** Settings defaults keep the connector disconnected until explicitly enabled. */
-export const Config: Schema<Config> = Schema.object({
+const AccountSchema = Schema.object({
   enabled: Schema.boolean().default(false),
   baseURL: Schema.string().default('http://localhost:9380'),
   apiKeyEnv: Schema.string().role('credential-ref').default('RAGFLOW_API_KEY'),
@@ -39,6 +40,10 @@ export const Config: Schema<Config> = Schema.object({
   maxResultBytes: Schema.natural().min(1024).default(262144),
   timeoutMs: Schema.natural().min(1).default(30000),
 })
+/** A disconnected default account remains editable without an explicit config block. */
+export const Config = AccountSchema.default(AccountSchema()).volatile()
+/** Loader-owned reference to the editable retrieval configuration. */
+type RuntimeConfig = Volatile<Config>
 /** Loader identity. */
 export const name = 'tool-ragflow-connector'
 /** Native tool and server-side credential services. */
@@ -132,13 +137,11 @@ async function datasetPage(
  * @param ctx - the independent DH composition.
  * @param config - initial connection settings, with no literal credentials.
  */
-export function apply(ctx: Context, config: Config): void {
-  validate(config)
-  let current = () => config
-  ctx.inject(['settings'], (settingsCtx) => {
-    settingsCtx.settings.installSection(ctx, 'ragflow-connector', Config, config, {
-      setSource: (source) => { current = source }, onChange: () => {},
-    })
+export function apply(ctx: Context, config: RuntimeConfig): void {
+  const current = (): Config => structuredClone(config.get()) as Config
+  validate(current())
+  ctx.inject(['settings'], (scope) => {
+    scope.effect(() => scope.settings.configure({ auto: false }, ctx.fiber), 'RAGFlow custom configuration page')
   })
   ctx.plugin(RagflowCatalogController, {
     readPage: (page, signal) => {

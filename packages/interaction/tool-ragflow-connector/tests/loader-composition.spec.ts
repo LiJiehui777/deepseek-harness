@@ -1,3 +1,5 @@
+import * as NativeExecutor from '@deepseek-ai/dsh-tool-executor-native'
+import { executeOne } from './execute.ts'
 import { createServer, type Server } from 'node:http'
 import { once } from 'node:events'
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
@@ -59,7 +61,7 @@ async function boot(loader = false, overrides: Partial<Connector.Config> = {}): 
     await ctx.plugin(Loader)
     ctx.loader.builtins.include = Include
     const credentials = { apply(context: Context) { context.plugin(MemoryCredentials, { RAGFLOW_API_KEY: 'test-private-key' }) } }
-    const modules = new Map<string, unknown>([['@deepseek-ai/dsh-agent', AgentRegistry], ['@deepseek-ai/dsh-system-prompt', SystemPrompt], ['@deepseek-ai/dsh-tools', Tools], ['test:credentials', credentials], ['@deepseek-ai/dsh-tool-ragflow-connector', Connector]])
+    const modules = new Map<string, unknown>([['@deepseek-ai/dsh-agent', AgentRegistry], ['@deepseek-ai/dsh-system-prompt', SystemPrompt], ['@deepseek-ai/dsh-tools', Tools], ['@deepseek-ai/dsh-tool-executor-native', NativeExecutor], ['test:credentials', credentials], ['@deepseek-ai/dsh-tool-ragflow-connector', Connector]])
     ctx.loader.internal = { version: 'v2', import(name: string) { return Promise.resolve(modules.get(name)) } } as unknown as NonNullable<typeof ctx.loader.internal>
     directory = await mkdtemp(join(tmpdir(), 'ragflow-loader-'))
     const file = join(directory, 'cordis.yml')
@@ -70,13 +72,14 @@ async function boot(loader = false, overrides: Partial<Connector.Config> = {}): 
     await ctx.plugin(AgentRegistry)
     await ctx.plugin(SystemPrompt)
     await ctx.plugin(Tools)
+    await ctx.plugin(NativeExecutor)
     await ctx.plugin(MemoryCredentials, { RAGFLOW_API_KEY: 'test-private-key' })
     await ctx.plugin(Connector, { enabled: true, baseURL, apiKeyEnv: 'RAGFLOW_API_KEY', datasetIds: ['kb_a'], maxChunks: 5, maxPageSize: 20, maxResultBytes: 4096, timeoutMs: 1000, ...overrides })
   }
   return ctx
 }
 function execute(root: Context, tool = 'ragflow_retrieval', args: Record<string, unknown> = { question: '检查结果如何？' }, signal = new AbortController().signal) {
-  return root.tools.execute({ callId: ToolCallId('ragflow-read'), name: tool, arguments: args, signal })
+  return executeOne(root, { callId: ToolCallId('ragflow-read'), name: tool, arguments: args, signal })
 }
 it('boots the native connector through Loader and retrieves cited knowledge over real HTTP', async () => {
   const root = await boot(true)

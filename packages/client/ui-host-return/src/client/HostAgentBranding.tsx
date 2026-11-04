@@ -131,7 +131,7 @@ export function HostAgentDocumentTitle({
 }: PropsRuntime<'shell.document-title'> & BrandingFace): null {
   const showSessionTitle = usePanelInfo(info => info.activePanelId === null)
   const sessionTitle = useSessions((state) => {
-    const current = state.current
+    const current = Object.values(state.byId).find(session => (session.retainedBy.mainView ?? 0) > 0)?.id
     return !showSessionTitle || current === undefined ? undefined : state.byId[current]?.title
   })
   const productTitle = `${agentName} · ${hostName}`

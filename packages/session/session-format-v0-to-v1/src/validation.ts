@@ -13,7 +13,7 @@ import type {
   SessionFormatJsonValue,
 } from '@deepseek-ai/dsh-session-format'
 import { RELEASED_V0_EVENT_DISPOSITIONS } from './dispositions.ts'
-import { assertReleasedPayloadSemantics } from './payload-validation.ts'
+import { assertReleasedPayloadSemantics, SUBAGENT_DESCRIPTOR_VERSIONS } from './payload-validation.ts'
 import { assertReleasedV0Keys, releasedV0Record } from './validation-helpers.ts'
 
 const HEADER_REQUIRED = ['version', 'id', 'createdAt', 'isSeeded', 'delegationDepth'] as const
@@ -145,7 +145,7 @@ export function assertReleasedArtifactCoordinates(
  * @param record - exact event envelope.
  * @param seq - event position used for earlier-reference checks.
  * @param type - surface event type used in diagnostics.
- * @param assistantSources - whether this generation admits empty Assistant chunk provenance.
+ * @param assistantSources - whether this generation admits empty Assistant chunk references.
  */
 export function assertReleasedSurfaceMetadata(
   record: Record<string, SessionFormatJsonValue>,
@@ -155,7 +155,7 @@ export function assertReleasedSurfaceMetadata(
 ): void {
   const sources = record['sourceEventSeqs']
   if (type === 'assistant/message' && sources !== undefined && assistantSources === 'forbid-assistant') {
-    throw new SessionFormatError(`assistant/message ${seq} retains obsolete chunk provenance`)
+    throw new SessionFormatError(`assistant/message ${seq} retains obsolete chunk references`)
   }
   if (sources !== undefined) {
     if (!Array.isArray(sources)) throw new SessionFormatError(`${type} ${seq} sourceEventSeqs must be an array`)
@@ -195,7 +195,7 @@ export function assertReleasedEventPayload(event: SessionFormatEvent, version: 0
     )
   }
   const data = releasedV0Record(event.data, `${event.type} ${event.seq} data`)
-  if (event.type === 'subagent/descriptor' && data['version'] !== 3) {
+  if (event.type === 'subagent/descriptor' && !SUBAGENT_DESCRIPTOR_VERSIONS.some(known => known === data['version'])) {
     const descriptorVersion = sessionFormatCount(data['version'], `${event.type} ${event.seq} version`)
     if (version === 0) {
       throw new SessionFormatUnsupportedMigrationError(

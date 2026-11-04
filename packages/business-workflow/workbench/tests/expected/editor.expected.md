@@ -95,11 +95,8 @@
       - option "核对 EIP 数据"
       - option "回填维护台账"
       - option "结束"
-    - img
   - text: 开始和结束节点不能删除
-  - button "删除节点" [disabled]:
-    - img
-    - text: 删除节点
+  - button "删除节点" [disabled]
 - text: 启动参数（JSON 对象）
 - textbox "启动参数（JSON 对象）": "{\"approved\": true}"
 - button "启动 Flowable 执行" [disabled]

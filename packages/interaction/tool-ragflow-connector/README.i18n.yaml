@@ -1,6 +1,40 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/interaction/tool-ragflow-connector/README.md
-README.md: 74af6a74c8c5d0565b71e23a88279a1685fd20c9
-README.zh.md: f898409326a54a14424647b0945519c2cf10520c
+/:
+  en: 6a3b6811c6e0a16d
+  zh: 6a3b6811c6e0a16d
+/deepseek-ai-dsh-tool-ragflow-connector:
+  en: 54d82feae871ffed
+  zh: 5428aa5667f04762
+/deepseek-ai-dsh-tool-ragflow-connector/summary:
+  en: 69e183a4350814eb
+  zh: d3415b77add7cd73
+/deepseek-ai-dsh-tool-ragflow-connector/table-of-contents:
+  en: 915fd82850e37f7d
+  zh: 15b7d1a5d1856de2
+/deepseek-ai-dsh-tool-ragflow-connector/use-this-package:
+  en: 8a71c7f70b9d7b98
+  zh: 1f2cf6b3026e36e6
+/deepseek-ai-dsh-tool-ragflow-connector/model-experience:
+  en: 215e7ba838619b7b
+  zh: a311da3843709f90
+/deepseek-ai-dsh-tool-ragflow-connector/model-experience/knowledge-tools:
+  en: 6870d8b99f6284d3
+  zh: 258c5ef54fe33b31
+/deepseek-ai-dsh-tool-ragflow-connector/model-experience/knowledge-tools/what-the-model-sees:
+  en: 891ed0d4c68dc44b
+  zh: 9c82d4e36c521da0
+/deepseek-ai-dsh-tool-ragflow-connector/model-experience/knowledge-tools/token-effect:
+  en: 8d317d5d5590ae46
+  zh: 711af2b3429303f8
+/deepseek-ai-dsh-tool-ragflow-connector/model-experience/knowledge-tools/kv-cache-effect:
+  en: c9f358b93165e171
+  zh: da28772670af146e
+/deepseek-ai-dsh-tool-ragflow-connector/known-limitations-and-deferred-work:
+  en: 5f2f118d9e25e317
+  zh: c5d5858c7ed06913
+/deepseek-ai-dsh-tool-ragflow-connector/known-limitations-and-deferred-work/dev-note:
+  en: 6d5547a81f9dc3ea
+  zh: 8a11557d29fe3c59

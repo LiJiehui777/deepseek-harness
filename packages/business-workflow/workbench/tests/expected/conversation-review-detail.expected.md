@@ -1,7 +1,6 @@
 - dialog "工作流审核":
   - heading "工作流审核" [level=2]
-  - button "关闭审核详情":
-    - img
+  - button "关闭审核详情"
   - banner:
     - text: 企业微信待办整理
     - heading "确认待办处理建议" [level=3]

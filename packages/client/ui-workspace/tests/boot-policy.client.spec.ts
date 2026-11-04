@@ -1,3 +1,4 @@
+import type { PeerScope } from '@deepseek-ai/dsh-typert-protocol'
 // @vitest-environment jsdom
 import { Context } from '@deepseek-ai/cordis'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -13,17 +14,17 @@ describe('Workspace initial navigation policy', () => {
     apply(ctx)
     apply(ctx, { resumeRecentSession: false })
     const absent: IndexInjection[] = []
-    ctx.emit('webserver/index-inject', absent)
+    ctx.emit('webserver/index-inject', absent, { principal: { kind: 'owner' } } as PeerScope)
     expect(absent).toEqual([])
     const fiber = ctx.plugin({ apply }, { resumeRecentSession: true })
     await fiber.await()
     const rows: IndexInjection[] = []
-    ctx.emit('webserver/index-inject', rows)
+    ctx.emit('webserver/index-inject', rows, { principal: { kind: 'owner' } } as PeerScope)
     expect(rows).toEqual([{ kind: 'global', name: WORKSPACE_BOOTSTRAP_GLOBAL,
       value: { resumeRecentSession: true } }])
     await fiber.dispose()
     const disposed: IndexInjection[] = []
-    ctx.emit('webserver/index-inject', disposed)
+    ctx.emit('webserver/index-inject', disposed, { principal: { kind: 'owner' } } as PeerScope)
     expect(disposed).toEqual([])
     await ctx.fiber.dispose()
   })

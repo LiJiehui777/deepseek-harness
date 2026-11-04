@@ -3,7 +3,10 @@
   "compilerOptions": {
     "rootDir": "src",
     "outDir": "lib/types",
-    "types": ["client-build-environment", "node"]
+    "types": [
+      "client-build-environment",
+      "node"
+    ]
   },
   "include": [
     "src"
@@ -28,6 +31,9 @@
       "path": "../../api/workspace-controller/tsconfig.client.json"
     },
     {
+      "path": "../../api/remote-access/tsconfig.client.json"
+    },
+    {
       "path": "../../attachment/attachment"
     },
     {
@@ -43,10 +49,10 @@
       "path": "../../client/store"
     },
     {
-      "path": "../../client/ui-chat"
+      "path": "../../client/ui-chat/tsconfig.client.json"
     },
     {
-      "path": "../../client/ui-conversation"
+      "path": "../../client/ui-conversation/tsconfig.client.json"
     },
     {
       "path": "../../client/ui-layout"
@@ -58,10 +64,13 @@
       "path": "../../client/ui-renderer"
     },
     {
+      "path": "../../client/ui-workspace"
+    },
+    {
       "path": "../../client/ui-session"
     },
     {
-      "path": "../../client/ui-settings"
+      "path": "../../client/ui-settings/tsconfig.client.json"
     },
     {
       "path": "../../subagent/subagent"
@@ -80,6 +89,9 @@
     },
     {
       "path": "../../client/hmr"
+    },
+    {
+      "path": "../../client/ui-context-menu"
     }
   ]
 }

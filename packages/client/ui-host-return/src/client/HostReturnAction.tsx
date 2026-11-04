@@ -1,5 +1,5 @@
 /** Brand-row action that leaves the native Harness surface for its host app. */
-import { IconChevronLeftOutline14 } from '@deepseek-ai/dsh-client-ui-primitives'
+import { IconChevronLeftOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar/client'
 import { NS } from './locales.ts'
@@ -28,7 +28,7 @@ export function HostReturnAction({ returnUrl, hostName, t }: HostReturnActionPro
       aria-label={label}
       title={label}
     >
-      <IconChevronLeftOutline14 size={16} />
+      <IconChevronLeftOutlineRegular size={16} />
     </a>
   )
 }

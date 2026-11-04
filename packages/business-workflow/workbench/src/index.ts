@@ -184,8 +184,8 @@ export class BusinessWorkflows extends TypertRemoteService {
         const template = this.template(request.selection.id), published = template.published
         if (!published || published.version !== request.selection.version) throw new Error('WORKFLOW_PUBLICATION_NOT_CURRENT')
         // PTC-only agents cannot call the native-only bound tool set; keep their current mode intact.
-        const visible = this.ctx.tools.schemas(agent)
-        if (!visible.some(tool => tool.name === 'business_workflow_start')) throw new Error('WORKFLOW_NATIVE_TOOLS_REQUIRED')
+        const visible = (await this.ctx.systemPrompt.assemble({ scope: agent })).tools
+        if (!visible.some(tool => tool.name === 'business_workflow_list')) throw new Error('WORKFLOW_NATIVE_TOOLS_REQUIRED')
         selection = { id: template.id, version: published.version, name: parseDraft(published.draftJson).name }
       }
       signal.throwIfAborted()

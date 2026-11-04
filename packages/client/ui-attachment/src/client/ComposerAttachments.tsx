@@ -2,13 +2,17 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type {
   ComposerAttachment, ComposerAttachmentsProps, ComposerImageAttachment,
 } from '@deepseek-ai/dsh-client-ui-conversation/client'
-import { IconCloseFill14 } from '@deepseek-ai/dsh-client-ui-primitives'
+import {
+  IconCloseFillRegular, IconRefreshOutlineRegular, IconWarningOutlineRegular, Tooltip,
+} from '@deepseek-ai/dsh-client-ui-primitives'
 import { AttachmentRail } from '../AttachmentRail.tsx'
 import type { AttachmentRailItem } from '../AttachmentRail.tsx'
 import { DropOverlay } from '../DropOverlay.tsx'
 import { FileCard } from '../FileCard.tsx'
-import { ImageLightbox } from '../ImageLightbox.tsx'
+import { ImageLightbox } from '@deepseek-ai/dsh-client-ui-primitives'
 import { attachmentRailLabels, dropOverlayLabels, fileCardLabels, lightboxLabels } from './labels.ts'
+import { installDocumentDropEvents } from './drop-events.ts'
+import type { InjectFace } from '@deepseek-ai/dsh-client-ui-slots'
 import css from './ComposerAttachments.module.css'
 
 /** Rail item retaining its browser-owned attachment for callbacks. */
@@ -16,10 +20,20 @@ interface ComposerRailItem extends AttachmentRailItem {
   attachment: ComposerAttachment
 }
 
+/** File transfer lookup injected by this attachment implementation. */
+export interface ComposerAttachmentsInjected {
+  readonly readFileDrag: (transfer: DataTransfer) => File | undefined
+}
+
+/** The owner share and locale seat the attachment rail reads from its slot props. */
+type ComposerAttachmentsInput = Pick<ComposerAttachmentsProps,
+  | 'attachments' | 'canAcceptDrop' | 'onAddFiles' | 'onRemoveAttachment' | 'uploads' | 'onRetryFile'
+  | 'uploadFailureText' | 'dropLimits' | 't'>
+
 /** Draft image previews, pending-file cards, drop target, and original-image preview. */
 export function ComposerAttachments({
-  attachments, canAcceptDrop, onAddFiles, onRemoveAttachment, uploads, onRetryFile, dropLimits, t,
-}: ComposerAttachmentsProps) {
+  attachments, canAcceptDrop, onAddFiles, onRemoveAttachment, uploads, onRetryFile, uploadFailureText, dropLimits, t, readFileDrag,
+}: ComposerAttachmentsInput & InjectFace<ComposerAttachmentsInjected>) {
   const [preview, setPreview] = useState<ComposerImageAttachment | null>(null)
   const [dragActive, setDragActive] = useState(false)
   const dragDepth = useRef(0)
@@ -29,55 +43,8 @@ export function ComposerAttachments({
   }, [attachments, preview])
 
   useEffect(() => {
-    const fileTransfer = (event: globalThis.DragEvent): DataTransfer | null => {
-      const dataTransfer = event.dataTransfer
-      if (dataTransfer === null || !dataTransfer.types.includes('Files')) return null
-      return dataTransfer
-    }
-    const reset = (): void => {
-      dragDepth.current = 0
-      setDragActive(false)
-    }
-    const onDragEnter = (event: globalThis.DragEvent): void => {
-      if (fileTransfer(event) === null) return
-      event.preventDefault()
-      dragDepth.current += 1
-      setDragActive(true)
-    }
-    const onDragOver = (event: globalThis.DragEvent): void => {
-      const dataTransfer = fileTransfer(event)
-      if (dataTransfer === null) return
-      event.preventDefault()
-      dataTransfer.dropEffect = canAcceptDrop ? 'copy' : 'none'
-    }
-    const onDragLeave = (event: globalThis.DragEvent): void => {
-      if (fileTransfer(event) === null) return
-      dragDepth.current = Math.max(0, dragDepth.current - 1)
-      if (dragDepth.current === 0) setDragActive(false)
-      const leftViewport = event.clientX <= 0 || event.clientY <= 0
-        || event.clientX >= window.innerWidth || event.clientY >= window.innerHeight
-      if ((event.target === document.documentElement || event.target === document.body) && leftViewport) reset()
-    }
-    const onDrop = (event: globalThis.DragEvent): void => {
-      const dataTransfer = fileTransfer(event)
-      if (dataTransfer === null) return
-      event.preventDefault()
-      reset()
-      if (canAcceptDrop) onAddFiles([...dataTransfer.files])
-    }
-    document.addEventListener('dragenter', onDragEnter)
-    document.addEventListener('dragover', onDragOver)
-    document.addEventListener('dragleave', onDragLeave)
-    document.addEventListener('drop', onDrop)
-    window.addEventListener('dragend', reset)
-    return () => {
-      document.removeEventListener('dragenter', onDragEnter)
-      document.removeEventListener('dragover', onDragOver)
-      document.removeEventListener('dragleave', onDragLeave)
-      document.removeEventListener('drop', onDrop)
-      window.removeEventListener('dragend', reset)
-    }
-  }, [canAcceptDrop, onAddFiles])
+    return installDocumentDropEvents(canAcceptDrop, onAddFiles, dragDepth, setDragActive, readFileDrag)
+  }, [canAcceptDrop, onAddFiles, readFileDrag])
 
   const railItems = useMemo<ComposerRailItem[]>(() => attachments.map(attachment => ({
     id: attachment.id,
@@ -117,23 +84,71 @@ export function ComposerAttachments({
                   />
                 )
               }
+              // An uploading image shows its progress; a failed upload turns the thumbnail into its retry
+              // control, except one the Host refused, which explains why and leaves removal as the way out.
+              // The refusal is the only explanation of its warning, so a tap or click also pins it.
+              const upload = uploads[attachment.id]
+              const name = attachment.file.name || t('image.pending')
+              const refusal = upload?.status === 'error' && upload.reason !== undefined
+                ? uploadFailureText(upload.reason)
+                : undefined
               return (
                 <div className={css.imageItem}>
-                  <button
-                    type="button"
-                    className={css.thumbnail}
-                    title={t('image.openOriginal')}
-                    onClick={() => { setPreview(attachment) }}
-                  >
-                    <img src={attachment.previewUrl} alt={attachment.file.name || t('image.pending')} />
-                  </button>
+                  {refusal !== undefined
+                    ? (
+                      <Tooltip label={refusal} side="top" delayMs={300} portal openOnClick>
+                        <button
+                          type="button"
+                          className={`${css.thumbnail} ${css.thumbnailFailed} ${css.thumbnailRefused}`}
+                          aria-label={refusal}
+                        >
+                          <img src={attachment.previewUrl} alt="" />
+                          <span className={css.failureGlyph} aria-hidden><IconWarningOutlineRegular size={16} /></span>
+                        </button>
+                      </Tooltip>
+                    )
+                    : upload?.status === 'error'
+                      ? (
+                        <Tooltip label={t('file.uploadFailed')} side="top" delayMs={300} portal>
+                          <button
+                            type="button"
+                            className={`${css.thumbnail} ${css.thumbnailFailed}`}
+                            aria-label={t('file.retry', { name })}
+                            onClick={() => { onRetryFile(attachment.id) }}
+                          >
+                            <img src={attachment.previewUrl} alt="" />
+                            <span className={css.failureGlyph} aria-hidden><IconRefreshOutlineRegular size={16} /></span>
+                          </button>
+                        </Tooltip>
+                      )
+                      : (
+                        <button
+                          type="button"
+                          className={css.thumbnail}
+                          title={t('image.openOriginal')}
+                          aria-busy={upload?.status === 'uploading'}
+                          onClick={() => { setPreview(attachment) }}
+                        >
+                          <img src={attachment.previewUrl} alt={name} />
+                        </button>
+                      )}
+                  {upload?.status === 'uploading' && (
+                    <span className={css.progressTrack} aria-hidden>
+                      <span
+                        className={css.progressBar}
+                        style={upload.total === undefined || upload.total <= 0
+                          ? undefined
+                          : { width: `${String(Math.min(1, upload.loaded / upload.total) * 100)}%` }}
+                      />
+                    </span>
+                  )}
                   <button
                     type="button"
                     className={css.remove}
-                    aria-label={t('image.remove', { name: attachment.file.name })}
+                    aria-label={t('image.remove', { name })}
                     onClick={() => { onRemoveAttachment(attachment.id) }}
                   >
-                    <IconCloseFill14 size={12} />
+                    <IconCloseFillRegular size={12} />
                   </button>
                 </div>
               )

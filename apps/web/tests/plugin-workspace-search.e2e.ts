@@ -7,7 +7,7 @@ import type {} from '@deepseek-ai/dsh-workspace'
 import { captureStableAria, compareOrRefreshGolden, launchWebScaffold, seedSession, webSnapshotMode, watchConsole } from './scaffold.ts'
 
 it('retains existing Workspace sessions while opening connector credential forms', async () => {
-  const scaffold = await launchWebScaffold({ pluginManagement: true, extraOverlayPath: fileURLToPath(new URL('../../cli/config/examples/ztt/cordis.yml', import.meta.url)) })
+  const scaffold = await launchWebScaffold({ profile: { packages: [] }, extraOverlayPath: fileURLToPath(new URL('../../cli/config/examples/ztt/cordis.yml', import.meta.url)) })
   try {
     const sessionFixture = await readFile(fileURLToPath(new URL('../../../snapshots/web/message-feedback-protocol/session.v3.jsonl', import.meta.url)), 'utf8')
     const sessionId = await seedSession(scaffold, sessionFixture, 'plugin-workspace-search')

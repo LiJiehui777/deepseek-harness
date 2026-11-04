@@ -5,7 +5,7 @@ import { dirname, extname, isAbsolute, join, relative, resolve, sep, win32 } fro
 import { fileURLToPath } from 'node:url'
 import { ModuleLoader } from '@deepseek-ai/cordis-plugin-loader'
 import type { LocalizedText, PluginLocalizedMeta } from '@deepseek-ai/dsh-package-manifest'
-import { barePackageName } from './package-name.ts'
+import { barePackageName } from './profile-resolution/resolver.ts'
 import { realModuleFile } from './profile-resolution/legacy-links.ts'
 
 const LANGUAGE_ID = /^[A-Za-z]{2,8}(?:-[A-Za-z0-9]{1,8})*$/u

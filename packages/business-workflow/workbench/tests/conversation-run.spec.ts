@@ -57,7 +57,7 @@ it('holds the same turn through review and execution, then steers saved completi
     f.state.run = { ...f.state.run, status: 'completed', items: [], results: [{ nodeId: 'analysis', json: '{"result":"Evidence"}' }] }
     await waiting
     expect(f.steer).toHaveBeenCalledTimes(1)
-    expect(f.steer.mock.calls[0]![0].source).toMatchObject({ kind: 'plugin', plugin: 'business-workflow', form: 'notice' })
+    expect(f.steer.mock.calls[0]![0].source).toMatchObject({ kind: 'business-workflow', form: 'notice' })
     await expect(JSON.stringify(f.steer.mock.calls[0]![0].content, null, 2))
       .toMatchFileSnapshot(join(import.meta.dirname, 'expected/conversation-completion.expected.json'))
     expect(JSON.stringify(f.steer.mock.calls[0]![0])).toContain('Evidence')
@@ -76,7 +76,7 @@ it('retains follows across host disposal and wakes an owner reopened from persis
   const second = await fixture(first.pool)
   try {
     const idle = { ...second.agent, status: 'idle' as const }
-    agentEvents(second.ctx, idle).emit('agent/session-start', { source: 'resume' })
+    await agentEvents(second.ctx, idle).serial('agent/created', { source: 'resume' })
     expect(second.steer).toHaveBeenCalledTimes(1)
     expect(JSON.stringify(second.steer.mock.calls[0]![0])).toContain('already-started')
     await expect(JSON.stringify(second.steer.mock.calls[0]![0].content, null, 2))

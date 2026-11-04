@@ -1,6 +1,40 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/interaction/tool-feishu-connection/README.md
-README.md: c4eff56c8a55e1078de429c96ac0a76168a30b74
-README.zh.md: 85dbb3a26d343fdf00cf181933c443501e4cc98f
+/:
+  en: ad4c984e1c3d2abb
+  zh: ad4c984e1c3d2abb
+/deepseek-ai-dsh-tool-feishu-connection:
+  en: e22e483466be2e14
+  zh: cb5841b5dd83efed
+/deepseek-ai-dsh-tool-feishu-connection/summary:
+  en: 3962e89ecebe95e5
+  zh: b7c6b87c84363802
+/deepseek-ai-dsh-tool-feishu-connection/table-of-contents:
+  en: 2e89ddb1e73218cb
+  zh: 65e6e399d6b474c7
+/deepseek-ai-dsh-tool-feishu-connection/use-this-package:
+  en: bfe912701090c11e
+  zh: 90a9378e00b9a896
+/deepseek-ai-dsh-tool-feishu-connection/model-experience:
+  en: 215e7ba838619b7b
+  zh: a311da3843709f90
+/deepseek-ai-dsh-tool-feishu-connection/model-experience/selected-feishu-reads:
+  en: 9a5f6dfff82bc5fd
+  zh: 0728a7ead0411008
+/deepseek-ai-dsh-tool-feishu-connection/model-experience/selected-feishu-reads/what-the-model-sees:
+  en: c084b142ee43f4ca
+  zh: cc70db00e436b923
+/deepseek-ai-dsh-tool-feishu-connection/model-experience/selected-feishu-reads/token-effect:
+  en: 4d12ac4157911cfc
+  zh: bb789c6ee46d25c9
+/deepseek-ai-dsh-tool-feishu-connection/model-experience/selected-feishu-reads/kv-cache-effect:
+  en: c7c3cdbc23255066
+  zh: 451164d6f0ce6640
+/deepseek-ai-dsh-tool-feishu-connection/known-limitations-and-deferred-work:
+  en: 42c06892823f94be
+  zh: ccf1c93e22c0a283
+/deepseek-ai-dsh-tool-feishu-connection/known-limitations-and-deferred-work/dev-note:
+  en: 621185dcd0e7c211
+  zh: bdc4d8f74587faac

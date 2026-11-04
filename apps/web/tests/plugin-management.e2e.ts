@@ -8,7 +8,7 @@ import type {} from '@deepseek-ai/dsh-plugin-manager'
 import { captureStableAria, compareOrRefreshGolden, launchWebScaffold, webSnapshotMode, watchConsole } from './scaffold.ts'
 
 it('configures all three connectors and persists native enablement through the real Loader', async () => {
-  const scaffold = await launchWebScaffold({ pluginManagement: true, extraOverlayPath: fileURLToPath(new URL('../../cli/config/examples/ztt/cordis.yml', import.meta.url)) })
+  const scaffold = await launchWebScaffold({ profile: { packages: ['enterprise-connectors', 'tool-ragflow-connector'].map(name => ({ dir: fileURLToPath(new URL('../../../packages/interaction/' + name, import.meta.url)), enabled: true })) }, extraOverlayPath: fileURLToPath(new URL('../../cli/config/examples/ztt/cordis.yml', import.meta.url)) })
   const browser = await chromium.launch()
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 }, locale: 'zh-CN' })
   const console = watchConsole(page)
@@ -35,7 +35,7 @@ it('configures all three connectors and persists native enablement through the r
     await feishu.getByLabel('App ID', { exact: true }).fill('cli_fixture_native_plugins')
     await feishu.getByLabel('App Secret', { exact: true }).fill('fixture-private-secret')
     await feishu.getByRole('button', { name: '\u4fdd\u5b58', exact: true }).click()
-    const settings = join(scaffold.harnessHome, 'settings.yaml')
+    const settings = join(scaffold.harnessHome, 'profiles/scaffold/cordis.patch.yml')
     await expect.poll(async () => readFile(settings, 'utf8')).toContain('cli_fixture_native_plugins')
     expect(await readFile(settings, 'utf8')).not.toContain('fixture-private-secret')
     expect(await feishu.getByRole('radio', { name: '\u5e94\u7528\u8eab\u4efd', exact: true }).isChecked()).toBe(true)
@@ -54,6 +54,7 @@ it('configures all three connectors and persists native enablement through the r
     expect(await feishu.getByRole('radio', { name: '\u7528\u6237\u8eab\u4efd', exact: true }).isChecked()).toBe(true)
     await panel.getByRole('button', { name: '\u8fd4\u56de\u63d2\u4ef6', exact: true }).click()
     await page.locator('[data-plugin-item="wecom-connector"] button').first().click()
+    await page.getByText('机器人消息连接', { exact: true }).click()
     await page.getByLabel('Bot ID', { exact: true }).waitFor()
     expect(await panel.locator('[data-plugin-item-detail="wecom-connector"] svg[data-connector-icon="wecom-connector"]').count()).toBe(1)
     await panel.getByRole('button', { name: '\u8fd4\u56de\u63d2\u4ef6', exact: true }).click()

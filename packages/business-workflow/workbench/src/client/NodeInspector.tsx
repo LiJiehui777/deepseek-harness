@@ -1,9 +1,9 @@
 /** Node-specific draft controls with an independently scrolling body and persistent actions. */
 import type { ReactNode } from 'react'
 import clsx from 'clsx'
-import { Button, Input, IconSettingsOutline16, IconThinkOutline16, IconBranchOutline16, IconUserOutline16,
-  IconLoadingOutline16, IconPlayOutline16, IconStopFill16, IconTrashOutline16, IconCodeOutline16,
-  IconChevronDownOutline14, IconLinkOutline16 } from '@deepseek-ai/dsh-client-ui-primitives'
+import { Button, Input, IconSettingsOutlineRegular, IconThinkOutlineRegular, IconBranchOutlineRegular, IconUserOutlineRegular,
+  IconLoadingOutlineRegular, IconPlayOutlineRegular, IconStopFillRegular, IconTrashOutlineRegular, IconCodeOutlineRegular,
+  IconChevronDownOutlineRegular, IconLinkOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { Translate } from '@deepseek-ai/dsh-client-ui-slots'
 import { ACTION_IDS } from '../shared/draft.ts'
 import type { DraftNode, NodeKind } from '../shared/types.ts'
@@ -20,8 +20,9 @@ type Props = {
   onDelete: () => void
 }
 const icons: Record<NodeKind, ReactNode> = {
-  start: <IconPlayOutline16 />, action: <IconSettingsOutline16 />, agent: <IconThinkOutline16 />,
-  condition: <IconBranchOutline16 />, human: <IconUserOutline16 />, wait: <IconLoadingOutline16 />, end: <IconStopFill16 />,
+  start: <IconPlayOutlineRegular />, action: <IconSettingsOutlineRegular />, agent: <IconThinkOutlineRegular />,
+  condition: <IconBranchOutlineRegular />, human: <IconUserOutlineRegular />, wait: <IconLoadingOutlineRegular />,
+  end: <IconStopFillRegular />,
 }
 
 function Select({ label, value, onChange, children }: {
@@ -32,7 +33,7 @@ function Select({ label, value, onChange, children }: {
 }) {
   return <label className={css.field}><span>{label}</span><span className={css.selectWrap}>
     <select className={clsx(css.control)} value={value} onChange={(event) => { onChange(event.target.value) }}>{children}</select>
-    <IconChevronDownOutline14 className={css.selectArrow} />
+    <IconChevronDownOutlineRegular className={css.selectArrow} />
   </span></label>
 }
 
@@ -74,16 +75,16 @@ export function NodeInspector({ node, nodes, step, t, className, onChange, onDel
           </label><p className={css.hint}>{t('inspectorHumanHint')}</p></>}
         </section>}
       {node.kind !== 'start' && <section className={css.section} aria-label={t('inspectorInput')}>
-        <h4><IconLinkOutline16 />{t('inspectorInput')}</h4>
+        <h4><IconLinkOutlineRegular />{t('inspectorInput')}</h4>
         <Select label={t('source')} value={node.source} onChange={(source) => { onChange({ source }) }}>
           <option value="">{t('startup')}</option>{targets.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
         </Select>
-        <label className={css.field}><span>{t('field')}</span><Input className={clsx(css.control, css.code)} icon={<IconCodeOutline16 />}
+        <label className={css.field}><span>{t('field')}</span><Input className={clsx(css.control, css.code)} icon={<IconCodeOutlineRegular />}
           value={node.field} onChange={(event) => { onChange({ field: event.target.value }) }} /></label>
         <p className={css.hint}>{t(node.source ? 'inspectorUpstreamHint' : 'inspectorStartupHint')}</p>
       </section>}
       {node.kind === 'condition' && <section className={css.section} aria-label={t('inspectorCondition')}>
-        <h4><IconBranchOutline16 />{t('inspectorCondition')}</h4>
+        <h4><IconBranchOutlineRegular />{t('inspectorCondition')}</h4>
         <div className={css.rule}>
           <Select label={t('operator')} value={node.operator} onChange={(operator) => { onChange({ operator: operator as DraftNode['operator'] }) }}>
             {(['eq', 'neq', 'exists'] as const).map(value => <option key={value} value={value}>{t(`operator.${value}`)}</option>)}
@@ -112,7 +113,7 @@ export function NodeInspector({ node, nodes, step, t, className, onChange, onDel
     </div>
     <footer className={css.footer}>
       <span>{t(protectedNode ? 'inspectorProtected' : 'inspectorDraftHint')}</span>
-      <Button size="sm" variant="ghost" className={css.delete} icon={<IconTrashOutline16 />} disabled={protectedNode}
+      <Button size="sm" variant="ghost" className={css.delete} icon={<IconTrashOutlineRegular />} disabled={protectedNode}
         title={protectedNode ? t('inspectorProtected') : undefined} onClick={onDelete}>{t('delete')}</Button>
     </footer>
   </aside>

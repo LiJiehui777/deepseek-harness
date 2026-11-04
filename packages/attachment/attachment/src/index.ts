@@ -1,5 +1,6 @@
 /** Durable attachment storage seam (`ctx.attachments`). @module @deepseek-ai/dsh-attachment */
 
+import { Buffer } from 'node:buffer'
 import { Context, Service } from '@deepseek-ai/cordis'
 import { admitEncodedFile as admitFileInput, admitEncodedImages } from './admission.ts'
 import { AttachmentError, isAttachmentError as matchesAttachmentError } from './error.ts'
@@ -10,7 +11,8 @@ import type {
   FileAttachmentRef,
   ImageAttachmentLimits,
   ImageAttachmentRef,
-  ImageRequestPolicy,
+  ImageRequestTarget,
+  PromptContentPart,
   RequestImageAttachment,
   SaveFileAttachment,
   SaveFileStreamAttachment,
@@ -22,7 +24,8 @@ export { AttachmentId, ImageVariantId } from './brand.ts'
 export { AttachmentError, isAttachmentError, isImageAdmissionError } from './error.ts'
 export type { AttachmentErrorCode, ImageAdmissionErrorCode } from './error.ts'
 export { admitEncodedFile, admitEncodedImages } from './admission.ts'
-export { requestImageDimensions } from './request-projection.ts'
+export { longEdgeDimensions, requestImageDimensions } from './request-projection.ts'
+export type { ProjectedDimensions } from './request-projection.ts'
 export type {
   AttachmentId as AttachmentIdType,
   AdmittedPromptContentPart,
@@ -32,7 +35,7 @@ export type {
   FileAttachmentRef,
   ImageAttachmentLimits,
   ImageAttachmentRef,
-  ImageRequestPolicy,
+  ImageRequestTarget,
   ImageMediaType,
   PromptContentPart,
   RequestImageAttachment,
@@ -45,6 +48,28 @@ export type {
 declare module '@deepseek-ai/cordis' {
   interface Context {
     attachments: AttachmentStore
+  }
+}
+
+/** Whether one admission part still carries encoded image bytes. */
+function isEncodedImage(part: AttachmentAdmissionPart): part is Extract<PromptContentPart, { readonly type: 'image' }> {
+  return part.type === 'image' && !('attachment' in part)
+}
+
+/** Whether one admission part references an image an earlier upload stored. */
+function isStoredImage(
+  part: AttachmentAdmissionPart,
+): part is Extract<AttachmentAdmissionPart, { readonly type: 'image'; readonly encodedBytes: number }> {
+  return part.type === 'image' && 'attachment' in part
+}
+
+/** Refuse one message whose images exceed the configured count or aggregate byte limit. */
+function assertMessageImages(limits: ImageAttachmentLimits, count: number, bytes: number): void {
+  if (count > limits.maxImagesPerMessage) {
+    throw new AttachmentError('Image batch exceeds the configured image-count limit.', 'TOO_MANY_IMAGES')
+  }
+  if (bytes > limits.maxMessageImageBytes) {
+    throw new AttachmentError('Image batch exceeds the configured aggregate image-byte limit.', 'IMAGES_TOO_LARGE')
   }
 }
 
@@ -74,16 +99,10 @@ export abstract class AttachmentStore extends Service {
    * @returns durable references in the exact input order.
    */
   protected validateImageBatch(inputs: readonly SaveImageAttachment[]): void {
-    const { maxImagesPerMessage, maxMessageImageBytes, mediaTypes } = this.imageLimits
-    if (inputs.length > maxImagesPerMessage) {
-      throw new AttachmentError('Image batch exceeds the configured image-count limit.', 'TOO_MANY_IMAGES')
-    }
-    const totalBytes = inputs.reduce((sum, input) => sum + input.data.byteLength, 0)
-    if (totalBytes > maxMessageImageBytes) {
-      throw new AttachmentError('Image batch exceeds the configured aggregate image-byte limit.', 'IMAGES_TOO_LARGE')
-    }
+    const limits = this.imageLimits
+    assertMessageImages(limits, inputs.length, inputs.reduce((sum, input) => sum + input.data.byteLength, 0))
     for (const input of inputs) {
-      if (!mediaTypes.includes(input.mediaType)) {
+      if (!limits.mediaTypes.includes(input.mediaType)) {
         throw new AttachmentError(`Image type ${input.mediaType} is not accepted by this deployment.`, 'UNSUPPORTED_IMAGE_TYPE')
       }
     }
@@ -104,25 +123,35 @@ export abstract class AttachmentStore extends Service {
   }
 
   /**
-   * Admit one Host prompt and replace each uploaded image with its durable reference.
-   * Text and durable file references pass through unchanged. A prompt without image parts performs no storage operation.
-   * @param content - prompt parts in message order after file receipt resolution.
+   * Admit one Host prompt and replace each encoded image with its durable reference.
+   * Text, durable file references, and already stored images pass through unchanged.
+   * Every image part counts toward `maxImagesPerMessage` and `maxMessageImageBytes`;
+   * a stored image counts the bytes of the upload that stored it. Refused content
+   * starts no writes. A prompt without encoded images performs no storage operation.
+   * @param content - prompt parts in message order after upload receipt resolution.
    * @returns admitted prompt parts in the same order as `content`.
    * @throws AttachmentError when the image batch is refused.
    */
   async admitPromptContent(
     content: readonly AttachmentAdmissionPart[],
   ): Promise<AdmittedPromptContentPart[]> {
-    if (content.every(part => part.type !== 'image')) {
-      return content.map(part => part.type === 'text'
-        ? { type: 'text', text: part.text }
-        : { type: 'file', attachment: part.attachment })
+    const encoded = content.filter(isEncodedImage)
+    const stored = content.filter(isStoredImage)
+    // Each upload passed the limits alone; the encoded batch below checks only itself.
+    if (stored.length > 0) {
+      assertMessageImages(
+        this.imageLimits,
+        encoded.length + stored.length,
+        encoded.reduce((sum, part) => sum + Buffer.byteLength(part.data, 'base64'), 0)
+          + stored.reduce((sum, part) => sum + part.encodedBytes, 0),
+      )
     }
-    const refs = await admitEncodedImages(this, content.filter(part => part.type === 'image'))
+    const refs = encoded.length === 0 ? [] : await admitEncodedImages(this, encoded)
     let next = 0
     return content.map((part) => {
       if (part.type === 'text') return { type: 'text', text: part.text }
       if (part.type === 'file') return { type: 'file', attachment: part.attachment }
+      if ('attachment' in part) return { type: 'image', attachment: part.attachment }
       return { type: 'image', attachment: refs[next++] as ImageAttachmentRef }
     })
   }
@@ -157,8 +186,8 @@ export abstract class AttachmentStore extends Service {
   abstract saveImage(input: SaveImageAttachment): Promise<ImageAttachmentRef>
 
   /**
-   * Read one image and verify that bytes still match the recorded reference.
-   * @param ref - durable reference from the session log.
+   * Read one image and verify its ID, format, byte length, and dimensions against the supplied reference.
+   * @param ref - supplied image reference; name and originalDimensions are preserved without file verification.
    * @param signal - optional cancellation for backend read and verification work.
    * @returns the verified bytes and normalized attachment reference.
    * @throws the signal reason when aborted, or a storage error when verification fails.
@@ -211,7 +240,7 @@ export abstract class AttachmentStore extends Service {
    * Read and verify one verbatim stored file as bounded chunks. Providers must
    * not collect the complete file in memory. Backends without verbatim file
    * reads keep this default rejection.
-   * @param ref - durable reference from the session log.
+   * @param ref - durable file reference from the session log.
    * @param signal - optional cancellation for backend reads and verification work.
    * @returns exact file bytes in order; integrity failures reject the iteration.
    */
@@ -241,18 +270,18 @@ export abstract class AttachmentStore extends Service {
   /**
    * Generate or read one deterministic model-request version from the stored normalized image.
    * @param ref - durable provider-independent normalized attachment reference.
-   * @param policy - exact route pixel budget and encoded-byte target; a target no ladder quality meets yields the smallest ladder output.
+   * @param target - route-chosen dimensions and byte target; an unmet byte target yields the smallest ladder output.
    * @param signal - optional cancellation.
    * @returns request bytes and the cache/upload identity covering every transform input.
    */
   readImageRequest(
     ref: ImageAttachmentRef,
-    policy: ImageRequestPolicy,
+    target: ImageRequestTarget,
     signal?: AbortSignal,
   ): Promise<RequestImageAttachment> {
     signal?.throwIfAborted()
     void ref
-    void policy
+    void target
     return Promise.reject(new AttachmentError(
       'The mounted attachment provider cannot derive model-request images.',
       'ATTACHMENT_PROJECTION_UNSUPPORTED',

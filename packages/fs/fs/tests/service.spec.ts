@@ -21,6 +21,10 @@ import type {
 
 /** A minimal in-memory fake implementing the provider primitives. */
 class FakeFileSystem extends FileSystem {
+  override async patchText(): Promise<never> { throw new FsError('patch unsupported by test provider', 'FS_IO_ERROR') }
+  override async deleteFile(): Promise<never> { throw new FsError('delete unsupported by test provider', 'FS_IO_ERROR') }
+  override async moveFile(): Promise<never> { throw new FsError('move unsupported by test provider', 'FS_IO_ERROR') }
+
   files = new Map<string, string>()
 
   override async resolve(path: string): Promise<FsTarget> {
@@ -144,6 +148,14 @@ describe('FileSystem provider seam', () => {
     await expect(fs.readBytes(target, undefined, 1)).rejects.toMatchObject({ code: 'FS_TOO_LARGE' })
   })
 
+  it('rejects watching when a provider does not implement observation', async () => {
+    const ctx = new Context()
+    await ctx.plugin(FakeFileSystem)
+    const fs = ctx.fs as FakeFileSystem
+    await expect(fs.watch(await fs.resolve('a.txt'), () => {}, new AbortController().signal))
+      .rejects.toMatchObject({ code: 'FS_IO_ERROR' })
+  })
+
   it('listDir returns child entry targets without reading file content', async () => {
     const ctx = new Context()
     await ctx.plugin(FakeFileSystem)
@@ -196,4 +208,17 @@ describe('FsError', () => {
     expect(error.cause).toBe(root)
     expect(error.code).toBe('FS_ABORTED')
   })
+})
+
+it('exposes guarded patch, delete, and move on the provider interface', async () => {
+  const ctx = new Context()
+  const fiber = await ctx.plugin(FakeFileSystem)
+  try {
+    const target = await ctx.fs.resolve('a')
+    await expect(ctx.fs.patchText(target, [])).rejects.toMatchObject({ code: 'FS_IO_ERROR' })
+    await expect(ctx.fs.deleteFile(target)).rejects.toMatchObject({ code: 'FS_IO_ERROR' })
+    await expect(ctx.fs.moveFile(target, target, {})).rejects.toMatchObject({ code: 'FS_IO_ERROR' })
+    expect(new FsError('mismatch', 'FS_PATCH_MISMATCH').code).toBe('FS_PATCH_MISMATCH')
+    expect(new FsError('same target', 'FS_SAME_TARGET').code).toBe('FS_SAME_TARGET')
+  } finally { await fiber.dispose() }
 })

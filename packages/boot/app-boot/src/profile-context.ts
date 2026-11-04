@@ -54,6 +54,17 @@ export function resolveTelemetryPatch(disabledEnv: string | undefined, hasRow: b
   return { id: TELEMETRY_ROW_ID, disabled: true }
 }
 
+/** Read the selected bundles' patches, which apply before the profile patch file.
+ * @param binName Diagnostic prefix for malformed or missing configuration.
+ * @param context Data supplied by the profile launcher.
+ * @param initialProfile Already loaded startup profile; omitted reads the current files.
+ * @returns Bundle patches in application order.
+ */
+export function readBundlePatches(binName: string, context: ProfileContext, initialProfile?: Profile): PatchOptions[] {
+  const profile = initialProfile ?? loadProfileDirectory(binName, context.dir, context.installAnchor, { userLayer: false })
+  return profile.layers.flatMap(layer => layer.patches)
+}
+
 /** Read current bundle and user layers with the launch-time overlays.
  * @param binName Diagnostic prefix for malformed or missing configuration.
  * @param context Data supplied by the profile launcher.
@@ -61,9 +72,8 @@ export function resolveTelemetryPatch(disabledEnv: string | undefined, hasRow: b
  * @returns Detached ordered patches; this function does not update the Loader.
  */
 export function readProfilePatches(binName: string, context: ProfileContext, initialProfile?: Profile): PatchOptions[] {
-  const profile = initialProfile ?? loadProfileDirectory(binName, context.dir, context.installAnchor, { userLayer: false })
   const patches = structuredClone([
-    ...profile.layers.flatMap(layer => layer.patches),
+    ...readBundlePatches(binName, context, initialProfile),
     ...(initialProfile?.patches ?? loadOptionalPatches(binName, context.patchPath) ?? []),
     ...(loadOptionalPatches(binName, join(context.home, PROFILE_PATCH_FILENAME)) ?? []),
     ...context.overlays,
@@ -72,17 +82,4 @@ export function readProfilePatches(binName: string, context: ProfileContext, ini
     composeEntries([patches]).some(row => row.id === TELEMETRY_ROW_ID))
   if (telemetryPatch !== undefined) patches.push(telemetryPatch)
   return patches
-}
-
-/** One launcher's serialized profile edits and watched reloads. */
-export interface ProfileRuntime {
-  /**
-   * Queue a profile edit or reload behind the preceding operation.
-   * @param operation - operation whose whole lifecycle is exclusive.
-   * @returns the operation's settlement.
-   */
-  runExclusive<T>(operation: () => Promise<T>): Promise<T>
-}
-declare module '@deepseek-ai/cordis' {
-  interface Context { profileRuntime: ProfileRuntime }
 }

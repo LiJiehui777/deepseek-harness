@@ -21,6 +21,7 @@ export {
   redactSessionSnapshotIds,
 } from './identity.ts'
 export {
+  REPLAY_CREDENTIAL_ENV,
   runScenario,
   snapshotSpillRoot,
   type HarvestedLog,
@@ -39,7 +40,7 @@ export {
 } from './launcher.ts'
 export {
   extractSnapshotSpillPaths,
-  normalizeSessionFormatProvenance,
+  normalizeSessionFormatMetadata,
   normalizeSessionLog,
   normalizeSessionSnapshot,
   normalizeSessionSnapshots,
@@ -98,6 +99,7 @@ export {
   parseSystemPromptSnapshot,
   parseToolSchemasSnapshot,
   refreshFixtureReplacements,
+  reconcileCatalogCreationTimes,
   restorePinnedToolSchemas,
   stabilizeFixtureMessageIds,
   stabilizeRefreshLog,
