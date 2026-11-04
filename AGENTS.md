@@ -4,6 +4,8 @@ DeepSeek Harness uses Cordis plugins exclusively. Before `packages/` edits, read
 
 默认在`dev`分支开展后续开发；提交和推送按用户授权执行。
 
+新增或改造外部系统连接器时，使用 [dsh-build-connector](.agents/skills/dsh-build-connector/SKILL.md) 确定目录、职责和接入约束。
+
 ## Pre-stable APIs and released Session data
 
 Public APIs are pre-stable; update every consumer. Follow [version/status](docs/session-format-status.md) and [type acknowledgements](docs/cookbook/reviewing-persistence-type-changes.md). [Adjacent migration](.agents/notes/implemented/architecture/2026-08-31-released-session-format-migrations.md) may add a version-named successor but never move, overwrite, or delete committed generations; predecessors imply neither fallback nor downgrade support. SQLite uses monotonic `SCHEMA_VERSION`.

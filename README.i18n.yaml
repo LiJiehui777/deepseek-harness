@@ -2,33 +2,45 @@
 # section, a hash of its English and Chinese blocks outside code blocks and generated regions.
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write README.md
-/deepseek-harness:
-  en: f68c4f080ce55ff2
-  zh: 88a76d7f7f0b260e
-/deepseek-harness/developer-preview:
-  en: 4ef4d8a71ac143f0
-  zh: 1bfc3149ba8e5543
-/deepseek-harness/run:
-  en: 4e0248e4c6474fc6
-  zh: eb2fb8d78c7d6bc0
-/deepseek-harness/run/run-from-npm:
-  en: e22005cd42e6cbad
-  zh: 0f536f4208df1d60
-/deepseek-harness/run/run-from-source:
-  en: 819e3f7c144d0d64
-  zh: de815f040975dba7
-/deepseek-harness/community-and-support:
-  en: 20acf6451fdc869b
-  zh: d06246dd019ecef7
-/deepseek-harness/contributing:
-  en: cabc2d3e9f8898bd
-  zh: 83b6d238bae29ce3
-/deepseek-harness/development:
-  en: 803ca2b11b497bed
-  zh: 8b4071eb0e7783ef
-/deepseek-harness/citation:
-  en: 6704e9e5a8d49a91
-  zh: 85c9cdd8d56f8e9d
-/deepseek-harness/license:
-  en: 926995344fc1c72b
-  zh: c92fab5abf85932f
+/dh-enhanced:
+  en: ae28c3863a36e15d
+  zh: f4955b9518248c2f
+/dh-enhanced/requirements:
+  en: 19dfcda5cb7bd82d
+  zh: d8e47ddf3e229acc
+/dh-enhanced/quick-start:
+  en: 791d1ca608444b84
+  zh: a08c6aee20268fa5
+/dh-enhanced/quick-start/1-clone-dev:
+  en: 31748411d16f77d7
+  zh: 75066523b8d2967b
+/dh-enhanced/quick-start/2-install-and-build:
+  en: 860a54498f97838a
+  zh: 890f32ef86e5b357
+/dh-enhanced/quick-start/3-initialize-the-enhanced-profile-once:
+  en: 10d29a6764d4a69f
+  zh: f0ebcfb6b5d00350
+/dh-enhanced/quick-start/4-prepare-and-start-flowable:
+  en: 57c6d52cbd0b4143
+  zh: 8708d25662f5baba
+/dh-enhanced/quick-start/5-start-dh:
+  en: 7eedb46830088ec3
+  zh: 39d835f195146059
+/dh-enhanced/quick-start/6-configure-a-model-and-optional-connectors:
+  en: 9d67e88d4170fa5c
+  zh: 36eeb648af8686d9
+/dh-enhanced/verify-a-workflow:
+  en: f39892ff0d132ec7
+  zh: a9fc0c9c8d4745a3
+/dh-enhanced/daily-use-and-data:
+  en: 0c210a5138f1fe3d
+  zh: 31f5d6c084d73a89
+/dh-enhanced/troubleshooting:
+  en: a416a9bc1d0267e4
+  zh: 43b6b64bc21a10fc
+/dh-enhanced/development:
+  en: 93429ae61458cfa1
+  zh: f6701eeb562c5d3b
+/dh-enhanced/attribution-and-license:
+  en: a9e4fb6dd2a3d57f
+  zh: 6f17c85bb95f602b
