@@ -28,6 +28,11 @@
     // not declaration path aliases, keep each package/vendor source compiled
     // under its own tsconfig boundary.
     "paths": {
+      "@deepseek-ai/dsh-business-workflow-workbench": ["./packages/business-workflow/workbench/src/index.ts"],
+      "@deepseek-ai/dsh-business-workflow-workbench/client": ["./packages/business-workflow/workbench/src/client/index.ts"],
+      "@deepseek-ai/dsh-business-workflow-workbench/types": ["./packages/business-workflow/workbench/src/shared/runtime.ts"],
+      "@deepseek-ai/dsh-business-workflow-workbench/typert": ["./packages/business-workflow/workbench/lib/typert.host.d.ts"],
+      "@deepseek-ai/dsh-business-workflow-workbench/remote": ["./packages/business-workflow/workbench/lib/typert.remote-client.d.ts"],
       "@deepseek-ai/dsh-plugin-manager/types": ["./packages/boot/plugin-manager/src/types.ts"],
       "@deepseek-ai/dsh-plugin-manager/registry": ["./packages/boot/plugin-manager/src/registry.ts"],
       "@deepseek-ai/dsh-plugin-manager/operations": ["./packages/boot/plugin-manager/src/operations.ts"],

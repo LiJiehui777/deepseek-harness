@@ -1,6 +1,8 @@
 # AGENTS.md
 
-DeepSeek Harness is an all-plugin Cordis agent harness. Read [docs/architecture.md](docs/architecture.md) before changing `packages/`; follow [docs/AGENTS.md](docs/AGENTS.md) for documentation.
+DeepSeek Harness uses Cordis plugins exclusively. Before `packages/` edits, read [architecture](docs/architecture.md). Follow [documentation](docs/AGENTS.md) and [iteration-recording](技术迭代记录.md) rules.
+
+默认在`dev`分支开展后续开发；提交和推送按用户授权执行。
 
 ## Pre-stable APIs and released Session data
 

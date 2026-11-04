@@ -138,6 +138,9 @@ flowchart TD
     pkg_sdk_minimal["sdk-minimal"]
     pkg_web_app["web-app"]
   end
+  subgraph group_business_workflow["packages/business-workflow"]
+    pkg_business_workflow_workbench["business-workflow-workbench"]
+  end
   subgraph group_client["packages/client"]
     pkg_client_connection["client-connection"]
     pkg_client_file_upload["client-file-upload"]
@@ -434,6 +437,8 @@ flowchart TD
   pkg_api_remotes --> pkg_scope
   pkg_attachment_local --> pkg_attachment
   pkg_attachment_local --> pkg_home_paths
+  pkg_business_workflow_workbench --> pkg_credentials
+  pkg_business_workflow_workbench --> pkg_llm
   pkg_client_file_upload --> pkg_scope
   pkg_authorization --> pkg_credentials
   pkg_authorization --> pkg_invariants
@@ -1179,9 +1184,12 @@ flowchart TD
   pkg_enterprise_connectors --> pkg_client_connection
   pkg_enterprise_connectors --> pkg_credentials
   pkg_enterprise_connectors --> pkg_host_webserver
+  pkg_enterprise_connectors --> pkg_session_query
   pkg_enterprise_connectors --> pkg_settings
+  pkg_enterprise_connectors --> pkg_subprocess
   pkg_enterprise_connectors --> pkg_tools
   pkg_enterprise_connectors --> pkg_typert_protocol
+  pkg_enterprise_connectors --> pkg_user_approval
   pkg_enterprise_connectors --> pkg_workspace
   pkg_sdk_client --> pkg_llm
   pkg_sdk_client --> pkg_sdk_protocol
@@ -1351,6 +1359,7 @@ flowchart TD
 | [`web-search-perplexity`](../packages/web/web-search-perplexity) | `web` | [`launch-environment`](../packages/util/launch-environment), [`web`](../packages/web/web) |
 | [`api-remotes`](../packages/api/remotes) | `api` | [`scope`](../packages/core/scope) |
 | [`attachment-local`](../packages/attachment/attachment-local) | `attachment` | [`attachment`](../packages/attachment/attachment), [`home-paths`](../packages/util/home-paths) |
+| [`business-workflow-workbench`](../packages/business-workflow/workbench) | `business-workflow` | [`credentials`](../packages/credentials/credentials), [`llm`](../packages/llm/llm) |
 | [`client-file-upload`](../packages/client/file-upload) | `client` | [`scope`](../packages/core/scope) |
 | [`authorization`](../packages/credentials/authorization) | `credentials` | [`credentials`](../packages/credentials/credentials), [`invariants`](../packages/runtime-diagnostics/invariants), [`llm`](../packages/llm/llm) |
 | [`credentials-local`](../packages/credentials/credentials-local) | `credentials` | [`atomic-write`](../packages/util/atomic-write), [`credentials`](../packages/credentials/credentials), [`home-paths`](../packages/util/home-paths), [`launch-environment`](../packages/util/launch-environment) |
@@ -1497,7 +1506,7 @@ flowchart TD
 | [`subagent-spawn-in-process`](../packages/subagent/subagent-spawn-in-process) | `subagent` | [`subagent`](../packages/subagent/subagent), [`subagent-in-process-driver`](../packages/subagent/subagent-in-process-driver) |
 | [`experimental-client-ui-agent-team`](../packages/experimental/client-ui-agent-team) | `experimental` | [`api-remotes`](../packages/api/remotes), [`api-session-controller`](../packages/api/session-controller), [`client-locale`](../packages/client/locale), [`client-ui-conversation`](../packages/client/ui-conversation), [`client-ui-primitives`](../packages/client/ui-primitives), [`client-ui-renderer`](../packages/client/ui-renderer), [`client-ui-session`](../packages/client/ui-session), [`client-ui-slots`](../packages/client/ui-slots), [`experimental-agent-team`](../packages/experimental/agent-team), [`session`](../packages/core/session), [`typert-protocol`](../packages/typert/protocol) |
 | [`experimental-tool-agent-team`](../packages/experimental/tool-agent-team) | `experimental` | [`agent`](../packages/core/agent), [`experimental-agent-team`](../packages/experimental/agent-team), [`session`](../packages/core/session), [`system-prompt`](../packages/core/system-prompt), [`tools`](../packages/core/tools) |
-| [`enterprise-connectors`](../packages/interaction/enterprise-connectors) | `interaction` | [`agent`](../packages/core/agent), [`api-session-controller`](../packages/api/session-controller), [`authorization`](../packages/credentials/authorization), [`client-connection`](../packages/client/connection), [`credentials`](../packages/credentials/credentials), [`host-webserver`](../packages/host/webserver), [`settings`](../packages/settings/settings), [`tools`](../packages/core/tools), [`typert-protocol`](../packages/typert/protocol), [`workspace`](../packages/workspace/workspace) |
+| [`enterprise-connectors`](../packages/interaction/enterprise-connectors) | `interaction` | [`agent`](../packages/core/agent), [`api-session-controller`](../packages/api/session-controller), [`authorization`](../packages/credentials/authorization), [`client-connection`](../packages/client/connection), [`credentials`](../packages/credentials/credentials), [`host-webserver`](../packages/host/webserver), [`session-query`](../packages/session-query/session-query), [`settings`](../packages/settings/settings), [`subprocess`](../packages/subprocess/subprocess), [`tools`](../packages/core/tools), [`typert-protocol`](../packages/typert/protocol), [`user-approval`](../packages/interaction/user-approval), [`workspace`](../packages/workspace/workspace) |
 | [`sdk-client`](../packages/sdk/client) | `sdk` | [`llm`](../packages/llm/llm), [`sdk-protocol`](../packages/sdk/protocol), [`session`](../packages/core/session) |
 | [`sdk-jsonrpc-server`](../packages/sdk/server) | `sdk` | [`agent`](../packages/core/agent), [`attachment`](../packages/attachment/attachment), [`llm`](../packages/llm/llm), [`llm-deepseek`](../packages/llm/llm-deepseek), [`scope`](../packages/core/scope), [`sdk-protocol`](../packages/sdk/protocol), [`session`](../packages/core/session), [`subagent`](../packages/subagent/subagent) |
 | [`client-test-runtime`](../packages/test-support/client-runtime) | `test-support` | [`api-gateway`](../packages/api/gateway), [`api-session-controller`](../packages/api/session-controller), [`api-workspace-controller`](../packages/api/workspace-controller), [`attachment`](../packages/attachment/attachment), [`client-connection`](../packages/client/connection), [`client-hmr`](../packages/client/hmr), [`client-modules`](../packages/client/modules), [`client-store`](../packages/client/store), [`client-ui-chat`](../packages/client/ui-chat), [`client-ui-conversation`](../packages/client/ui-conversation), [`client-ui-renderer`](../packages/client/ui-renderer), [`client-ui-session`](../packages/client/ui-session), [`client-ui-settings`](../packages/client/ui-settings), [`client-ui-slots`](../packages/client/ui-slots), [`client-web`](../packages/client/web), [`remote-mock`](../packages/test-support/remote-mock), [`session`](../packages/core/session), [`subagent`](../packages/subagent/subagent), [`typert-protocol`](../packages/typert/protocol) |

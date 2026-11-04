@@ -1,0 +1,48 @@
+- banner:
+  - text: 工作流
+  - heading "工作流" [level=1]
+  - paragraph: 配置业务步骤，让系统协作有序进行
+  - button "导入草稿"
+  - button "新建空白流程"
+- text: Flowable 未连接 真实执行由 Flowable 控制步骤；MES、SDCC、EIP 动作需配置连接器。模拟预览独立运行，不产生真实操作。
+- navigation "工作流":
+  - button "我的流程"
+  - button "流程编排"
+  - button "引擎实例"
+  - button "人工待办"
+  - button "预览记录"
+  - button "模拟待办"
+- heading "服务端流程" [level=2]
+- paragraph: 发布后，先在对话输入框旁手动选择该工作流，再发送执行需求。人工审核可在发起会话或此页面办理。
+- paragraph: 还没有保存的流程。打开示例，保存后即可发布。
+- heading "示例与当前编辑稿" [level=2]
+- article:
+  - text: 草稿
+  - heading "入库数据核对与 EIP 同步" [level=2]
+  - paragraph: 示例：读取入库数据、分析差异、人工确认、同步与核实。
+  - text: 10 个节点
+  - button "编辑流程"
+- article:
+  - text: 草稿
+  - heading "质量报告审核与归档" [level=2]
+  - paragraph: 第二个场景：读取报告、DH 摘要、人工审核、归档。
+  - text: 6 个节点
+  - button "编辑流程"
+- article:
+  - text: 草稿
+  - heading "Flowable 接入验证" [level=2]
+  - paragraph: 真实引擎验证：数据传递、人工审核、等待回执、条件分支。
+  - text: 7 个节点
+  - button "编辑流程"
+- article:
+  - text: 草稿
+  - heading "企业微信待办整理" [level=2]
+  - paragraph: 读取待办 → DH 整理建议 → 人工确认。使用现有扫码办公连接；只读取首 10 项未完成待办。
+  - text: 5 个节点
+  - button "编辑流程"
+- article:
+  - text: 草稿
+  - heading "企业微信待办风控演示（模拟）" [level=2]
+  - paragraph: 模拟数据演示：DH 分类排序 → 规则分支 → 风险人工复核 → DH 生成简报 → 人工确认。risk 场景 4 条，routine 场景 2 条；不访问企业微信。
+  - text: 8 个节点
+  - button "编辑流程"

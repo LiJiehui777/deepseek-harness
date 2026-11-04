@@ -1,0 +1,19 @@
+- dialog "工作流审核":
+  - heading "工作流审核" [level=2]
+  - button "关闭审核详情":
+    - img
+  - banner:
+    - text: 企业微信待办整理
+    - heading "确认待办处理建议" [level=3]
+    - paragraph: 实例编号 · {{uuid}}
+    - text: 执行中
+  - paragraph: 流程已在此暂停。审核通过后继续；退回将终止本次流程。
+  - heading "本次待审核内容" [level=4]
+  - paragraph: 待办 td_quality：Review inspection report。建议先核对检验报告，再由质量人员确认。本次只读取首 10 项未完成待办；返回 1 项，has_more=false，truncated=false。
+  - heading "上游数据与分析依据" [level=4]
+  - group: 开始
+  - group: 读取企业微信待办
+  - group: DH 整理待办和建议
+  - paragraph: 当前由登录此 DH 的本机操作人办理；节点角色为说明，尚未接入企业人员与角色校验。
+  - button "审核退回并终止"
+  - button "审核通过并继续"

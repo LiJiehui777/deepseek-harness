@@ -1,0 +1,6 @@
+[
+  {
+    "type": "text",
+    "text": "Resume following the already-started business workflow. Do not start another instance. The workflow controls execution. If it is still running, briefly acknowledge the wait; the conversation will wait without model polling. Human decisions must come from the review UI."
+  }
+]

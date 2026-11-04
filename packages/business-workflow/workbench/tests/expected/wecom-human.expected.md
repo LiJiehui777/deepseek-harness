@@ -1,0 +1,39 @@
+- banner:
+  - text: 工作流
+  - heading "工作流" [level=1]
+  - paragraph: 配置业务步骤，让系统协作有序进行
+  - button "导入草稿"
+  - button "新建空白流程"
+- text: Flowable 8.0.0 已连接 真实执行由 Flowable 控制步骤；MES、SDCC、EIP 动作需配置连接器。模拟预览独立运行，不产生真实操作。
+- navigation "工作流":
+  - button "我的流程"
+  - button "流程编排"
+  - button "引擎实例"
+  - button "人工待办"
+  - button "预览记录"
+  - button "模拟待办"
+- paragraph: 状态来自 Flowable。刷新页面后可继续查看实例与办理待办。
+- button "刷新引擎状态"
+- complementary:
+  - button "企业微信待办整理 执行中 {{uuid}}":
+    - strong: 企业微信待办整理
+    - text: 执行中 {{uuid}}
+- heading "企业微信待办整理" [level=3]
+- text: 执行中
+- paragraph: 实例编号 · {{uuid}}
+- paragraph: 当前由登录此 DH 的本机操作人办理；节点角色为说明，尚未接入企业人员与角色校验。
+- paragraph: 发起对话 · session-{{uuid}}
+- strong: 确认待办处理建议
+- paragraph: 等待处理
+- button "审核通过并继续"
+- button "审核退回并终止"
+- heading "已完成步骤" [level=4]
+- list:
+  - listitem: 开始
+  - listitem: 读取企业微信待办
+  - listitem: DH 整理待办和建议
+- heading "节点输出（引擎已保存）" [level=4]
+- group: 开始
+- group: 读取企业微信待办
+- group: DH 整理待办和建议 待办 td_quality：Review inspection report。建议先核对检验报告，再由质量人员确认。本次只读取首 10 项未完成待办；返回 1 项，has_more=false，truncated=false。
+- button "终止引擎实例"

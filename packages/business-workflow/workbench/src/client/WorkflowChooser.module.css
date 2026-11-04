@@ -1,0 +1,30 @@
+.root { display: inline-flex; min-width: 0; }
+.trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  max-width: 220px;
+  height: 28px;
+  padding: 0 4px 0 8px;
+  border: none;
+  border-radius: 24px;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.trigger:hover:not(:disabled) { background: var(--dsw-alias-interactive-bg-hover); }
+.trigger:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--dsw-alias-border-l3); }
+.trigger:disabled { color: var(--dsw-alias-label-dimmed); cursor: default; }
+.trigger > svg { flex: none; }
+.name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chevron { display: inline-flex; flex: none; color: var(--dsw-alias-label-caption); transition: transform 120ms ease; }
+.chevronOpen { transform: rotate(180deg); }
+.notice { color: var(--dsw-alias-label-secondary); font-size: 12px; line-height: 1.6; }
+.notice p { margin: 0; padding: 8px 10px; }
+@container (max-width: 460px) {
+  .name { display: none; }
+}

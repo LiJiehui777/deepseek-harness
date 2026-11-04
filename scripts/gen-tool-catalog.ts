@@ -1,3 +1,4 @@
+import { registerWorkflowTools } from '../packages/business-workflow/workbench/src/host/tools.ts'
 import EnterpriseConnectors from '@deepseek-ai/dsh-enterprise-connectors'
 import * as ToolRagflowConnector from '@deepseek-ai/dsh-tool-ragflow-connector'
 import type CredentialProvider from '@deepseek-ai/dsh-credentials'
@@ -619,6 +620,21 @@ const TOOL_PACKAGES: ToolPackage[] = [
     },
     note:
       'todo_write is session-owned state; UIs render the latest todo/write event as a checklist. `allowParallelInProgress` is required with no default, so the catalog states its choice: `true`, whose description invites several `in_progress` items. A deployment choosing `false` receives the same tool with a description asking for exactly one active task.',
+  },
+  {
+    pkg: '@deepseek-ai/dsh-business-workflow-workbench',
+    dir: 'workbench',
+    source: 'packages/business-workflow/workbench/src/host/tools.ts',
+    requires: ['ctx.tools', 'ctx.sessions', 'a local calling Agent', 'the saved publication catalog and Flowable at execution time'],
+    writes: ['tool/call', 'tool/result', 'Flowable process variables and history for accepted starts and cancellations'],
+    async mount(ctx) {
+      const unavailable = () => Promise.reject(new Error('Tool catalog does not execute workflows'))
+      await ctx.plugin({ name: 'business-workflow-catalog', inject: ['tools'], apply(scope: Context) {
+        registerWorkflowTools(scope, { templates: unavailable, selection: () => null,
+          start: unavailable, detail: unavailable, cancel: unavailable })
+      } })
+    },
+    note: 'Workflow discovery reads current publications. Start validates the selected version and declared scalar inputs; status and cancellation require the initiating local conversation. Human review and event confirmation remain outside Agent tools.',
   },
   {
     pkg: '@deepseek-ai/dsh-tool-workflow',

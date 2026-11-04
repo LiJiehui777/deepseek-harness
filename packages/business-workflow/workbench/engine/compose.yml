@@ -1,0 +1,27 @@
+services:
+  data-permissions:
+    image: flowable/flowable-rest:8.0.0@sha256:708dfa32f27b93180bb6e7a30684d881d995fe257f5b8413e14b20a55c25672d
+    user: "0:0"
+    entrypoint: ["/bin/sh", "-c", "chown flowable:flowable /flowable-data"]
+    volumes:
+      - engine-data:/flowable-data
+  flowable:
+    image: flowable/flowable-rest:8.0.0@sha256:708dfa32f27b93180bb6e7a30684d881d995fe257f5b8413e14b20a55c25672d
+    ports:
+      - "127.0.0.1:${DH_FLOWABLE_PORT:-8082}:8080"
+    depends_on:
+      data-permissions:
+        condition: service_completed_successfully
+    environment:
+      FLOWABLE_REST_APP_ADMIN_USER_ID: dh-workflow
+      FLOWABLE_REST_APP_ADMIN_PASSWORD: ${DH_FLOWABLE_PASSWORD:?Supply a private local engine password}
+      FLOWABLE_REST_APP_CREATE_DEMO_DEFINITIONS: "false"
+      FLOWABLE_HISTORY_LEVEL: full
+      REST_VARIABLES_ALLOW_SERIALIZABLE: "false"
+      SPRING_DATASOURCE_URL: jdbc:h2:file:/flowable-data/dh;DB_CLOSE_ON_EXIT=FALSE
+      SPRING_DATASOURCE_USERNAME: dh
+      SPRING_DATASOURCE_PASSWORD: ${DH_FLOWABLE_PASSWORD}
+    volumes:
+      - engine-data:/flowable-data
+volumes:
+  engine-data:

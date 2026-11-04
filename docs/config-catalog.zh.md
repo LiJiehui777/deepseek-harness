@@ -347,6 +347,38 @@ export type Config = LocalConfig
 
 来源：[`packages/shell/bash-sandbox/src/index.ts:36`](../packages/shell/bash-sandbox/src/index.ts)
 
+<a id="deepseek-aidsh-business-workflow-workbench"></a>
+
+## `@deepseek-ai/dsh-business-workflow-workbench`
+
+依赖： `credentials` · `typert` · `agents` · `agentDefaultModel` · `sessions` · `tools` · `storageDomain` · `systemPrompt`
+
+```ts config-catalog
+/** Engine connection, tenant isolation, and worker deadlines. */
+export interface Config {
+  /** Flowable REST root, including servlet context. */
+  baseUrl: string
+  /** Host-only REST account. */
+  username: string
+  /** Credential reference resolved per call. */
+  passwordEnv: string
+  /** Tenant dedicated to this DH deployment. */
+  tenantId: string
+  /** Deadline of one REST call. */
+  requestTimeoutMs: number
+  /** Idle worker interval. */
+  pollIntervalMs: number
+  /** Maximum analysis duration. */
+  analysisTimeoutMs: number
+  /** Job lease, exceeding analysis and completion deadlines. */
+  lockDurationMs: number
+  /** Maximum server-owned templates in this deployment. */
+  maxTemplates: number
+}
+```
+
+来源： [`packages/business-workflow/workbench/src/index.ts:39`](../packages/business-workflow/workbench/src/index.ts)
+
 <a id="deepseek-aidsh-client-connection"></a>
 
 ## `@deepseek-ai/dsh-client-connection`

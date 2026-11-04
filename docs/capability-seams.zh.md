@@ -9,6 +9,8 @@
 
 ```mermaid
 flowchart LR
+  pkg_business_workflow_workbench["business-workflow-workbench"]
+  svc_businessWorkflows["ctx.businessWorkflows<br/>Flowable business process execution"]
   pkg_app_boot["app-boot"]
   svc_profileContext["ctx.profileContext<br/>Launcher profile facts"]
   pkg_plugin_manager["plugin-manager"]
@@ -257,6 +259,7 @@ flowchart LR
   pkg_authorization --> svc_authorization
   pkg_bash_local --> svc_shell
   pkg_bash_sandbox --> svc_shell
+  pkg_business_workflow_workbench --> svc_businessWorkflows
   pkg_client_file_upload --> svc_fileUploads
   pkg_client_modules --> svc_clientModules
   pkg_client_ui_plugin_manager --> svc_pluginRegistryProbe
@@ -500,6 +503,7 @@ flowchart LR
 
 | ctx 键 | 角色 | 所属包 | 实现 | 直接消费方 | 配套插件 | 说明 |
 | --- | --- | --- | --- | --- | --- | --- |
+| `ctx.businessWorkflows` | `core` | [`business-workflow-workbench`](../packages/business-workflow/workbench) | - | - | - | 提供持久化引擎实例视图、办理当前本地操作员任务，并为外部任务运行受限 DH 分析。 |
 | `ctx.profileContext` | `core` | [`app-boot`](../packages/boot/app-boot) | - | [`plugin-manager`](../packages/boot/plugin-manager) | - | 提供不可变位置及启动时的组合输入。 |
 | `ctx.pluginManager` | `core` | [`plugin-manager`](../packages/boot/plugin-manager) | - | [`api-remotes`](../packages/api/remotes), [`client-ui-plugin-manager`](../packages/client/ui-plugin-manager) | - | 持久化配置编辑、安装插件包并协调原生 Loader 生命周期。 |
 | `ctx.pluginRegistryProbe` | `core` | [`client-ui-plugin-manager`](../packages/client/ui-plugin-manager) | - | [`api-remotes`](../packages/api/remotes), [`client-ui-plugin-manager`](../packages/client/ui-plugin-manager) | - | 在 Host 上共享有时限的安装源探测。 |

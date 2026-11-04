@@ -1,0 +1,109 @@
+- banner:
+  - text: 工作流
+  - heading "工作流" [level=1]
+  - paragraph: 配置业务步骤，让系统协作有序进行
+  - button "导入草稿"
+  - button "新建空白流程"
+- text: Flowable 未连接 真实执行由 Flowable 控制步骤；MES、SDCC、EIP 动作需配置连接器。模拟预览独立运行，不产生真实操作。
+- navigation "工作流":
+  - button "我的流程"
+  - button "流程编排"
+  - button "引擎实例"
+  - button "人工待办"
+  - button "预览记录"
+  - button "模拟待办"
+- text: 流程名称
+- textbox "流程名称": 订单 A 入库核对
+- text: 流程说明
+- textbox "流程说明": 示例：读取入库数据、分析差异、人工确认、同步与核实。
+- button "保存到服务端"
+- button "发布给 DH 使用" [disabled]
+- button "复制流程"
+- button "导出草稿"
+- button "检查草稿"
+- paragraph: 编辑后请保存到服务端，再发布给 DH 使用。保存草稿不会改变已发布版本；刷新后从服务端流程继续编辑。
+- group: Agent 启动参数
+- status: 草稿结构检查通过。实际节点与业务权限由服务端执行检查。
+- complementary:
+  - heading "节点库" [level=3]
+  - paragraph: 选择节点后，点击类型插入到它的后面。
+  - button "添加系统动作节点": 系统动作
+  - button "添加DH 分析节点": DH 分析
+  - button "添加条件判断节点": 条件判断
+  - button "添加人工确认节点": 人工确认
+  - button "添加等待数据节点": 等待数据
+- group "流程节点画布":
+  - button "开始 开始 草稿" [pressed]:
+    - text: 开始
+    - strong: 开始
+    - text: 草稿
+  - button "系统动作 读取 MES 入库数据 MES · 查询订单与入库数据":
+    - text: 系统动作
+    - strong: 读取 MES 入库数据
+    - text: MES · 查询订单与入库数据
+  - button "系统动作 SDCC · 查询维护数据 SDCC · 查询维护数据":
+    - text: 系统动作
+    - strong: SDCC · 查询维护数据
+    - text: SDCC · 查询维护数据
+  - button "DH 分析 DH 分析数据差异 草稿":
+    - text: DH 分析
+    - strong: DH 分析数据差异
+    - text: 草稿
+  - button "人工确认 审核拟修改内容 质量审核人员":
+    - text: 人工确认
+    - strong: 审核拟修改内容
+    - text: 质量审核人员
+  - button "系统动作 同步已审核数据到 EIP SDCC → EIP · 同步已审核数据":
+    - text: 系统动作
+    - strong: 同步已审核数据到 EIP
+    - text: SDCC → EIP · 同步已审核数据
+  - button "等待数据 等待 EIP 数据到达 草稿":
+    - text: 等待数据
+    - strong: 等待 EIP 数据到达
+    - text: 草稿
+  - button "系统动作 核对 EIP 数据 EIP · 核对目标数据":
+    - text: 系统动作
+    - strong: 核对 EIP 数据
+    - text: EIP · 核对目标数据
+  - button "系统动作 回填维护台账 台账 · 回填结果":
+    - text: 系统动作
+    - strong: 回填维护台账
+    - text: 台账 · 回填结果
+  - button "结束 结束 草稿":
+    - text: 结束
+    - strong: 结束
+    - text: 草稿
+- complementary "节点设置":
+  - text: 节点设置
+  - heading "开始" [level=3]
+  - text: 步骤 01
+  - region "基础信息":
+    - heading "基础信息" [level=4]
+    - text: 节点名称
+    - textbox "节点名称": 开始
+  - region "后续步骤":
+    - heading "后续步骤" [level=4]
+    - text: 下一节点
+    - combobox "下一节点":
+      - option "未选择"
+      - option "读取 MES 入库数据" [selected]
+      - option "SDCC · 查询维护数据"
+      - option "DH 分析数据差异"
+      - option "审核拟修改内容"
+      - option "同步已审核数据到 EIP"
+      - option "等待 EIP 数据到达"
+      - option "核对 EIP 数据"
+      - option "回填维护台账"
+      - option "结束"
+    - img
+  - text: 开始和结束节点不能删除
+  - button "删除节点" [disabled]:
+    - img
+    - text: 删除节点
+- text: 启动参数（JSON 对象）
+- textbox "启动参数（JSON 对象）": "{\"approved\": true}"
+- button "启动 Flowable 执行" [disabled]
+- combobox "条件判断":
+  - option "模拟条件通过" [selected]
+  - option "模拟条件不通过"
+- button "新建模拟预览"

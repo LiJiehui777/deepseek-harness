@@ -1,0 +1,48 @@
+.inspector {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 0.5px solid var(--dsw-alias-border-l3);
+  border-radius: 14px;
+  background: var(--dsw-alias-bg-layer-2);
+  box-shadow: 0 4px 18px color-mix(in srgb, var(--dsw-alias-label-primary) 4%, transparent);
+  --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);
+  --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
+}
+.header { flex: none; display: flex; align-items: center; gap: 10px; padding: 16px 18px; border-bottom: 0.5px solid var(--dsw-alias-border-l3); }
+.icon { display: grid; place-items: center; width: 36px; height: 36px; flex: none; border-radius: 10px; color: var(--dsw-alias-state-business-primary); background: var(--dsw-alias-state-business-tertiary); }
+.inspector[data-kind='condition'] .icon { color: var(--dsw-alias-state-warn-label); background: var(--dsw-alias-state-warn-tertiary); }
+.inspector[data-kind='human'] .icon { color: var(--dsw-alias-state-success-primary); background: var(--dsw-alias-state-success-tertiary); }
+.heading { flex: 1; min-width: 0; }
+.heading > span { color: var(--dsw-alias-label-caption); font-size: 11px; }
+.heading h3 { margin: 3px 0 0; font-size: 15px; font-weight: 600; line-height: 20px; }
+.step { align-self: flex-start; color: var(--dsw-alias-label-caption); background: var(--dsw-alias-interactive-bg-hover); border-radius: 6px; padding: 4px 6px; font-size: 10px; line-height: 14px; }
+.body { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 16px; }
+.section { padding: 14px; margin-bottom: 12px; border: 0.5px solid var(--dsw-alias-border-l3); border-radius: 10px; background: var(--dsw-alias-bg-layer-1); }
+.section:last-child { margin-bottom: 0; }
+.section h4 { display: flex; align-items: center; gap: 6px; margin: 0 0 14px; color: var(--dsw-alias-label-primary); font-size: 12px; font-weight: 600; }
+.section h4 svg { color: var(--dsw-alias-label-tertiary); width: 14px; height: 14px; }
+.field { display: flex; flex-direction: column; gap: 7px; min-width: 0; margin-bottom: 12px; font-size: 12px; }
+.field:last-child { margin-bottom: 0; }
+.field > span:first-child { color: var(--dsw-alias-label-secondary); }
+.control { width: 100%; min-width: 0; box-sizing: border-box; border: 0.5px solid var(--dsw-alias-border-l4); border-radius: 7px; background: var(--dsw-alias-bg-layer-2); color: var(--dsw-alias-label-primary); }
+span.control { height: 36px; }
+select.control { height: 36px; padding: 0 28px 0 10px; appearance: none; font: inherit; text-overflow: ellipsis; cursor: pointer; }
+textarea.control { padding: 10px; font: inherit; line-height: 1.7; resize: vertical; min-height: 80px; }
+.control:focus, .control:focus-within { border-color: var(--dsw-alias-state-business-primary); outline: none; box-shadow: 0 0 0 2px color-mix(in srgb, var(--dsw-alias-state-business-primary) 10%, transparent); }
+.code input { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; }
+.selectWrap { position: relative; display: block; min-width: 0; }
+.selectArrow { position: absolute; right: 9px; top: 11px; pointer-events: none; color: var(--dsw-alias-label-caption); }
+.hint { margin: 0; color: var(--dsw-alias-label-caption); font-size: 11px; line-height: 1.65; overflow-wrap: anywhere; }
+.rule { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; margin-bottom: 10px; }
+.rule .field { margin-bottom: 0; }
+.rule + .hint { margin-bottom: 12px; }
+.route + .route { margin-top: 12px; }
+.routeYes, .routeNo { padding-left: 10px; border-left: 2px solid var(--dsw-alias-state-success-secondary); }
+.routeNo { border-left-color: var(--dsw-alias-state-warn-secondary); }
+.footer { flex: none; display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 60px; padding: 10px 16px; border-top: 0.5px solid var(--dsw-alias-border-l3); box-sizing: border-box; }
+.footer > span { max-width: 180px; color: var(--dsw-alias-label-caption); font-size: 10px; line-height: 1.6; }
+.delete { flex: none; color: var(--dsw-alias-state-error-primary); }
+.delete:disabled { color: var(--dsw-alias-label-dimmed); }

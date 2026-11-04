@@ -1,5 +1,17 @@
-# Application identity only; connector bundles remain profile-owned.
+# Standalone quality identity and business-workflow workbench; connectors remain profile-owned.
 - id: ui-brand-official
   disabled: true
 - id: ui-brand-ztt
   disabled: false
+- id: business-workflow-workbench
+  disabled: false
+  config:
+    baseUrl: http://127.0.0.1:8082/flowable-rest/
+    username: dh-workflow
+    passwordEnv: DH_FLOWABLE_PASSWORD
+    tenantId: dh-business
+    requestTimeoutMs: 15000
+    pollIntervalMs: 1000
+    analysisTimeoutMs: 180000
+    lockDurationMs: 300000
+    maxTemplates: 32

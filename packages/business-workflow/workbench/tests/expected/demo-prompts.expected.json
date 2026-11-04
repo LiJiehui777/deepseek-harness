@@ -1,0 +1,10 @@
+{
+  "zh": [
+    "这些是模拟企微待办。开头必须标明【模拟演示】，使用输入的 reference_date 作为唯一基准日。列出场景、数量，再按质量、交付、供应商和内部管理分类，逐项给出编号、优先级、依据和建议下一步。只能引用输入的标题、日期和资料标记，不编造负责人或完成状态。明确逾期或缺资料的规则证据，并区分规则事实和分析建议。不发送消息，不修改待办。",
+    "根据输入的模拟待办分类结果生成一份简洁的演示简报。必须标明【模拟演示】，包含总体情况、重点风险、建议处理顺序及待确认事项，保留条目编号和模拟基准日。只整理已有内容，不新增事实。说明这是建议草稿，不代表已经派单、通知、归档或完成待办；人工操作记录以工作流实例为准。"
+  ],
+  "en": [
+    "These are simulated WeCom todos. Start with [SIMULATED DEMO] and use reference_date as the only reference date. State the scenario and count. Categorize quality, delivery, supplier, and internal work, listing each id, priority, evidence, and proposed next step. Cite only supplied titles, dates, and evidence flags; invent no owners or completion state. Distinguish overdue or missing-evidence rule facts from recommendations. Send no messages and modify no todos.",
+    "Create a concise demonstration brief from the supplied simulated todo analysis. Label it [SIMULATED DEMO], covering the overview, risks, proposed order, and open questions. Retain item ids and the simulated reference date. Add no facts. State that recommendations do not mean tasks were assigned, notifications sent, records archived, or todos completed. Human actions are recorded in the workflow instance."
+  ]
+}

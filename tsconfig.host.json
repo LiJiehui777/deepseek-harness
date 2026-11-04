@@ -143,6 +143,7 @@
     "scripts/client-bundle-purity.spec.ts"
   ],
   "references": [
+    { "path": "./packages/business-workflow/workbench/tsconfig.host.json" },
     { "path": "./packages/boot/plugin-manager" },
     { "path": "./packages/client/ui-plugin-manager/tsconfig.host.json" },
     { "path": "./packages/bundle/plugin-management" },

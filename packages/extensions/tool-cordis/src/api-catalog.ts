@@ -594,6 +594,124 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     ],
   },
   {
+    key: 'businessWorkflows',
+    summary: 'Flowable owns state; the Host only handles work the engine has made current.',
+    description: 'Flowable owns state; the Host only handles work the engine has made current.',
+    methods: [
+      {
+        signature: '@Remote async conversationWorkflow(sessionId: SessionId): Promise<ConversationWorkflowState>',
+        description: 'Read a local conversation\'s workflow binding and current published choices.',
+        parameters: [{ name: 'sessionId', description: 'trusted authenticated UI\'s target Session.' }],
+        returns: 'committed binding, available versions, and current Agent activity.',
+      },
+      {
+        signature: '@Remote async selectConversationWorkflow(sessionId: SessionId, request: SelectConversationWorkflowRequest): Promise<ConversationWorkflowState>',
+        description: 'Bind one exact published workflow, or return to ordinary chat without canceling accepted runs.',
+        parameters: [{ name: 'sessionId', description: 'local conversation to configure.' }, { name: 'request', description: 'expected binding revision and explicit user selection.' }],
+        returns: 'state after durable commit; active turns reject changes.',
+        throws: ['when called from an Agent initiator rather than the authenticated UI.'],
+      },
+      {
+        signature: '@Remote async conversationReviews(sessionId: SessionId): Promise<ConversationReviews>',
+        description: 'Read current local-operator reviews started by this conversation, including earlier bindings.',
+        parameters: [{ name: 'sessionId', description: 'authenticated UI\'s local initiating Session.' }],
+        returns: 'oldest 30 tasks, total count, and deployment polling interval; engine outages retain retry facts.',
+      },
+      {
+        signature: '@Remote async followFromConversation(sessionId: SessionId, id: ProcessId): Promise<void>',
+        description: 'Keep following an existing conversation-owned run without starting another workflow.',
+        parameters: [{ name: 'sessionId', description: 'authenticated local initiating Session.' }, { name: 'id', description: 'owned process to follow, including a run started before automatic waiting was available.' }],
+        returns: 'after follow ownership is durable and an idle Agent has been awakened.',
+      },
+      {
+        signature: '@Remote async conversationReviewDetail(sessionId: SessionId, id: ProcessId, taskId: WorkItemId): Promise<ConversationReviewDetail>',
+        description: 'Open a conversation-owned review using its pinned draft and exact node input.',
+        parameters: [{ name: 'sessionId', description: 'local initiating Session.' }, { name: 'id', description: 'process opened from that Session\'s review card.' }, { name: 'taskId', description: 'exact task selected; completed tasks never select their successor implicitly.' }],
+        returns: 'process evidence and current input, or null input after the selected task ends.',
+      },
+      {
+        signature: '@Remote async reviewFromConversation(sessionId: SessionId, id: ProcessId, taskId: WorkItemId, approved: boolean): Promise<ProcessDetail>',
+        description: 'Submit an explicit human decision from the initiating conversation; Agent tools cannot call it.',
+        parameters: [{ name: 'sessionId', description: 'authenticated UI\'s local initiating Session.' }, { name: 'id', description: 'owned process.' }, { name: 'taskId', description: 'exact current task; stale submissions reject.' }, { name: 'approved', description: 'true continues, false terminates the process.' }],
+        returns: 'refreshed process state after the existing operator review operation.',
+      },
+      {
+        signature: '@Remote templates(): Promise<WorkflowTemplate[]>',
+        description: 'List this deployment\'s saved drafts and active publications.',
+        parameters: [],
+        returns: 'durable templates.',
+      },
+      {
+        signature: '@Remote async saveTemplate(request: SaveTemplateRequest): Promise<WorkflowTemplate>',
+        description: 'Save an editable draft without changing its active publication.',
+        parameters: [{ name: 'request', description: 'draft and expected server revision; zero creates.' }],
+        returns: 'committed template.',
+      },
+      {
+        signature: '@Remote async publishTemplate(id: string, expectedRevision: number): Promise<WorkflowTemplate>',
+        description: 'Publish a saved revision after graph validation and engine deployment.',
+        parameters: [{ name: 'id', description: 'saved template identity.' }, { name: 'expectedRevision', description: 'revision the operator reviewed.' }],
+        returns: 'committed publication and pinned engine definition.',
+      },
+      {
+        signature: '@Remote async unpublishTemplate(id: string, expectedRevision: number): Promise<WorkflowTemplate>',
+        description: 'Withdraw future starts; accepted runs retain their pinned publication.',
+        parameters: [{ name: 'id', description: 'saved template identity.' }, { name: 'expectedRevision', description: 'revision the operator reviewed.' }],
+        returns: 'committed unpublished template.',
+      },
+      {
+        signature: '@Remote async startPublished(request: StartPublishedRequest): Promise<ProcessDetail>',
+        description: 'Start the current published version from the authenticated workbench.',
+        parameters: [{ name: 'request', description: 'exact version, validated inputs, and delivery key.' }],
+        returns: 'accepted engine run.',
+        throws: ['when an Agent calls this operator entry instead of the selected-workflow tool.'],
+      },
+      {
+        signature: '@Remote async health(): Promise<EngineHealth>',
+        description: 'Read engine version; credentials stay on the Host.',
+        parameters: [],
+        returns: 'connection facts.',
+      },
+      {
+        signature: '@Remote async list(): Promise<ProcessSummary[]>',
+        description: 'List this deployment\'s newest durable runs.',
+        parameters: [],
+        returns: 'process summaries.',
+      },
+      {
+        signature: '@Remote async start(request: StartProcessRequest): Promise<ProcessDetail>',
+        description: 'Start a pinned revision in Flowable; concurrent same-key requests on this Host share creation.',
+        parameters: [{ name: 'request', description: 'draft JSON, JSON inputs, and delivery identity.' }],
+        returns: 'engine-owned run.',
+        throws: ['when an Agent calls this operator entry instead of the selected-workflow tool.'],
+      },
+      {
+        signature: '@Remote async detail(id: ProcessId): Promise<ProcessDetail>',
+        description: 'Read current work and history from the engine.',
+        parameters: [{ name: 'id', description: 'process belonging to this deployment.' }],
+        returns: 'pinned draft, current work, and persisted outputs.',
+      },
+      {
+        signature: '@Remote async review(id: ProcessId, taskId: WorkItemId, approved: boolean): Promise<ProcessDetail>',
+        description: 'Handle only a current engine human task; overlapping or stale reviews reject, and rejection cancels the process.',
+        parameters: [{ name: 'id', description: 'owning process.' }, { name: 'taskId', description: 'open task identity.' }, { name: 'approved', description: 'explicit local-operator decision.' }],
+        returns: 'refreshed state.',
+      },
+      {
+        signature: '@Remote async arrive(id: ProcessId, executionId: WorkItemId): Promise<ProcessDetail>',
+        description: 'Deliver an operator-confirmed event to a current receive task.',
+        parameters: [{ name: 'id', description: 'owning process.' }, { name: 'executionId', description: 'current receive execution.' }],
+        returns: 'refreshed state.',
+      },
+      {
+        signature: '@Remote async cancel(id: ProcessId): Promise<ProcessDetail>',
+        description: 'Cancel an owned run and drain its current analysis.',
+        parameters: [{ name: 'id', description: 'process identity.' }],
+        returns: 'final engine history.',
+      },
+    ],
+  },
+  {
     key: 'clientModules',
     summary: 'The web plugin table service: incremental `dsh.client` scan + wire composition + bundle route + index injection rows.',
     description: 'The web plugin table service: incremental `dsh.client` scan + wire composition + bundle route + index injection rows. Construction runs the activation scan synchronously — a malformed declaration or missing bundle among the already-loaded entries aggregates into one loud throw (FAILED fiber; the boot activation audit reports it).',
@@ -4191,6 +4309,26 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface ContinuableSubagentDescriptorData extends SubagentDescriptorBase {\n    readonly mode: \'continuable\';\n    readonly label: string;\n    readonly agentProvider?: string;\n    readonly agentModel?: string;\n    readonly agentReasoningEffort?: ReasoningEffortId;\n    readonly persona?: string;\n    readonly toolFilter?: ToolRestriction;\n}',
   },
   {
+    name: 'ConversationFollow',
+    declaration: 'export interface ConversationFollow {\n    processId: ProcessId;\n    name: string;\n    phase: \'running\' | \'human\' | \'wait\' | \'settling\' | \'blocked\';\n    step: string;\n}',
+  },
+  {
+    name: 'ConversationReviewDetail',
+    declaration: 'export interface ConversationReviewDetail {\n    process: ProcessDetail;\n    inputJson: string | null;\n}',
+  },
+  {
+    name: 'ConversationReviews',
+    declaration: 'export interface ConversationReviews {\n    items: ConversationReviewTask[];\n    following: ConversationFollow[];\n    total: number;\n    refreshIntervalMs: number;\n    error: string;\n}',
+  },
+  {
+    name: 'ConversationReviewTask',
+    declaration: 'export interface ConversationReviewTask {\n    processId: ProcessId;\n    taskId: WorkItemId;\n    name: string;\n}',
+  },
+  {
+    name: 'ConversationWorkflowState',
+    declaration: 'export interface ConversationWorkflowState {\n    sessionId: string;\n    revision: number;\n    selection: WorkflowChoice | null;\n    choices: WorkflowChoice[];\n    selectedAvailable: boolean;\n    busy: boolean;\n}',
+  },
+  {
     name: 'CordisDynamicPackageId',
     declaration: 'export type CordisDynamicPackageId = Branded<\'CordisDynamicPackageId\'>;',
   },
@@ -4437,6 +4575,14 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'EncodedImageAttachment',
     declaration: 'export interface EncodedImageAttachment {\n    mediaType: ImageMediaType;\n    data: string;\n    name?: string;\n}',
+  },
+  {
+    name: 'EngineHealth',
+    declaration: 'export interface EngineHealth {\n    connected: boolean;\n    version: string;\n    error: string;\n    refreshIntervalMs: number;\n}',
+  },
+  {
+    name: 'EngineWorkItem',
+    declaration: 'export interface EngineWorkItem {\n    id: WorkItemId;\n    nodeId: string;\n    name: string;\n    kind: \'human\' | \'wait\' | \'agent\' | \'action\' | \'condition\';\n    status: \'waiting\' | \'executing\' | \'unavailable\' | \'failed\';\n    error: string;\n}',
   },
   {
     name: 'EnterpriseChannel',
@@ -5143,6 +5289,18 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export type PreToolDecision = {\n    kind: \'allow\';\n} | {\n    kind: \'deny\';\n    reason: string;\n} | {\n    kind: \'ask\';\n    reason?: string;\n};',
   },
   {
+    name: 'ProcessDetail',
+    declaration: 'export interface ProcessDetail extends ProcessSummary {\n    draftJson: string;\n    inputJson: string;\n    ownerSessionId: string;\n    workflowId: string;\n    workflowVersion: number;\n    items: EngineWorkItem[];\n    completed: string[];\n    results: Array<{\n        nodeId: string;\n        json: string;\n    }>;\n}',
+  },
+  {
+    name: 'ProcessId',
+    declaration: 'export type ProcessId = Branded<\'BusinessWorkflowProcessId\'>;',
+  },
+  {
+    name: 'ProcessSummary',
+    declaration: 'export interface ProcessSummary {\n    id: ProcessId;\n    name: string;\n    status: \'running\' | \'completed\' | \'canceled\';\n    startedAt: string;\n    endedAt: string;\n}',
+  },
+  {
     name: 'ProfilePnpmInvocation',
     declaration: 'export interface ProfilePnpmInvocation {\n    readonly command: string;\n    readonly args: readonly string[];\n    readonly env: Readonly<Record<string, string>>;\n}',
   },
@@ -5351,6 +5509,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface SaveImageAttachment {\n    data: Uint8Array;\n    mediaType: ImageMediaType;\n    name?: string;\n}',
   },
   {
+    name: 'SaveTemplateRequest',
+    declaration: 'export interface SaveTemplateRequest {\n    id: string;\n    expectedRevision: number;\n    draftJson: string;\n}',
+  },
+  {
     name: 'SaveTextSpill',
     declaration: 'export interface SaveTextSpill {\n    owner: SpillOwner;\n    source: SpillSource;\n    suggestedName: string;\n    content: string;\n}',
   },
@@ -5389,6 +5551,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'SearchResultView',
     declaration: 'export type SearchResultView = SearchMatchesResultView | SearchPathsResultView;',
+  },
+  {
+    name: 'SelectConversationWorkflowRequest',
+    declaration: 'export interface SelectConversationWorkflowRequest {\n    expectedRevision: number;\n    selection: {\n        id: string;\n        version: number;\n    } | null;\n}',
   },
   {
     name: 'SendTeamMessageRequest',
@@ -6053,6 +6219,14 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'SpillSource',
     declaration: 'export type SpillSource = {\n    kind: \'tool\';\n    toolName: string;\n    callId: ToolCallId;\n    label: string;\n} | {\n    kind: \'session-reference\';\n    sessionId: SessionId;\n    label: string;\n};',
+  },
+  {
+    name: 'StartProcessRequest',
+    declaration: 'export interface StartProcessRequest {\n    requestId: string;\n    draftJson: string;\n    inputJson: string;\n}',
+  },
+  {
+    name: 'StartPublishedRequest',
+    declaration: 'export interface StartPublishedRequest {\n    id: string;\n    version: number;\n    requestId: string;\n    inputJson: string;\n}',
   },
   {
     name: 'StorageBackend',
@@ -6751,12 +6925,20 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export type WorkflowAgentOutcome = \'completed\' | \'failed\' | \'cancelled\';',
   },
   {
+    name: 'WorkflowChoice',
+    declaration: 'export interface WorkflowChoice {\n    id: string;\n    version: number;\n    name: string;\n}',
+  },
+  {
     name: 'WorkflowMeta',
     declaration: 'export interface WorkflowMeta {\n    name: string;\n    description: string;\n    whenToUse?: string;\n    phases?: WorkflowPhase[];\n}',
   },
   {
     name: 'WorkflowPhase',
     declaration: 'export interface WorkflowPhase {\n    title: string;\n    detail?: string;\n    provider?: string;\n    model?: string;\n}',
+  },
+  {
+    name: 'WorkflowPublication',
+    declaration: 'export interface WorkflowPublication {\n    version: number;\n    definitionId: string;\n    draftJson: string;\n    publishedAt: string;\n}',
   },
   {
     name: 'WorkflowResult',
@@ -6785,6 +6967,14 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'WorkflowStopReason',
     declaration: 'export type WorkflowStopReason = \'completed\' | \'cancelled\' | \'error\';',
+  },
+  {
+    name: 'WorkflowTemplate',
+    declaration: 'export interface WorkflowTemplate {\n    id: string;\n    tenantId: string;\n    revision: number;\n    lastVersion: number;\n    draftJson: string;\n    updatedAt: string;\n    published: WorkflowPublication | null;\n}',
+  },
+  {
+    name: 'WorkItemId',
+    declaration: 'export type WorkItemId = Branded<\'BusinessWorkflowWorkItemId\'>;',
   },
   {
     name: 'Workspace',

@@ -41,6 +41,7 @@
     "packages/client/*/tests/**/*.host.spec.ts"
   ],
   "references": [
+    { "path": "./packages/business-workflow/workbench/tsconfig.client.json" },
     { "path": "./packages/client/ui-plugin-manager/tsconfig.client.json" },
 
     { "path": "./packages/client/ui-quality-report" },

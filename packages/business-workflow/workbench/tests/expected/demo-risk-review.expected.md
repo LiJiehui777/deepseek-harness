@@ -1,0 +1,40 @@
+- banner:
+  - text: 工作流
+  - heading "工作流" [level=1]
+  - paragraph: 配置业务步骤，让系统协作有序进行
+  - button "导入草稿"
+  - button "新建空白流程"
+- text: Flowable 8.0.0 已连接 真实执行由 Flowable 控制步骤；MES、SDCC、EIP 动作需配置连接器。模拟预览独立运行，不产生真实操作。
+- navigation "工作流":
+  - button "我的流程"
+  - button "流程编排"
+  - button "引擎实例"
+  - button "人工待办"
+  - button "预览记录"
+  - button "模拟待办"
+- paragraph: 状态来自 Flowable。刷新页面后可继续查看实例与办理待办。
+- button "刷新引擎状态"
+- complementary:
+  - button "企业微信待办风控演示（模拟） 执行中 {{uuid}}":
+    - strong: 企业微信待办风控演示（模拟）
+    - text: 执行中 {{uuid}}
+- heading "企业微信待办风控演示（模拟）" [level=3]
+- text: 执行中
+- paragraph: 实例编号 · {{uuid}}
+- paragraph: 当前由登录此 DH 的本机操作人办理；节点角色为说明，尚未接入企业人员与角色校验。
+- strong: 人工复核风险与建议（模拟）
+- paragraph: 等待处理
+- button "审核通过并继续"
+- button "审核退回并终止"
+- heading "已完成步骤" [level=4]
+- list:
+  - listitem: 开始
+  - listitem: 读取模拟企微待办
+  - listitem: DH 分类与优先级分析
+  - listitem: 规则判断：是否逾期或缺资料
+- heading "节点输出（引擎已保存）" [level=4]
+- group: 开始
+- group: 读取模拟企微待办
+- group: DH 分类与优先级分析 【模拟演示】risk：4 条待办，DEMO-Q01 逾期且缺检验报告，建议优先复核。 基准日：2026-11-03。分类与优先级仅为建议。
+- group: 规则判断：是否逾期或缺资料
+- button "终止引擎实例"

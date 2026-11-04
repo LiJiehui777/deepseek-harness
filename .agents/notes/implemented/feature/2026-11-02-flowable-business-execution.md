@@ -1,0 +1,37 @@
+# Agent Note: Flowable business execution in DH
+
+Status: implemented
+
+English | [中文](2026-11-02-flowable-business-execution.zh.md)
+
+## Problem
+
+The business editor needs durable execution independent of browser state. A model instruction cannot enforce node ordering, review waits, or the permitted system operations. The existing [workbench decision](2026-11-02-business-workflow-workbench.md) retains ownership of module placement and manual simulation.
+
+## Decision
+
+Keep the Host adapter, restricted BPMN compiler, worker, shared data, browser controller, and tests inside `packages/business-workflow/workbench`. Expose an authenticated Typert Remote namespace through the existing API assembly. Flowable 8.0.0 owns process instances, user tasks, receive waits, history, and external jobs. The local Compose deployment uses a pinned official multi-architecture image, loopback binding, a private credential, and a named H2 data volume. The credential is resolved per request and never sent to the browser.
+
+Compile data into a closed BPMN subset. User names are XML-escaped, activity identifiers are generated, condition routing uses host-generated Boolean variables, and user text is never executable EL or script. A submitted draft is pinned in engine variables and started by exact process definition id. Deployment tenants and external-job topics include a deployment-specific tenant identifier.
+
+The serialized external worker supports data passing, scalar conditions, and DH analysis. Business connector actions without an implementation remain waiting. Each analysis is one private DH turn under the current default model, with empty tool visibility, native presentation, and a guard denying all executions. Fold the result from delivered Session events; complete only after a completed turn and non-empty answer. Record the Session identity before invoking the model. Failed and uncertain attempts use zero retries instead of automatically repeating work after a crash.
+
+Review and wait commands verify the owned process and current engine item. There is no generic complete-node command. Human tasks use the authenticated DH local operator; descriptive draft roles do not provide enterprise authorization. Wait confirmation records a local receipt and passes through input. Rejection cancels the process. Cancellation and unload drain active analysis.
+
+The fixed WeCom todo action reuses the existing office tool executor in a private local scope. It requests only the first 10 pending items under the saved account and category permission; its guard permits only that exact tool and query. This action runs no model. Its reference output, including pagination facts, becomes input to a separate analysis node with no tools. The attempt identity is recorded before connector access. The example stops at human review and performs no office mutation. A real-engine browser scenario uses the shipped connector with fixture CLI and model responses to verify this data path and a single read.
+
+The explicitly simulated todo action supplies fixed presentation data under a required risk/routine case. It has no credential, connector, or model dependency. A fixed reference date and evidence flags derive its review Boolean; the gateway never extracts decisions from model prose. Localized analysis tasks classify the sample and prepare a brief, with a risk review before the brief and final confirmation on both routes. Simulation labels remain in the template, node output, and requested model text. Separate action and template identities keep live WeCom reads distinct from generated examples.
+
+Persist editable drafts and immutable publication snapshots through `storageDomain`. Publishing deploys before committing its pointer; interrupted commits can leave unused engine definitions, but never expose an uncommitted publication. A serialized catalog operation checks optimistic revisions and prevents publication changes during start acceptance. Fixed discovery/start/status/cancel tools read the catalog per call rather than rebuilding tool schemas for each workflow. This keeps the tool prefix stable and makes executor-side current-version and input validation authoritative. Calls derive delivery and ownership from trusted tool metadata. Local conversation ancestry is checked before start, status, cancellation, or discovery, so a remote enterprise fork cannot convert office reads into a fresh local worker. Query and cancellation require the exact initiating Session; approval and event confirmation remain local-operator Remote operations.
+
+The composer selector stores an exact workflow/version binding per local Session in the business catalog. A user choice is persistent configuration, not an execution request. Agent idle maintenance claims the change before durable IO and holds later waking input until it settles. A logged prompt context communicates the selected identity; prompt assembly filters to workflow tools, while a monotonic tool guard independently denies unrelated calls and start acceptance rechecks the selected version. Returning to ordinary chat restores unrelated tools and prevents new conversation starts without canceling accepted runs, under the [manual selection rule](2026-11-03-manual-workflow-selection.md). A prompt-only preference cannot enforce this rule. The [n8n Chat Hub pattern](https://docs.n8n.io/advanced-ai/chat-hub/) supports choosing a published workflow before chatting; this selector keeps workflow choice separate from the existing permission preset. Native-facing workflow tools are required, so PTC-only agents reject selection rather than receiving an altered presentation mode.
+
+## Alternatives considered
+
+Browser state cannot persist work or constrain a restarted DH. Running arbitrary BPMN, EL, or script supplied by the browser grants execution beyond the editor's supported node set. Giving the analysis Agent general tools lets it perform later system operations without engine permission. Automatically retrying uncertain actions risks duplicate effects. The maintained Flowable [external-worker API](https://www.flowable.com/open-source/docs/bpmn/ch07b-BPMN-Constructs#external-worker-task) provides a REST protocol suitable for the Node Host without embedding a Java engine in DH.
+
+## Consequences
+
+External source edits are configuration, compiler references, Remote assembly, and dependency classification. `credentialRef` and `createUserMessage` retain shared peer dependencies; the duplicate-safe export exception list is unchanged. The generic Web bundle remains opt-in, and ZTT supplies explicit engine configuration. Saved drafts and publication pointers persist in a schema-validated DH storage domain; submitted instances survive browser and Host reloads. Same-key start handling is local deduplication plus history lookup, not distributed exactly-once execution. Mutating REST requests are not automatically retried.
+
+Real-engine tests use an isolated tenant and cover routing, review and wait refusal, missing connectors, cancellation, and Host reload. A built Loader/browser scenario replays a recorded DH turn, verifies empty analysis tools, handles actual engine tasks, and reloads persisted history. Additional business connectors, office mutations, enterprise identity, signed upstream receipts, distributed deduplication, and recovery of uncertain model attempts remain outside this integration.

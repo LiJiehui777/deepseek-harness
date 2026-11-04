@@ -91,6 +91,9 @@
     },
     {
       "path": "../../boot/plugin-manager"
+    },
+    {
+      "path": "../../business-workflow/workbench/tsconfig.host.json"
     }
   ]
 }

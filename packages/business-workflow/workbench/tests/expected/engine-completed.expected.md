@@ -1,0 +1,40 @@
+- banner:
+  - text: 工作流
+  - heading "工作流" [level=1]
+  - paragraph: 配置业务步骤，让系统协作有序进行
+  - button "导入草稿"
+  - button "新建空白流程"
+- text: Flowable 8.0.0 已连接 真实执行由 Flowable 控制步骤；MES、SDCC、EIP 动作需配置连接器。模拟预览独立运行，不产生真实操作。
+- navigation "工作流":
+  - button "我的流程"
+  - button "流程编排"
+  - button "引擎实例"
+  - button "人工待办"
+  - button "预览记录"
+  - button "模拟待办"
+- paragraph: 状态来自 Flowable。刷新页面后可继续查看实例与办理待办。
+- button "刷新引擎状态"
+- complementary:
+  - button "Flowable 接入验证 已完成 {{uuid}}":
+    - strong: Flowable 接入验证
+    - text: 已完成 {{uuid}}
+- heading "Flowable 接入验证" [level=3]
+- text: 已完成
+- paragraph: 实例编号 · {{uuid}}
+- paragraph: 当前由登录此 DH 的本机操作人办理；节点角色为说明，尚未接入企业人员与角色校验。
+- heading "已完成步骤" [level=4]
+- list:
+  - listitem: 开始
+  - listitem: 传递验证数据
+  - listitem: 受限 DH 分析
+  - listitem: 审核拟修改内容
+  - listitem: 等待数据回执
+  - listitem: 检查 approved 字段
+  - listitem: 条件通过后结束
+- heading "节点输出（引擎已保存）" [level=4]
+- group: 开始
+- group: 传递验证数据
+- group: 受限 DH 分析
+- group: 审核拟修改内容
+- group: 等待数据回执
+- group: 检查 approved 字段

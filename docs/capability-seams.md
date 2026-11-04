@@ -7,6 +7,8 @@ A service can be a core spine service, a swappable capability seam, or a bundle/
 
 ```mermaid
 flowchart LR
+  pkg_business_workflow_workbench["business-workflow-workbench"]
+  svc_businessWorkflows["ctx.businessWorkflows<br/>Flowable business process execution"]
   pkg_app_boot["app-boot"]
   svc_profileContext["ctx.profileContext<br/>Launcher profile facts"]
   pkg_plugin_manager["plugin-manager"]
@@ -255,6 +257,7 @@ flowchart LR
   pkg_authorization --> svc_authorization
   pkg_bash_local --> svc_shell
   pkg_bash_sandbox --> svc_shell
+  pkg_business_workflow_workbench --> svc_businessWorkflows
   pkg_client_file_upload --> svc_fileUploads
   pkg_client_modules --> svc_clientModules
   pkg_client_ui_plugin_manager --> svc_pluginRegistryProbe
@@ -498,6 +501,7 @@ flowchart LR
 
 | ctx key | Role | Owner | Implementations | Direct consumers | Companion plugins | Note |
 | --- | --- | --- | --- | --- | --- | --- |
+| `ctx.businessWorkflows` | `core` | [`business-workflow-workbench`](../packages/business-workflow/workbench) | - | - | - | Projects durable engine instances, handles current local-operator tasks, and runs restricted DH analysis for external jobs. |
 | `ctx.profileContext` | `core` | [`app-boot`](../packages/boot/app-boot) | - | [`plugin-manager`](../packages/boot/plugin-manager) | - | Supplies immutable locations and launch-time composition inputs. |
 | `ctx.pluginManager` | `core` | [`plugin-manager`](../packages/boot/plugin-manager) | - | [`api-remotes`](../packages/api/remotes), [`client-ui-plugin-manager`](../packages/client/ui-plugin-manager) | - | Persists profile edits, installs bundles and reconciles native Loader lifecycles. |
 | `ctx.pluginRegistryProbe` | `core` | [`client-ui-plugin-manager`](../packages/client/ui-plugin-manager) | - | [`api-remotes`](../packages/api/remotes), [`client-ui-plugin-manager`](../packages/client/ui-plugin-manager) | - | Bounds and shares installation registry probes on the Host. |

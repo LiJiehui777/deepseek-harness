@@ -1,0 +1,36 @@
+- banner:
+  - text: 工作流
+  - heading "工作流" [level=1]
+  - paragraph: 配置业务步骤，让系统协作有序进行
+  - button "导入草稿"
+  - button "新建空白流程"
+- text: Flowable 未连接 真实执行由 Flowable 控制步骤；MES、SDCC、EIP 动作需配置连接器。模拟预览独立运行，不产生真实操作。
+- navigation "工作流":
+  - button "我的流程"
+  - button "流程编排"
+  - button "引擎实例"
+  - button "人工待办"
+  - button "预览记录"
+  - button "模拟待办"
+- status: 草稿已导入，可继续编辑并检查。
+- complementary:
+  - button "订单 A 入库核对 预览完成 10 / 10":
+    - strong: 订单 A 入库核对
+    - text: 预览完成 10 / 10
+- heading "订单 A 入库核对" [level=3]
+- text: 预览完成
+- paragraph: 本次预览使用创建时的草稿快照，修改编辑器不会改变它。
+- heading "当前步骤" [level=4]
+- strong: 结束
+- heading "已预览步骤" [level=4]
+- list:
+  - listitem: 开始
+  - listitem: 读取 MES 入库数据
+  - listitem: SDCC · 查询维护数据
+  - listitem: DH 分析数据差异
+  - listitem: 审核拟修改内容
+  - listitem: 同步已审核数据到 EIP
+  - listitem: 等待 EIP 数据到达
+  - listitem: 核对 EIP 数据
+  - listitem: 回填维护台账
+  - listitem: 结束

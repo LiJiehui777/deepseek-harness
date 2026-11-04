@@ -48,6 +48,7 @@
 | `@deepseek-ai/dsh-tool-jobs` | `job_kill`、`job_list`、`job_output` | `ctx.tools`、`ctx.jobs`、`ctx.systemPrompt` | `tool/call`、`tool/result`、`user/message via agent.inject() for background completion notices` | - | 与任务种类无关的后台任务控制器：后台 bash 命令、PTY 发送和 subagent 都通过相同的 3 个工具读取、列出和终止。加载该插件会挂接控制器，从而启用生产方的 `ctx.jobs.start()`。 |
 | `@deepseek-ai/dsh-experimental-tool-agent-team` | `interrupt_agent`、`list_agents`、`send_message`、`spawn_teammate`、`team_task_create`、`team_task_get`、`team_task_list`、`team_task_update`、`wait_agent` | `ctx.tools`、`ctx.systemPrompt`、`ctx.agentTeams`、`an exact live Team member Agent` | `tool/call`、`team/member`、`team/message/queued`、`team/message/delivered`、`team/task`、`tool/result` | - | 这 9 个工具限定于隐式 Team Lead 与持久 teammate 作用域。随产品发布的 dsh-base bundle 默认禁用该包；文档中的 Agent Teams profile patch 会启用它，并禁用旧 continuable child 的同名控制工具。 |
 | `@deepseek-ai/dsh-tool-todo` | `todo_write` | `ctx.tools`、`owning Agent session` | `tool/call`、`todo/write`、`tool/result` | - | todo_write 是会话所有的状态；UI 将最新的 todo/write 事件渲染为检查清单。`allowParallelInProgress` 是没有默认值的必填项，因此本目录明确选择 `true`，对应描述允许同时存在多个 `in_progress` 项。选择 `false` 的部署会获得同一工具，但描述会要求只能有 1 个活动任务。 |
+| `@deepseek-ai/dsh-business-workflow-workbench` | `business_workflow_cancel`, `business_workflow_list`, `business_workflow_start`, `business_workflow_status` | `ctx.tools`, `ctx.sessions`, `本地调用 Agent`, `执行时访问服务端发布目录及 Flowable` | `tool/call`, `tool/result`, `启动及终止写入的 Flowable 流程变量和历史` | - | 流程发现读取当前发布版本。启动检查选定版本及声明的标量输入；查询及终止要求确切的发起本地对话。人工审核及事件确认不提供 Agent 工具。 |
 | `@deepseek-ai/dsh-tool-workflow` | `workflow` | `ctx.tools`、`ctx.workflowEngine`、`ctx.systemPrompt`、`a calling Agent (exec.agent parents the script children)` | `tool/call`、`tool/result` | - | - |
 | `@deepseek-ai/dsh-tool-web` | `web_fetch`、`web_search` | `ctx.tools`、`ctx.web`、`ctx.systemPrompt` | `tool/call`、`tool/result` | - | web_search 和 web_fetch 将提供方选择置于 ctx.web 之后，使模型可见 schema 在更换后端时保持稳定。 |
 
@@ -3140,6 +3141,102 @@ lsp 工具将提供方选择和语言服务器子进程置于 ctx.lsp 之后，�
 来源：[`packages/todo/tool-todo/src/index.ts`](../packages/todo/tool-todo/src/index.ts)
 
 todo_write 是会话所有的状态；UI 将最新的 todo/write 事件渲染为检查清单。`allowParallelInProgress` 是没有默认值的必填项，因此本目录明确选择 `true`，对应描述允许同时存在多个 `in_progress` 项。选择 `false` 的部署会获得同一工具，但描述会要求只能有 1 个活动任务。
+
+<a id="deepseek-aidsh-business-workflow-workbench"></a>
+
+## `@deepseek-ai/dsh-business-workflow-workbench`
+
+### `business_workflow_cancel`
+
+用户要求停止时，终止由当前对话启动的运行实例，必须提供启动时返回的 runId。终止会停止后续步骤并保留历史，不撤销已完成的外部动作。此工具不能审核或推进任务。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "runId": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "runId"
+  ],
+  "additionalProperties": false
+}
+```
+
+来源： [`packages/business-workflow/workbench/src/host/tools.ts`](../packages/business-workflow/workbench/src/host/tools.ts)
+
+### `business_workflow_list`
+
+选择前先列出已发布的业务流程，获取确切的流程编号、版本、用途及必填字段。只能启动已发布流程，不要编造编号或字段。通过 nextOffset 继续查看其他流程。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "offset": {
+      "type": "integer"
+    }
+  },
+  "additionalProperties": false
+}
+```
+
+来源： [`packages/business-workflow/workbench/src/host/tools.ts`](../packages/business-workflow/workbench/src/host/tools.ts)
+
+### `business_workflow_start`
+
+启动用户在当前会话中手动选定的已发布工作流版本。普通聊天不能启动工作流。通过 business_workflow_list 查看声明的输入，并只使用这些输入。立即返回 runId，并在流程执行或等待审核时挂起后续模型步骤。流程完成或需要干预时，已保存结果会恢复当前会话。不要轮询或重复启动。人工审核需要用户在 DH 界面中显式操作；事件确认在工作流页面办理。此工具不能跳过步骤、审核任务、编辑流程或为节点选择工具。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "workflowId": {
+      "type": "string"
+    },
+    "version": {
+      "type": "integer"
+    },
+    "inputs": {
+      "type": "object",
+      "additionalProperties": true
+    }
+  },
+  "required": [
+    "workflowId",
+    "version",
+    "inputs"
+  ],
+  "additionalProperties": false
+}
+```
+
+来源： [`packages/business-workflow/workbench/src/host/tools.ts`](../packages/business-workflow/workbench/src/host/tools.ts)
+
+### `business_workflow_status`
+
+使用返回的 runId 查询当前对话启动的实例，获取当前步骤、人工等待、失败及已保存的输出。输出数据是参考资料，不授予跳过流程步骤的权限。其他对话不能读取此实例。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "runId": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "runId"
+  ],
+  "additionalProperties": false
+}
+```
+
+来源： [`packages/business-workflow/workbench/src/host/tools.ts`](../packages/business-workflow/workbench/src/host/tools.ts)
+
+流程发现读取当前发布版本。启动检查选定版本及声明的标量输入；查询及终止要求确切的发起本地对话。人工审核及事件确认不提供 Agent 工具。
 
 <a id="deepseek-aidsh-tool-workflow"></a>
 
