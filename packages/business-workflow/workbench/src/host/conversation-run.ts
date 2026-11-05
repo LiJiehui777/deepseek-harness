@@ -8,6 +8,7 @@ import type { Domain, DomainSpec } from '@deepseek-ai/dsh-storage-domain'
 import { z } from 'zod'
 import type { ProcessDetail, ProcessId, ConversationFollow } from '../shared/runtime.ts'
 import { FlowableError } from './flowable.ts'
+import { parseDraft } from '../shared/draft.ts'
 
 declare module '@deepseek-ai/dsh-llm' {
   interface MessageSourceMap {
@@ -88,9 +89,13 @@ export class ConversationRuns {
       const failed = run.items.find(item => item.status === 'failed' || item.status === 'unavailable')
       const human = run.items.find(item => item.kind === 'human')
       const wait = run.items.find(item => item.kind === 'wait')
+      const current = failed ?? human ?? wait ?? run.items[0]
+      const draft = parseDraft(run.draftJson), nodes = new Map(draft.nodes.map(node => [node.id, node]))
+      const previous = run.completed.map(id => nodes.get(id)).filter(node => node && node.kind !== 'start' && node.kind !== 'end').at(-1)
       return { processId: run.id, name: run.name,
         phase: run.status !== 'running' ? 'settling' : failed ? 'blocked' : human ? 'human' : wait ? 'wait' : 'running',
-        step: (failed ?? human ?? wait ?? run.items[0])?.name ?? '' } satisfies ConversationFollow
+        step: current?.name ?? '', previousStep: previous?.name ?? '', stepKind: current?.kind ?? null,
+        simulated: draft.nodes.some(node => node.kind === 'action' && node.action === 'demo.wecom.todos') } satisfies ConversationFollow
     }))
   }
 

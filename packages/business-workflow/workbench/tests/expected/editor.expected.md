@@ -22,7 +22,7 @@
 - button "导出草稿"
 - button "检查草稿"
 - paragraph: 编辑后请保存到服务端，再发布给 DH 使用。保存草稿不会改变已发布版本；刷新后从服务端流程继续编辑。
-- group: Agent 启动参数
+- group: 高级设置
 - status: 草稿结构检查通过。实际节点与业务权限由服务端执行检查。
 - complementary:
   - heading "节点库" [level=3]
@@ -97,10 +97,4 @@
       - option "结束"
   - text: 开始和结束节点不能删除
   - button "删除节点" [disabled]
-- text: 启动参数（JSON 对象）
-- textbox "启动参数（JSON 对象）": "{\"approved\": true}"
-- button "启动 Flowable 执行" [disabled]
-- combobox "条件判断":
-  - option "模拟条件通过" [selected]
-  - option "模拟条件不通过"
-- button "新建模拟预览"
+- group: 开发调试

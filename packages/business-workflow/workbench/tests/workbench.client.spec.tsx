@@ -80,6 +80,7 @@ it('edits a draft, exposes preview limitations, and opens a simulated human task
   fireEvent.change(screen.getByLabelText(zh.flowName), { target: { value: 'Order A review' } })
   fireEvent.click(screen.getByRole('button', { name: zh.validate }))
   expect(await screen.findByText(zh.valid)).toBeTruthy()
+  fireEvent.click(screen.getByText(zh.developerDebug, { exact: true }))
   fireEvent.click(screen.getByRole('button', { name: zh.preview }))
   for (let index = 0; index < 4; index++) {
     await act(async () => { fireEvent.click(screen.getByRole('button', { name: zh.advance })) })

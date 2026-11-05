@@ -119,6 +119,10 @@ export interface ConversationFollow {
   name: string
   phase: 'running' | 'human' | 'wait' | 'settling' | 'blocked'
   step: string
+  previousStep: string
+  stepKind: EngineWorkItem['kind'] | null
+  /** The pinned graph contains simulated todo input; other nodes retain their own effects. */
+  simulated: boolean
 }
 /** Pinned process evidence and the exact current human node input; null means the task has ended. */
 export interface ConversationReviewDetail {

@@ -69,6 +69,13 @@ Flowable owns state; the Host only handles work the engine has made current.
  */
 @Remote async conversationReviews(sessionId: SessionId): Promise<ConversationReviews>
 
+/** Inspect progress only for a run owned by the initiating local conversation.
+ * @param sessionId - authenticated UI's local initiating Session.
+ * @param id - process opened from that Session's progress card.
+ * @returns pinned draft, completed steps, current work, and saved outputs.
+ */
+@Remote conversationProcessDetail(sessionId: SessionId, id: ProcessId): Promise<ProcessDetail>
+
 /** Keep following an existing conversation-owned run without starting another workflow.
  * @param sessionId - authenticated local initiating Session.
  * @param id - owned process to follow, including a run started before automatic waiting was available.

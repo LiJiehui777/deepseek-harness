@@ -73,6 +73,8 @@ describe.skipIf(!password || !baseUrl || MODE === 'record')('business workflow: 
       await panel.getByLabel('节点名称', { exact: true }).fill('受限 DH 分析')
       await panel.getByRole('button', { name: '检查草稿', exact: true }).click()
       await panel.getByText('草稿结构检查通过。实际节点与业务权限由服务端执行检查。', { exact: true }).waitFor()
+      await panel.getByText('开发调试', { exact: true }).click()
+      await panel.getByRole('textbox', { name: '启动参数（JSON 对象）', exact: true }).fill('{"approved":true}')
       await panel.getByRole('button', { name: '启动 Flowable 执行', exact: true }).click()
       await panel.getByRole('button', { name: '审核通过并继续', exact: true }).waitFor({ timeout: 30_000 })
       expect(observedTools).toEqual([[]])

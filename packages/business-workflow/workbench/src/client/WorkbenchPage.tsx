@@ -102,7 +102,7 @@ export function WorkbenchPage(props: Props) {
   const state = useStore(value => value)
   const engine = props.useEngine(value => value)
   const [conditionPasses, setConditionPasses] = useState(true)
-  const [inputJson, setInputJson] = useState('{"approved": true}')
+  const [inputJson, setInputJson] = useState('{}')
   const input = useRef<HTMLInputElement>(null)
   const draft = state.drafts.find(item => item.id === state.selectedId)
   if (!draft) throw new Error('workflow-draft-missing')
@@ -168,7 +168,8 @@ export function WorkbenchPage(props: Props) {
         </div>
       </div>
       <p className={css.caption}>{t('draftLifetime')} {saved?.published && <Tag tone="success">{t('published', { version: saved.published.version })}</Tag>}</p>
-      <details className={css.feedback}><summary>{t('inputFields')}</summary><p>{t('inputFieldsHint')}</p>
+      <details className={clsx(css.feedback, css.configuration)}><summary>{t('advancedSettings')}</summary>
+        <h3>{t('inputFields')}</h3><p className={css.caption}>{t('inputFieldsHint')}</p>
         {draft.inputs.map((field, index) => <div className={css.actions} key={index}>
           <label className={css.field}><span>{t('inputName')}</span><Input value={field.name} onChange={(event) => { actions.editInputs(draft.inputs.map((item, i) => i === index ? { ...item, name: event.target.value } : item)) }} /></label>
           <label className={css.field}><span>{t('description')}</span><Input value={field.description} onChange={(event) => { actions.editInputs(draft.inputs.map((item, i) => i === index ? { ...item, description: event.target.value } : item)) }} /></label>
@@ -176,7 +177,7 @@ export function WorkbenchPage(props: Props) {
             {(['string', 'number', 'boolean'] as const).map(type => <option key={type} value={type}>{t(`input.${type}`)}</option>)}
           </Select>
           <label><input type="checkbox" checked={field.required} onChange={(event) => { actions.editInputs(draft.inputs.map((item, i) => i === index ? { ...item, required: event.target.checked } : item)) }} />{t('inputRequired')}</label>
-          <Button variant="outline" onClick={() => { actions.editInputs(draft.inputs.filter((_item, i) => i !== index)) }}>{t('delete')}</Button>
+          <Button variant="outline" onClick={() => { actions.editInputs(draft.inputs.filter((_item, i) => i !== index)) }}>{t('removeInput')}</Button>
         </div>)}
         <Button variant="outline" disabled={draft.inputs.length >= 16} onClick={() => { actions.editInputs([...draft.inputs, { name: `field${draft.inputs.length + 1}`, description: '', type: 'string', required: true }]) }}>{t('addInput')}</Button>
       </details>
@@ -194,27 +195,30 @@ export function WorkbenchPage(props: Props) {
         <NodeInspector key={node.id} className={css.properties} node={node} nodes={draft.nodes}
           step={draft.nodes.findIndex(item => item.id === node.id) + 1} t={t} onChange={actions.editNode} onDelete={actions.remove} />
       </div>
-      <div className={css.previewBar}>
-        <label className={css.field}><span>{t('engineInputs')}</span><textarea rows={3} value={inputJson}
-          onChange={(event) => { setInputJson(event.target.value) }} /></label>
-        {saved?.published && <Button variant="outline" disabled={engine.busy || !engine.health?.connected} onClick={() => {
-          const publication = saved.published
-          if (!publication) return
-          props.startPublishedProcess({ id: saved.id, version: publication.version, requestId: randomUUID(),
-            inputJson: parseDraft(publication.draftJson).inputs.length ? inputJson : '{}' })
-          actions.view('instances')
-        }}>{t('startPublished')}</Button>}
-        <Button variant="primary" disabled={engine.busy || !engine.health?.connected} onClick={() => {
-          props.startProcess({ requestId: randomUUID(), draftJson: serializeDraft(draft), inputJson })
-          actions.view('instances')
-        }}>{t('engineStart')}</Button>
-      </div>
-      <div className={css.previewBar}>
-        <select aria-label={t('condition')} value={String(conditionPasses)} onChange={(event) => { setConditionPasses(event.target.value === 'true') }}>
-          <option value="true">{t('passes')}</option><option value="false">{t('fails')}</option>
-        </select>
-        <Button variant="primary" onClick={() => { actions.preview(conditionPasses) }}>{t('preview')}</Button>
-      </div>
+      <details className={clsx(css.feedback, css.configuration)}><summary>{t('developerDebug')}</summary>
+        <p className={css.caption}>{t('developerDebugHint')}</p>
+        <div className={css.previewBar}>
+          <label className={css.field}><span>{t('engineInputs')}</span><textarea rows={3} value={inputJson}
+            onChange={(event) => { setInputJson(event.target.value) }} /></label>
+          {saved?.published && <Button variant="outline" disabled={engine.busy || !engine.health?.connected} onClick={() => {
+            const publication = saved.published
+            if (!publication) return
+            props.startPublishedProcess({ id: saved.id, version: publication.version, requestId: randomUUID(),
+              inputJson: parseDraft(publication.draftJson).inputs.length ? inputJson : '{}' })
+            actions.view('instances')
+          }}>{t('startPublished')}</Button>}
+          <Button variant="primary" disabled={engine.busy || !engine.health?.connected} onClick={() => {
+            props.startProcess({ requestId: randomUUID(), draftJson: serializeDraft(draft), inputJson })
+            actions.view('instances')
+          }}>{t('engineStart')}</Button>
+        </div>
+        <div className={css.previewBar}>
+          <select aria-label={t('condition')} value={String(conditionPasses)} onChange={(event) => { setConditionPasses(event.target.value === 'true') }}>
+            <option value="true">{t('passes')}</option><option value="false">{t('fails')}</option>
+          </select>
+          <Button variant="primary" onClick={() => { actions.preview(conditionPasses) }}>{t('preview')}</Button>
+        </div>
+      </details>
     </>}
     {(state.view === 'instances' || state.view === 'inbox') && <EnginePanel {...props} state={engine} inbox={state.view === 'inbox'} />}
     {state.view === 'runs' && (state.runs.length === 0 ? <p className={css.empty}>{t('emptyRuns')}</p> : <div className={css.runs}>

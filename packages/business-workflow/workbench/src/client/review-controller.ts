@@ -4,7 +4,7 @@ import type {} from '@deepseek-ai/dsh-api-remotes/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { RemoteResult } from '@deepseek-ai/dsh-typert-protocol'
 import { createSnapshotStore, type SnapshotStore } from '@deepseek-ai/dsh-client-store'
-import type { ConversationReviews, ConversationReviewTask, ConversationReviewDetail, ProcessId } from '../shared/runtime.ts'
+import type { ConversationReviews, ConversationReviewTask, ConversationReviewDetail, ProcessDetail, ProcessId } from '../shared/runtime.ts'
 
 /** One conversation's pending reviews and selected, task-addressed detail. */
 export interface ReviewState {
@@ -14,6 +14,7 @@ export interface ReviewState {
   busy: boolean
   error: string
   decision: 'approved' | 'rejected' | null
+  progress: { id: ProcessId; detail: ProcessDetail | null; error: string } | null
 }
 /** Plain review controls and renderer-owned observation. */
 export interface ReviewFace {
@@ -23,6 +24,8 @@ export interface ReviewFace {
   closeReview: () => void
   decideReview: (approved: boolean) => void
   followProcess: (id: ProcessId) => void
+  openProgress: (id: ProcessId) => void
+  closeProgress: () => void
 }
 const unwrap = <T>(result: RemoteResult<T>): T => {
   if (!result.ok) throw new Error(result.error.message)
@@ -32,7 +35,7 @@ const unwrap = <T>(result: RemoteResult<T>): T => {
 /** Serialize reads and decisions, ignore replaced selections, and drain accepted work at disposal. */
 export class ReviewController {
   private readonly store = createSnapshotStore<ReviewState>({ inbox: null, selected: null, detail: null,
-    busy: false, error: '', decision: null })
+    busy: false, error: '', decision: null, progress: null })
   private operation: Promise<void> | undefined
   private timer: ReturnType<typeof setTimeout> | undefined
   private closed = false
@@ -47,13 +50,22 @@ export class ReviewController {
     return { hooks: { workflowReviews: this.store }, refreshReviews: () => { void this.load() },
       openReview: (task) => {
         if (this.isClosed() || this.store.getSnapshot().busy) return
-        this.store.update((state) => { state.selected = task; state.detail = null; state.error = ''; state.decision = null })
+        this.store.update((state) => { state.selected = task; state.detail = null; state.error = ''; state.decision = null; state.progress = null })
         void this.enqueue(() => this.read())
       },
       closeReview: () => {
         this.store.update((state) => { state.selected = null; state.detail = null; state.decision = null; state.error = '' })
       },
       decideReview: (approved) => { this.decide(approved) },
+      openProgress: (id) => {
+        if (this.isClosed() || this.store.getSnapshot().busy) return
+        this.store.update((state) => {
+          state.selected = null; state.detail = null; state.decision = null; state.error = ''
+          state.progress = { id, detail: null, error: '' }
+        })
+        void this.enqueue(() => this.readProgress())
+      },
+      closeProgress: () => { this.store.update((state) => { state.progress = null }) },
       followProcess: (id) => {
         if (this.isClosed() || this.store.getSnapshot().busy) return
         this.store.update((state) => { state.busy = true; state.error = '' })
@@ -77,11 +89,31 @@ export class ReviewController {
     const inbox = unwrap(await this.api.conversationReviews(this.sessionId))
     if (this.isClosed()) return
     this.store.update((state) => { state.inbox = inbox; state.error = inbox.error })
-    if (inbox.error) return
+    if (inbox.error) {
+      this.store.update((state) => { if (state.progress) state.progress.error = inbox.error })
+      return
+    }
     const selected = this.store.getSnapshot().selected
-    if (!selected) return
-    const detail = unwrap(await this.api.conversationReviewDetail(this.sessionId, selected.processId, selected.taskId))
-    if (!this.isClosed() && this.store.getSnapshot().selected === selected) this.store.update((state) => { state.detail = detail })
+    if (selected) {
+      const detail = unwrap(await this.api.conversationReviewDetail(this.sessionId, selected.processId, selected.taskId))
+      if (!this.isClosed() && this.store.getSnapshot().selected === selected) this.store.update((state) => { state.detail = detail })
+    }
+    await this.readProgress()
+  }
+
+  private async readProgress(): Promise<void> {
+    const selected = this.store.getSnapshot().progress
+    if (this.isClosed() || !selected) return
+    try {
+      const detail = unwrap(await this.api.conversationProcessDetail(this.sessionId, selected.id))
+      if (!this.isClosed() && this.store.getSnapshot().progress === selected) this.store.update((state) => {
+        state.progress = { id: selected.id, detail, error: '' }
+      })
+    } catch (error: unknown) {
+      if (!this.isClosed() && this.store.getSnapshot().progress === selected) this.store.update((state) => {
+        state.progress = { ...selected, error: error instanceof Error ? error.message : 'WORKFLOW_PROGRESS_FAILED' }
+      })
+    }
   }
 
   private decide(approved: boolean): void {

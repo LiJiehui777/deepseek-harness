@@ -73,6 +73,7 @@ describe.skipIf(!baseUrl || !password || MODE === 'record')('simulated WeCom ris
       await panel.getByRole('button', { name: zh.saveServer, exact: true }).click()
       await panel.getByRole('button', { name: zh.publish, exact: true }).click()
       await panel.getByText('已发布 · v1', { exact: true }).waitFor()
+      await panel.getByText('开发调试', { exact: true }).click()
       await panel.getByLabel(zh.engineInputs).fill('{"scenario":"risk"}')
       await panel.getByRole('button', { name: zh.startPublished, exact: true }).click()
       await panel.getByRole('button', { name: zh.engineApprove, exact: true }).waitFor()

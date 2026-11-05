@@ -11,6 +11,7 @@ import { expect, it, vi } from 'vitest'
 import { join } from 'node:path'
 import { ConversationRuns, conversationRunSpec } from '../src/host/conversation-run.ts'
 import { FlowableError } from '../src/host/flowable.ts'
+import { createTemplate, serializeDraft } from '../src/shared/draft.ts'
 import type { ProcessDetail, ProcessId, WorkItemId } from '../src/shared/runtime.ts'
 
 async function fixture(pool = new MemoryMediaPool()) {
@@ -27,7 +28,10 @@ async function fixture(pool = new MemoryMediaPool()) {
   const owner = brandString<SessionId>('follow-owner')
   const state: { run: ProcessDetail; unavailable: boolean } = { unavailable: false, run: {
     id: brandString<ProcessId>('run'), ownerSessionId: owner, name: 'Workflow', status: 'running', startedAt: '', endedAt: '',
-    draftJson: '', inputJson: '{}', workflowId: 'test', workflowVersion: 1, completed: [], results: [],
+    draftJson: serializeDraft(createTemplate('test', 'Workflow', '', [
+      { kind: 'start', name: 'Start' }, { kind: 'action', name: 'Read simulated input', action: 'demo.wecom.todos' },
+      { kind: 'agent', name: 'Analyze' }, { kind: 'human', name: 'Review' }, { kind: 'end', name: 'Finish' },
+    ])), inputJson: '{}', workflowId: 'test', workflowVersion: 1, completed: [], results: [],
     items: [{ id: brandString<WorkItemId>('human'), nodeId: 'human', kind: 'human', name: 'Review', status: 'waiting', error: '' }],
   } }
   const read = vi.fn(async () => {
@@ -149,5 +153,21 @@ it('bounds the entire completion notice when multibyte evidence and optional det
     expect(Buffer.byteLength(text, 'utf8')).toBeLessThan(65536)
     expect(text).toContain('"outputsOmitted":true')
     expect(text).toContain('"detailsOmitted":true')
+  } finally { await f.close() }
+})
+
+it('shows only completed checkpoints from the pinned run and marks simulated input independently of its name', async () => {
+  const f = await fixture()
+  try {
+    f.state.run = { ...f.state.run, completed: ['test-0', 'test-1', 'test-2'] }
+    await f.follows.attach(f.owner, f.state.run, new AbortController().signal)
+    expect(await f.follows.state(f.owner)).toMatchObject([{ name: 'Workflow', phase: 'human',
+      previousStep: 'Analyze', step: 'Review', stepKind: 'human', simulated: true }])
+    f.state.run = { ...f.state.run, completed: ['test-0'] }
+    expect(await f.follows.state(f.owner)).toMatchObject([{ previousStep: '' }])
+    const draft = JSON.parse(f.state.run.draftJson) as { draft: { nodes: Array<{ action: string }> } }
+    draft.draft.nodes[1]!.action = 'core.echo'
+    f.state.run = { ...f.state.run, name: 'Simulated label alone is not evidence', draftJson: JSON.stringify(draft) }
+    expect(await f.follows.state(f.owner)).toMatchObject([{ simulated: false }])
   } finally { await f.close() }
 })

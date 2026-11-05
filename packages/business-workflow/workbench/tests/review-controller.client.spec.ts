@@ -100,3 +100,63 @@ it('drains an accepted decision queued behind a read when its Session scope is d
   face.decideReview(false)
   expect(review).toHaveBeenCalledTimes(1)
 })
+
+it('reads progress only after inspection, retains evidence on failure, and stops detail polling after close', async () => {
+  const process = detail().process
+  const readProgress = vi.fn().mockResolvedValue(ok(process))
+  const review = vi.fn()
+  const controller = new ReviewController({
+    conversationReviews: async () => ok({ items: [task], total: 1, following: [], refreshIntervalMs: 1000, error: '' }),
+    conversationProcessDetail: readProgress, reviewFromConversation: review,
+  } as never, owner, () => {})
+  try {
+    await controller.load()
+    expect(readProgress).not.toHaveBeenCalled()
+    const face = controller.face(), source = face.hooks.workflowReviews
+    face.openProgress(task.processId)
+    await controller.load()
+    expect(readProgress).toHaveBeenCalledExactlyOnceWith(owner, task.processId)
+    expect(source.getSnapshot().progress?.detail).toEqual(process)
+    expect(source.getSnapshot().selected).toBeNull()
+    face.decideReview(true)
+    expect(review).not.toHaveBeenCalled()
+    readProgress.mockRejectedValueOnce(new Error('FLOWABLE_UNAVAILABLE'))
+    await controller.load()
+    expect(source.getSnapshot().progress?.detail).toEqual(process)
+    expect(source.getSnapshot().progress?.error).toBe('FLOWABLE_UNAVAILABLE')
+    await controller.load()
+    expect(source.getSnapshot().progress?.error).toBe('')
+    face.closeProgress()
+    const count = readProgress.mock.calls.length
+    await controller.load()
+    expect(readProgress).toHaveBeenCalledTimes(count)
+  } finally { await controller.dispose() }
+})
+
+it('discards a progress response after selection replacement and drains a closed in-flight read', async () => {
+  const first = Promise.withResolvers<ReturnType<typeof ok<ReturnType<typeof detail>['process']>>>()
+  const second = Promise.withResolvers<ReturnType<typeof ok<ReturnType<typeof detail>['process']>>>()
+  const readProgress = vi.fn().mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise)
+  const controller = new ReviewController({
+    conversationReviews: async () => ok({ items: [], total: 0, following: [], refreshIntervalMs: 1000, error: '' }),
+    conversationProcessDetail: readProgress,
+  } as never, owner, () => {})
+  const face = controller.face(), source = face.hooks.workflowReviews
+  try {
+    face.openProgress(task.processId)
+    await vi.waitFor(() => { expect(readProgress).toHaveBeenCalledTimes(1) })
+    const other = brandString<ProcessId>('other-process')
+    face.openProgress(other)
+    first.resolve(ok(detail().process))
+    await vi.waitFor(() => { expect(readProgress).toHaveBeenCalledTimes(2) })
+    expect(source.getSnapshot().progress).toEqual({ id: other, detail: null, error: '' })
+    face.closeProgress()
+    const disposal = controller.dispose()
+    second.resolve(ok({ ...detail().process, id: other }))
+    await disposal
+    expect(source.getSnapshot().progress).toBeNull()
+  } finally {
+    first.resolve(ok(detail().process)); second.resolve(ok(detail().process))
+    await controller.dispose()
+  }
+})

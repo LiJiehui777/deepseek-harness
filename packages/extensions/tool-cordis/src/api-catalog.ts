@@ -591,6 +591,12 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         returns: 'oldest 30 tasks, total count, and deployment polling interval; engine outages retain retry facts.',
       },
       {
+        signature: '@Remote conversationProcessDetail(sessionId: SessionId, id: ProcessId): Promise<ProcessDetail>',
+        description: 'Inspect progress only for a run owned by the initiating local conversation.',
+        parameters: [{ name: 'sessionId', description: 'authenticated UI\'s local initiating Session.' }, { name: 'id', description: 'process opened from that Session\'s progress card.' }],
+        returns: 'pinned draft, completed steps, current work, and saved outputs.',
+      },
+      {
         signature: '@Remote async followFromConversation(sessionId: SessionId, id: ProcessId): Promise<void>',
         description: 'Keep following an existing conversation-owned run without starting another workflow.',
         parameters: [{ name: 'sessionId', description: 'authenticated local initiating Session.' }, { name: 'id', description: 'owned process to follow, including a run started before automatic waiting was available.' }],
@@ -6226,7 +6232,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'ConversationFollow',
-    declaration: 'export interface ConversationFollow {\n    processId: ProcessId;\n    name: string;\n    phase: \'running\' | \'human\' | \'wait\' | \'settling\' | \'blocked\';\n    step: string;\n}',
+    declaration: 'export interface ConversationFollow {\n    processId: ProcessId;\n    name: string;\n    phase: \'running\' | \'human\' | \'wait\' | \'settling\' | \'blocked\';\n    step: string;\n    previousStep: string;\n    stepKind: EngineWorkItem[\'kind\'] | null;\n    simulated: boolean;\n}',
   },
   {
     name: 'ConversationReviewDetail',

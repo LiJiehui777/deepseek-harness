@@ -32,10 +32,25 @@ describe.skipIf(MODE === 'record')('business-workflow: built ZTT composition', (
     const browser = await chromium.launch()
     let failure: unknown
     try {
-      const page = await browser.newPage({ viewport: { width: 1680, height: 1100 }, locale: 'zh-CN' })
+      const page = await browser.newPage({ viewport: { width: 1680, height: 1100 }, locale: 'zh-CN', reducedMotion: 'reduce' })
       const tripwire = watchConsole(page)
       await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
       await page.waitForSelector('[class*="frame"]', { timeout: 30_000 })
+      const assertBrandUnclipped = async (): Promise<void> => {
+        const subtitle = page.getByText('中天科技 · 质量工作台', { exact: true })
+        await subtitle.waitFor()
+        expect(await subtitle.evaluate((element) => {
+          const text = element.getBoundingClientRect()
+          for (let parent = element.parentElement; parent; parent = parent.parentElement) {
+            const style = getComputedStyle(parent)
+            if (!['hidden', 'clip', 'auto', 'scroll'].includes(style.overflowY)) continue
+            const box = parent.getBoundingClientRect()
+            if (text.top < box.top - 1 || text.bottom > box.bottom + 1) return false
+          }
+          return true
+        })).toBe(true)
+      }
+      await assertBrandUnclipped()
       const workspace = join(scaffold.workspaceCwd, 'workspace')
       await mkdir(workspace, { recursive: true })
       await page.getByRole('textbox', { name: '选择工作区' }).click()
@@ -69,6 +84,26 @@ describe.skipIf(MODE === 'record')('business-workflow: built ZTT composition', (
       await capture('flows')
       await screenshot('DH工作流_流程列表')
       await panel.getByRole('button', { name: '编辑流程', exact: true }).first().click()
+      const nameBox = await panel.getByLabel('流程名称', { exact: true }).locator('..').boundingBox()
+      const descriptionBox = await panel.getByLabel('流程说明', { exact: true }).locator('..').boundingBox()
+      const saveBox = await panel.getByRole('button', { name: '保存到服务端', exact: true }).boundingBox()
+      expect(nameBox).not.toBeNull()
+      expect(descriptionBox).not.toBeNull()
+      expect(saveBox).not.toBeNull()
+      expect(Math.abs(nameBox!.y + nameBox!.height - saveBox!.y - saveBox!.height)).toBeLessThanOrEqual(1)
+      expect(Math.abs(descriptionBox!.y + descriptionBox!.height - saveBox!.y - saveBox!.height)).toBeLessThanOrEqual(1)
+      expect(await panel.getByRole('button', { name: '添加参数', exact: true }).isVisible()).toBe(false)
+      expect(await panel.getByRole('textbox', { name: '启动参数（JSON 对象）', exact: true }).isVisible()).toBe(false)
+      expect(await panel.getByRole('button', { name: '启动 Flowable 执行', exact: true }).isVisible()).toBe(false)
+      await panel.getByText('高级设置', { exact: true }).click()
+      await panel.getByRole('button', { name: '添加参数', exact: true }).click()
+      await panel.getByLabel('字段名（英文）', { exact: true }).fill('orderId')
+      await panel.getByText('高级设置', { exact: true }).click()
+      await panel.getByText('高级设置', { exact: true }).click()
+      expect(await panel.getByLabel('字段名（英文）', { exact: true }).inputValue()).toBe('orderId')
+      await panel.getByRole('button', { name: '移除参数', exact: true }).click()
+      await panel.getByText('高级设置', { exact: true }).click()
+      await screenshot('DH工作流_品牌与编辑栏_宽屏')
       await panel.getByLabel('流程名称', { exact: true }).fill('订单 A 入库核对')
       await panel.getByRole('button', { name: '添加DH 分析节点', exact: true }).click()
       await panel.getByLabel('节点名称', { exact: true }).fill('补充分析')
@@ -112,6 +147,9 @@ describe.skipIf(MODE === 'record')('business-workflow: built ZTT composition', (
         name: 'workflow-draft.json', mimeType: 'application/json', buffer: draftBytes,
       })
       await panel.getByText('草稿已导入，可继续编辑并检查。', { exact: true }).waitFor()
+      await panel.getByText('开发调试', { exact: true }).click()
+      expect(await panel.getByRole('textbox', { name: '启动参数（JSON 对象）', exact: true }).inputValue()).toBe('{}')
+      await screenshot('DH工作流_开发调试_展开')
       await panel.getByRole('button', { name: '新建模拟预览', exact: true }).click()
       for (let index = 0; index < 4; index++) {
         await panel.getByRole('button', { name: '模拟执行当前节点', exact: true }).click()
@@ -138,6 +176,34 @@ describe.skipIf(MODE === 'record')('business-workflow: built ZTT composition', (
       await page.setViewportSize({ width: 1024, height: 900 })
       const fits = await panel.evaluate(element => element.scrollWidth <= element.clientWidth)
       expect(fits).toBe(true)
+      await page.setViewportSize({ width: 390, height: 844 })
+      await page.locator('[data-sidebar-drawer]').waitFor()
+      const openSidebar = page.locator('[data-sidebar-opener]')
+      if (await openSidebar.isVisible()) await openSidebar.click()
+      await assertBrandUnclipped()
+      await screenshot('DH工作流_品牌_窄屏')
+      await page.getByRole('button', { name: '收起侧边栏', exact: true }).click()
+      const controls = [
+        panel.getByLabel('流程名称', { exact: true }), panel.getByLabel('流程说明', { exact: true }),
+        ...['保存到服务端', '发布给 DH 使用', '复制流程', '导出草稿', '检查草稿']
+          .map(name => panel.getByRole('button', { name, exact: true })),
+      ]
+      for (const control of controls) {
+        const box = await control.boundingBox()
+        expect(box).not.toBeNull()
+        expect(box!.x).toBeGreaterThanOrEqual(0)
+        expect(box!.x + box!.width).toBeLessThanOrEqual(390)
+      }
+      expect(await panel.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true)
+      await screenshot('DH工作流_编辑栏_窄屏')
+      await panel.getByText('开发调试', { exact: true }).click()
+      const debugInput = panel.getByRole('textbox', { name: '启动参数（JSON 对象）', exact: true })
+      expect(await debugInput.isVisible()).toBe(true)
+      const debugBox = await debugInput.boundingBox()
+      expect(debugBox!.x).toBeGreaterThanOrEqual(0)
+      expect(debugBox!.x + debugBox!.width).toBeLessThanOrEqual(390)
+      expect(await panel.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true)
+      await screenshot('DH工作流_开发调试_窄屏')
       expect(tripwire.pageErrors).toEqual([])
     } catch (error) {
       failure = error

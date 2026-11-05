@@ -25,6 +25,7 @@ class TodoModel extends LlmAdapter {
   calls = 0
   chatCalls = 0
   ordinaryCalls = 0
+  readonly analysisRelease = Promise.withResolvers<undefined>()
   override providerInfo(provider: string): LlmProviderInfo { return { id: provider, name: 'Workflow fixture' } }
   override listModels(provider: string): Promise<readonly LlmModelInfo[]> { return Promise.resolve([{ provider, id: 'fixture', name: 'Fixture' }]) }
   override async * stream(options: GenerateOptions): AsyncIterable<StreamChunk> {
@@ -61,6 +62,7 @@ class TodoModel extends LlmAdapter {
       return
     }
     this.calls++
+    await this.analysisRelease.promise
     expect(options.tools ?? []).toEqual([])
     const input = JSON.stringify(options.messages)
     expect(input).toContain('td_quality')
@@ -171,26 +173,63 @@ describe.skipIf(!baseUrl || !password || MODE === 'record')('WeCom → DH → Fl
       await composer.fill('帮我整理待办')
       await composer.press('Enter')
       await expect.poll(() => model.chatCalls).toBe(2)
+      const reviews = page.locator('[data-conversation-reviews]')
+      await reviews.getByRole('heading', { name: '正在分析', exact: true }).waitFor({ timeout: 30000 })
+      expect(await reviews.getByRole('button', { name: '查看并审核', exact: true }).count()).toBe(0)
+      expect(await reviews.getByText('等待期间不调用模型', { exact: true }).count()).toBe(0)
+      const runningAria = await captureStableAria(page, '[data-conversation-reviews]', scaffold.workspaceCwd)
+      await compareOrRefreshGolden(join(import.meta.dirname, 'expected/conversation-running.expected.md'), runningAria, MODE)
+      const progressScreenshots = process.env.DSH_WORKFLOW_SCREENSHOT_DIR
+      if (progressScreenshots) {
+        await mkdir(progressScreenshots, { recursive: true })
+        await reviews.screenshot({ path: join(progressScreenshots, 'DH_执行中_浅色.png') })
+      }
+      await reviews.getByRole('button', { name: '查看进度', exact: true }).click()
+      const progressDialog = page.getByRole('dialog', { name: '执行详情', exact: true })
+      await progressDialog.getByText('DH 整理待办和建议', { exact: true }).waitFor()
+      expect(await progressDialog.getByRole('button', { name: '审核通过并继续', exact: true }).count()).toBe(0)
+      await progressDialog.getByText('运行信息', { exact: true }).click()
+      const progressAria = await captureStableAria(page, '[data-conversation-progress-detail]', scaffold.workspaceCwd)
+      await compareOrRefreshGolden(join(import.meta.dirname, 'expected/conversation-progress.expected.md'), progressAria, MODE)
+      await progressDialog.getByRole('button', { name: '关闭执行详情', exact: true }).last().click()
+      await page.setViewportSize({ width: 390, height: 844 })
+      expect(await reviews.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true)
+      const cardHeight = await reviews.locator('[data-review-process]').evaluate(element => element.getBoundingClientRect().height)
+      expect(cardHeight).toBeLessThan(360)
+      await page.emulateMedia({ colorScheme: 'dark' })
+      await expect.poll(() => page.evaluate(() => document.body.hasAttribute('data-ds-dark-theme'))).toBe(true)
+      if (progressScreenshots) await reviews.screenshot({ path: join(progressScreenshots, 'DH_执行中_深色窄屏.png') })
+      await page.emulateMedia({ colorScheme: 'light' })
+      await expect.poll(() => page.evaluate(() => document.body.hasAttribute('data-ds-dark-theme'))).toBe(false)
+      await page.setViewportSize({ width: 1680, height: 1100 })
+      model.analysisRelease.resolve(undefined)
       await page.reload()
       await page.getByRole('treeitem').filter({ hasText: '帮我整理待办' }).first().click()
       await page.getByRole('button', { name: '选择工作流：企业微信待办整理 · v1', exact: true }).waitFor()
-      const reviews = page.locator('[data-conversation-reviews]')
       await reviews.getByRole('button', { name: '查看并审核', exact: true }).waitFor({ timeout: 30000 })
-      const workflowGroup = reviews.getByRole('article').filter({ has: page.getByRole('heading', { name: '企业微信待办整理', exact: true }) })
+      const workflowGroup = reviews.getByRole('article', { name: '企业微信待办整理', exact: true })
       expect(await workflowGroup.count()).toBe(1)
       expect(await workflowGroup.getByRole('heading', { name: '确认待办处理建议', exact: true }).count()).toBe(1)
       expect(await reviews.getByText('确认待办处理建议', { exact: true }).count()).toBe(1)
-      await page.setViewportSize({ width: 480, height: 900 })
+      await page.setViewportSize({ width: 390, height: 844 })
       expect(await workflowGroup.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true)
-      const workflowBounds = await workflowGroup.getByRole('heading', { name: '企业微信待办整理', exact: true }).boundingBox()
-      const stepBounds = await workflowGroup.getByRole('heading', { name: '确认待办处理建议', exact: true }).boundingBox()
-      expect(workflowBounds && stepBounds && stepBounds.x > workflowBounds.x && stepBounds.y > workflowBounds.y).toBe(true)
+      expect(await workflowGroup.getByRole('heading', { name: '需要你审核', exact: true }).count()).toBe(1)
+      expect(await workflowGroup.getByRole('heading', { name: '企业微信待办整理', exact: true }).count()).toBe(0)
+      expect(await reviews.getByText('实例编号', { exact: true }).count()).toBe(0)
+      expect(await workflowGroup.getByRole('button', { name: '查看并审核', exact: true }).isVisible()).toBe(true)
+      await workflowGroup.getByRole('button', { name: '更多操作', exact: true }).click()
+      await page.getByRole('menuitem', { name: '刷新状态', exact: true }).waitFor()
+      const menuBounds = await page.getByRole('menu').boundingBox()
+      expect(menuBounds && menuBounds.x >= 0 && menuBounds.x + menuBounds.width <= 390).toBe(true)
+      await page.keyboard.press('Escape')
+      expect(await page.getByRole('menu').count()).toBe(0)
       const hierarchyScreenshots = process.env.DSH_WORKFLOW_SCREENSHOT_DIR
       if (hierarchyScreenshots) {
         await mkdir(hierarchyScreenshots, { recursive: true })
-        await reviews.screenshot({ path: join(hierarchyScreenshots, 'DH_审核层级_窄屏.png') })
+        await reviews.screenshot({ path: join(hierarchyScreenshots, 'DH_待审核_窄屏.png') })
       }
       await page.setViewportSize({ width: 1680, height: 1100 })
+      if (progressScreenshots) await reviews.screenshot({ path: join(progressScreenshots, 'DH_待审核_浅色.png') })
       await reviews.getByRole('button', { name: '查看并审核', exact: true }).click()
       const reviewDialog = page.getByRole('dialog', { name: '工作流审核', exact: true })
       await reviewDialog.getByRole('heading', { name: '本次待审核内容', exact: true }).waitFor()
@@ -255,6 +294,8 @@ describe.skipIf(!baseUrl || !password || MODE === 'record')('WeCom → DH → Fl
         expect((await call('business_workflow_list', {}, 'local-fork-list', localFork.agent)).isError).toBe(false)
         expect((await call('business_workflow_status', { runId: id }, 'foreign-status', localFork.agent)).isError).toBe(true)
         expect((await scaffold.ctx.businessWorkflows.conversationReviews(localFork.agent.id)).items).toEqual([])
+        await expect(scaffold.ctx.businessWorkflows.conversationProcessDetail(localFork.agent.id, id))
+          .rejects.toThrow('WORKFLOW_PROCESS_NOT_OWNED_BY_CONVERSATION')
         await expect(scaffold.ctx.businessWorkflows.conversationReviewDetail(localFork.agent.id, id, run.items[0]!.id))
           .rejects.toThrow('WORKFLOW_PROCESS_NOT_OWNED_BY_CONVERSATION')
         await expect(scaffold.ctx.businessWorkflows.reviewFromConversation(localFork.agent.id, id, run.items[0]!.id, true))
@@ -349,6 +390,7 @@ describe.skipIf(!baseUrl || !password || MODE === 'record')('WeCom → DH → Fl
       expect(calls.some(args => args.includes('send') || args.includes('create') || args.includes('update'))).toBe(false)
       expect(tripwire.pageErrors).toEqual([])
     } finally {
+      model.analysisRelease.resolve(undefined)
       await browser.close()
       unregister()
       await scaffold.close()

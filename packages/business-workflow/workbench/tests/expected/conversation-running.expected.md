@@ -1,0 +1,11 @@
+- region "流程进度与审核":
+  - article "企业微信待办整理":
+    - heading "正在分析" [level=3]
+    - paragraph: 正在处理当前步骤，完成后自动继续
+    - button "更多操作"
+    - list "执行进度":
+      - listitem: 已完成 读取企业微信待办
+      - listitem: 当前步骤 DH 整理待办和建议
+      - listitem: 完成后 反馈结果
+    - text: 企业微信待办整理
+    - button "查看进度"

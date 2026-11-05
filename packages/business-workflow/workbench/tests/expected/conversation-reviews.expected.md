@@ -1,12 +1,10 @@
-- region "DH 正在等待你审核":
-  - strong: DH 正在等待你审核
-  - text: 等待期间不调用模型
-  - button "刷新待审核"
-  - article:
-    - text: 工作流
-    - heading "企业微信待办整理" [level=3]
-    - text: 实例编号 · {{uuid}} 等待审核 当前步骤人工确认
+- region "流程进度与审核":
+  - article "企业微信待办整理":
+    - heading "需要你审核" [level=3]
+    - paragraph: 请确认以下事项，审核通过后自动继续
+    - button "更多操作"
     - heading "确认待办处理建议" [level=4]
     - paragraph: 审核通过后，自动执行后续步骤。
     - button "查看并审核"
-  - paragraph: 停止当前对话会停止 DH 跟进；如需终止流程，请在工作流页面操作。
+    - text: 企业微信待办整理
+    - button "查看进度"

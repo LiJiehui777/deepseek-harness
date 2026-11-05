@@ -1,0 +1,20 @@
+- banner:
+  - heading "企业微信待办整理" [level=3]
+  - text: 执行中
+- paragraph: 这里只显示已经完成和当前正在处理的步骤，后续分支以实际执行为准
+- list "执行进度":
+  - listitem: 开始 已完成
+  - listitem: 读取企业微信待办 已完成
+  - listitem:
+    - text: DH 整理待办和建议
+    - paragraph: 正在执行
+- group:
+  - text: 运行信息
+  - term: 实例编号
+  - definition: {{uuid}}
+  - term: 流程版本
+  - definition: "1"
+  - paragraph: 停止当前对话会停止 DH 跟进；如需终止流程，请在工作流页面操作。
+- heading "节点输出（引擎已保存）" [level=4]
+- group: 开始
+- group: 读取企业微信待办
