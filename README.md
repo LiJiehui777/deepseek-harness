@@ -10,7 +10,9 @@ The model, Sessions, workspaces and credentials belong to DH. RAGFlow is an opti
 
 ## Requirements
 
-The commands below use Bash on macOS or Linux. On Windows, run them inside WSL 2 and keep the checkout, Node.js and dependencies in that Linux environment. See the [development guide](docs/development.md) for platform setup.
+DH can run in native Windows or WSL 2; WSL 2 is optional. Existing Windows deployments can retain their environment. Keep the checkout, Node.js and dependencies in the same operating system environment, and install dependencies separately for each environment. See the [development guide](docs/development.md) for platform setup.
+
+The examples below use Bash, and the current `build:enhanced` and `start:enhanced` scripts also require Bash. Native Windows users need a Bash environment that invokes Windows Node.js, or adapted build and startup scripts; the repository does not provide a dedicated PowerShell entry point. The enhanced startup procedure has not been fully validated on native Windows.
 
 | Component | Requirement | When needed |
 |---|---|---|

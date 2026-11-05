@@ -10,7 +10,9 @@
 
 ## 环境要求
 
-下面的命令使用 macOS 或 Linux 的 Bash 环境。Windows 请在 WSL 2 中执行，并将仓库、Node.js 和依赖保存在同一个 Linux 环境内。平台准备详见[开发指南](docs/development.zh.md)。
+DH 可以在 Windows 原生环境或 WSL 2 中运行，WSL 2 是可选项，已有 Windows 部署可以继续使用原环境。请将仓库、Node.js 和依赖保存在同一个操作系统环境内，并为不同环境分别安装依赖。平台准备详见[开发指南](docs/development.zh.md)。
+
+下面的示例使用 Bash，当前 `build:enhanced` 和 `start:enhanced` 脚本也依赖 Bash。Windows 原生用户需使用能够调用 Windows Node.js 的 Bash 环境，或适配构建和启动脚本；仓库尚未提供专用 PowerShell 入口。增强版完整启动流程尚未在原生 Windows 上验证。
 
 | 组件 | 要求 | 什么时候需要 |
 |---|---|---|
