@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "PostgreSQL-Datenquelle",
+    "description": "Bietet anderen Plugins schreibgeschützten PostgreSQL-Zugriff, mit serverseitig verwahrten Zugangsdaten und begrenzten Abfragen."
+  }
+}

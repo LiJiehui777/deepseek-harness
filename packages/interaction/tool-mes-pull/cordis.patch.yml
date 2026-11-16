@@ -1,0 +1,5 @@
+# Pull stage: read one MES order by key into the shared review pool.
+# Uses ctx.postgres from tool-postgres-connector when that plugin is mounted.
+- insert:
+    - id: tool-mes-pull
+      name: '@deepseek-ai/dsh-tool-mes-pull'

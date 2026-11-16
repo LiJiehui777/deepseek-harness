@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Extracción de datos MES",
+    "description": "Extrae los datos MES de un pedido por su clave hacia el grupo de revisión compartido con las definiciones de consulta .sql configuradas, sin enviar nada aguas abajo."
+  }
+}

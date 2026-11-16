@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Source de données PostgreSQL",
+    "description": "Fournit aux autres plugins un accès PostgreSQL en lecture seule, avec des identifiants conservés côté serveur et des requêtes limitées."
+  }
+}

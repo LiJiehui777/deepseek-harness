@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Origen de datos PostgreSQL",
+    "description": "Proporciona acceso PostgreSQL de solo lectura a otros plugins, con credenciales en el servidor y consultas acotadas."
+  }
+}

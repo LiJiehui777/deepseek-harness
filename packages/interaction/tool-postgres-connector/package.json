@@ -1,0 +1,77 @@
+{
+  "name": "@deepseek-ai/dsh-tool-postgres-connector",
+  "description": "Read-only PostgreSQL data source for other plugins, with server-side credentials and bounded queries",
+  "version": "0.2.2-alpha.3",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/LiJiehui777/deepseek-harness.git",
+    "directory": "packages/interaction/tool-postgres-connector"
+  },
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/types/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg"
+  },
+  "files": [
+    "lib/index.js",
+    "cordis.patch.yml",
+    "lib/types/**/*.d.ts",
+    "locale/*.json",
+    "README.md",
+    "README.zh.md",
+    "icon.svg"
+  ],
+  "keywords": [
+    "dsh-plugin",
+    "dsh",
+    "deepseek-harness",
+    "cordis",
+    "postgresql",
+    "connector"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=24.9.0"
+  },
+  "icon": "./icon.svg",
+  "locale": {
+    "zh-CN": "./locale/zh.json",
+    "en-US": "./locale/en.json"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "workspace:~",
+    "@deepseek-ai/dsh-credentials": "workspace:*",
+    "@deepseek-ai/dsh-tools": "workspace:*"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "workspace:~",
+    "@deepseek-ai/cordis-plugin-loader": "workspace:*",
+    "@deepseek-ai/dsh-agent": "workspace:*",
+    "@deepseek-ai/dsh-credentials": "workspace:*",
+    "@deepseek-ai/dsh-llm": "workspace:*",
+    "@deepseek-ai/dsh-system-prompt": "workspace:*",
+    "@deepseek-ai/dsh-tool-executor-native": "workspace:*",
+    "@deepseek-ai/dsh-tools": "workspace:*",
+    "@types/pg": "^8.11.10"
+  },
+  "dependencies": {
+    "@deepseek-ai/schemastery": "workspace:~",
+    "pg": "^8.23.1"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  }
+}

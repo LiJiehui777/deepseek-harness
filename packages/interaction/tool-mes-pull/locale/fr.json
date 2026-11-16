@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Extraction de données MES",
+    "description": "Extrait les données MES d’une commande par sa clé vers le pool de revue partagé à l’aide des définitions de requête .sql configurées, sans jamais rien envoyer en aval."
+  }
+}

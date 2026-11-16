@@ -11,6 +11,36 @@
   border-top: 0.5px solid var(--dsw-alias-border-l2);
 }
 
+/* Two fields read as one address, so they share a row and their divider. */
+.row {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 1fr);
+  gap: 12px;
+}
+
+.row > .field {
+  padding: 12px 0;
+}
+
+.row + .field {
+  border-top: 0.5px solid var(--dsw-alias-border-l2);
+}
+
+.row + .row {
+  border-top: 0.5px solid var(--dsw-alias-border-l2);
+}
+
+@media (max-width: 520px) {
+  .row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+
+  .row > .field + .field {
+    border-top: 0.5px solid var(--dsw-alias-border-l2);
+  }
+}
+
 .head {
   display: flex;
   align-items: center;

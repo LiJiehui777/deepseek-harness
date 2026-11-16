@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Fonte de dados PostgreSQL",
+    "description": "Oferece aos demais plugins acesso PostgreSQL somente leitura, com credenciais mantidas no servidor e consultas limitadas."
+  }
+}

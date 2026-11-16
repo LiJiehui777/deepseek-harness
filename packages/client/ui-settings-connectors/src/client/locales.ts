@@ -1,4 +1,4 @@
-/** Locale bundles for the plugin configuration section and its plugin cards. */
+﻿/** Locale bundles for the plugin configuration section and its plugin cards. */
 
 /** Locale keys these surfaces render. */
 export type PluginsSettingsLocaleKey =
@@ -124,6 +124,11 @@ export type PluginsSettingsLocaleKey =
   | 'ragflowTitle' | 'ragflowDescription' | 'ragflowApiKey' | 'ragflowApiKeyHint' | 'ragflowApiKeySet' | 'ragflowApiKeyUnset' | 'ragflowBaseUrl' | 'ragflowBaseUrlHint' | 'ragflowDatasets' | 'ragflowDatasetsHint' | 'ragflowEnabled' | 'ragflowInvalidUrl' | 'ragflowInvalidDatasets'
   | 'ragflowChooseDatasets' | 'ragflowSearchDatasets' | 'ragflowDatasetUnknown' | 'ragflowCatalogLoading'
   | 'ragflowCatalogFailed' | 'ragflowCatalogEmpty' | 'ragflowCatalogRefresh' | 'ragflowCatalogMore' | 'ragflowCatalogSaveFirst'
+  | 'mesTitle' | 'mesDescription' | 'mesHost' | 'mesHostHint' | 'mesInvalidHost'
+  | 'mesPort' | 'mesPortHint' | 'mesDatabase' | 'mesDatabaseHint' | 'mesInvalidDatabase'
+  | 'mesUser' | 'mesUserHint' | 'mesInvalidUser'
+  | 'mesPassword' | 'mesPasswordHint' | 'mesPasswordSet' | 'mesPasswordUnset'
+  | 'mesPasswordReference' | 'mesPasswordReferenceEmpty' | 'mesEnabled' | 'mesSaveFirst'
   | 'nav' | 'title' | 'intro' | 'tabs' | 'configurableTab' | 'empty'
   | 'overridden' | 'reset' | 'readOnly' | 'expand' | 'collapse'
   | 'save' | 'saving' | 'discard' | 'unsaved' | 'saveFailed' | 'invalidNumber'
@@ -285,6 +290,28 @@ export const en: Record<PluginsSettingsLocaleKey, string> = {
   ragflowEnabled: 'Enable RAGFlow connection',
   ragflowInvalidUrl: 'Enter an HTTP(S) service base without credentials, query or fragment.',
   ragflowInvalidDatasets: 'Select at most 100 valid knowledge bases.',
+
+  mesTitle: 'MES connector',
+  mesDescription: 'Connect to the MES system PostgreSQL database and expose read-only access to other plugins.',
+  mesHost: 'Host',
+  mesHostHint: 'Server host name or address.',
+  mesInvalidHost: 'Enter a host name or address.',
+  mesPort: 'Port',
+  mesPortHint: 'Server TCP port, usually 5432.',
+  mesDatabase: 'Database',
+  mesDatabaseHint: 'Database to connect to.',
+  mesInvalidDatabase: 'Enter a database name.',
+  mesUser: 'User',
+  mesUserHint: 'Read-only role used for every statement.',
+  mesInvalidUser: 'Enter a role name.',
+  mesPassword: 'Password',
+  mesPasswordHint: 'Stored by the DH credentials service and never returned to the browser. Leave blank to keep the saved one.',
+  mesPasswordSet: 'Password saved',
+  mesPasswordUnset: 'No password saved',
+  mesPasswordReference: 'Credential reference',
+  mesPasswordReferenceEmpty: 'not set',
+  mesEnabled: 'Enable this connection',
+  mesSaveFirst: 'Save the connection before testing it.',
 
   nav: 'Plugins',
   title: 'Plugins',
@@ -485,6 +512,28 @@ export const zh: Record<PluginsSettingsLocaleKey, string> = {
   ragflowEnabled: '启用 RAGFlow 连接',
   ragflowInvalidUrl: '请填写 HTTP(S) 服务地址，不含账号密码、查询参数或锚点。',
   ragflowInvalidDatasets: '请选择有效的知识库，最多 100 个。',
+
+  mesTitle: 'MES 连接器',
+  mesDescription: '连接 MES 系统的 PostgreSQL 数据库，为其他插件提供只读访问能力。',
+  mesHost: '主机',
+  mesHostHint: '数据库服务器的主机名或地址。',
+  mesInvalidHost: '请填写主机名或地址。',
+  mesPort: '端口',
+  mesPortHint: '服务器 TCP 端口，通常为 5432。',
+  mesDatabase: '数据库',
+  mesDatabaseHint: '要连接的数据库名称。',
+  mesInvalidDatabase: '请填写数据库名称。',
+  mesUser: '用户名',
+  mesUserHint: '执行查询使用的只读角色。',
+  mesInvalidUser: '请填写角色名称。',
+  mesPassword: '密码',
+  mesPasswordHint: '由 DH 凭证服务保存，不会返回浏览器。留空则保留已保存的密码。',
+  mesPasswordSet: '密码已保存',
+  mesPasswordUnset: '未保存密码',
+  mesPasswordReference: '凭证引用名',
+  mesPasswordReferenceEmpty: '未设置',
+  mesEnabled: '启用此连接',
+  mesSaveFirst: '请先保存连接配置，再测试连接。',
 
   nav: '插件',
   title: '插件',

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36" width="36" height="36" role="img" aria-label="PostgreSQL data source">
+  <defs>
+    <linearGradient id="pg-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#3b6fa8"/>
+      <stop offset="1" stop-color="#1f4a75"/>
+    </linearGradient>
+  </defs>
+  <g transform="scale(0.5625)">
+    <rect x="2" y="2" width="60" height="60" rx="14" fill="url(#pg-bg)"/>
+    <ellipse cx="32" cy="18" rx="15" ry="5.5" fill="none" stroke="#eaf2fb" stroke-width="2.4" opacity="0.95"/>
+    <path d="M17 18v12c0 3 6.7 5.5 15 5.5s15-2.5 15-5.5V18" fill="none" stroke="#eaf2fb" stroke-width="2.4" opacity="0.95"/>
+    <path d="M17 30v12c0 3 6.7 5.5 15 5.5s15-2.5 15-5.5V30" fill="none" stroke="#eaf2fb" stroke-width="2.4" opacity="0.95"/>
+    <circle cx="32" cy="18" r="2.6" fill="#7fd4a8"/>
+    <circle cx="32" cy="30" r="2.6" fill="#7fd4a8" opacity="0.75"/>
+    <circle cx="32" cy="42" r="2.6" fill="#7fd4a8" opacity="0.5"/>
+  </g>
+</svg>

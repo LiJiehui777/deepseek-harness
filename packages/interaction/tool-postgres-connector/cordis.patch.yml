@@ -1,0 +1,4 @@
+# Read-only PostgreSQL connection for the other pipeline plugins.
+- insert:
+    - id: tool-postgres-connector
+      name: '@deepseek-ai/dsh-tool-postgres-connector'

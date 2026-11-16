@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "PostgreSQL data source",
+    "description": "Read-only PostgreSQL access for other plugins, with server-side credentials and bounded queries."
+  }
+}

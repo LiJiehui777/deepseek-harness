@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Coleta de dados MES",
+    "description": "Coleta os dados MES de um pedido pela sua chave para o pool de revisão compartilhado com as definições de consulta .sql configuradas, sem enviar nada adiante."
+  }
+}

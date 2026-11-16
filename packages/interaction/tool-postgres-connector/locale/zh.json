@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "PostgreSQL 数据源",
+    "description": "为其他插件提供只读的 PostgreSQL 访问能力，凭据由服务端保存，查询结果有行数与超时上限。"
+  }
+}

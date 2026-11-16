@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "MES-Datenabruf",
+    "description": "Holt die MES-Daten eines Auftrags über seinen Schlüssel mit den konfigurierten .sql-Abfragedefinitionen in den gemeinsamen Prüfpool und sendet nichts an nachgelagerte Systeme."
+  }
+}

@@ -113,7 +113,10 @@
     "@deepseek-ai/dsh-tool-quality-report": "workspace:*",
     "@deepseek-ai/dsh-tool-ragflow-connector": "workspace:*",
     "@deepseek-ai/dsh-enterprise-connectors": "workspace:*",
-    "@deepseek-ai/dsh-plugin-management": "workspace:*"
+    "@deepseek-ai/dsh-plugin-management": "workspace:*",
+    "@deepseek-ai/dsh-mes-pipeline-workdb": "workspace:*",
+    "@deepseek-ai/dsh-tool-postgres-connector": "workspace:*",
+    "@deepseek-ai/dsh-tool-mes-pull": "workspace:*"
   },
   "devDependencies": {
     "@deepseek-ai/dsh-skill-badge": "workspace:*",
