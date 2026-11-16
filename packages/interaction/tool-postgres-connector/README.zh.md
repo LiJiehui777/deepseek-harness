@@ -38,19 +38,20 @@ kind: "package-reference"
   name: '@deepseek-ai/dsh-tool-postgres-connector'
   config:
     enabled: true
-    host: 10.0.0.21
+    host: mes-db.example.invalid
+    port: 5432
     database: mes
     user: mes_reader
     passwordEnv: MES_PG_PASSWORD
 ```
 
-`enabled` 默认是 `false`，在它变成 `true` 之前每次读取都会被拒绝并给出可操作的提示。`passwordEnv` 是凭据引用名，永远不是口令本身。
+连接未配置时也可以打开设置页。设置 `enabled: false` 可禁止读取。`passwordEnv` 只填写凭据引用名，不存储口令。
 
 | 字段 | 默认值 | 含义 |
 |---|---|---|
-| `enabled` | `false` | 该连接是否可以执行语句 |
-| `host` | `192.168.33.43` | PostgreSQL 主机名或地址 |
-| `port` | `5432` | PostgreSQL TCP 端口 |
+| `enabled` | `true` | 该连接是否可以执行语句 |
+| `host` | 空 | PostgreSQL 主机名或地址 |
+| `port` | 空 | PostgreSQL TCP 端口 |
 | `database` | 空 | 要连接的库名 |
 | `user` | 空 | 连接使用的角色 |
 | `passwordEnv` | `MES_PG_PASSWORD` | 每次调用都重新解析的凭据引用 |
@@ -60,7 +61,7 @@ kind: "package-reference"
 | `timeoutMs` | `30000` | 服务端强制的语句期限，单位毫秒 |
 | `exposeTools` | `true` | 是否注册四个内置只读工具 |
 
-插件在加载时会校验 `host`、`database`、`user` 非空，且 `passwordEnv` 形如环境变量名，因此不可用的配置在挂载时就失败，而不是拖到第一次读取。
+每次读取前，插件一起校验主机、端口、数据库、账号及凭据引用。保存后的连接配置无需重启即可生效。如果解析凭据期间设置发生变化，本次读取被拒绝，请重试。
 
 ### 其他插件调用的服务
 
@@ -78,7 +79,7 @@ kind: "package-reference"
 
 守卫在扫描禁用关键字之前，先把字符串字面量、引号标识符与注释整段裸化，因此 `WHERE note = 'DROP TABLE users'` 能通过，而可写 CTE 会因为其中真实存在的 `INSERT` 被拒。行数上限靠把已接受的语句包进外层 `SELECT ... LIMIT n+1` 实现，尾部注释或子句无法逃逸，多取的那一行让截断可观测。
 
-凭据不进入连接池：网关每次调用都收到已解析的口令，因此轮换后的凭据在下一条语句就生效，不必重建连接池。`pg` 驱动在首次读取时加载，而不是在挂载时，这样没有该驱动的部署仍可挂载，缺依赖也变成一条可操作的错误而不是插件挂载失败。
+连接器为同一份连接配置解析凭据。口令变化后，网关为新口令打开新池，并关闭旧池。`pg` 驱动在首次读取时加载，而不是在挂载时，这样没有该驱动的部署仍可挂载，缺依赖也变成一条可操作的错误而不是插件挂载失败。
 
 ### 源码导览
 

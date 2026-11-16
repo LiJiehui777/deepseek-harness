@@ -20,15 +20,15 @@ PostgreSQL
 
 ## 一、配置与校验
 
-配置来自 `cordis.yml` 的插件条目，由 schemastery 校验，默认值让连接器在显式启用前保持断开。
+可以在 DH 插件设置或 `cordis.yml` 中配置连接。保存后无需重启；执行读取时检查连接参数与凭据。
 
 | 字段 | 默认值 | 约束 |
 |---|---|---|
-| `enabled` | `false` | 关闭时任何读取都被拒绝 |
-| `host` | `192.168.33.43` | 加载时校验非空 |
-| `port` | `5432` | 1–65535 |
-| `database` | 空 | 加载时校验非空 |
-| `user` | 空 | 加载时校验非空 |
+| `enabled` | `true` | 关闭时任何读取都被拒绝 |
+| `host` | 空 | 读取前校验非空 |
+| `port` | 空 | 1–65535 |
+| `database` | 空 | 读取前校验非空 |
+| `user` | 空 | 读取前校验非空 |
 | `passwordEnv` | `MES_PG_PASSWORD` | 必须是环境变量名形态 |
 | `ssl` | `false` | `true` 时 `rejectUnauthorized: true` |
 | `maxConnections` | `4` | 1–16 |
@@ -36,7 +36,7 @@ PostgreSQL
 | `timeoutMs` | `30000` | 服务端 `statement_timeout` |
 | `exposeTools` | `true` | 是否注册四个读取工具 |
 
-`apply()` 在注册任何东西之前先校验：`host`、`database`、`user` 为空，或 `passwordEnv` 不是 `[A-Za-z_][A-Za-z0-9_]*`，都会在挂载阶段抛错。一个配错的连接器不应该等到第一次读取才失败。
+插件加载后就可以显示设置页。每次读取在连接数据库之前校验 `host`、`port`、`database`、`user` 和 `passwordEnv`。解析凭据期间若保存了另一份配置，拒绝该次读取；用新配置重试即可。
 
 ## 二、`ctx.postgres` 服务契约
 
@@ -118,12 +118,12 @@ catch { throw new Error('PostgreSQL driver "pg" is not installed. …') }
 
 ### 连接池复用
 
-首次读取时建池，之后复用。构造参数：
+首次读取时建池，同一份配置与口令下复用；任一变化时关闭旧池。构造参数：
 
 | 参数 | 来源 |
 |---|---|
 | `host` / `port` / `database` / `user` | 配置 |
-| `password` | 每次调用解析（口令轮换后下一条语句自动生效，不必重建池） |
+| `password` | 按本次连接配置解析；口令变化时换池并关闭旧池 |
 | `max` | `maxConnections` |
 | `idleTimeoutMillis` | 固定 `30_000` |
 | `connectionTimeoutMillis` | `min(timeoutMs, 15_000)` |

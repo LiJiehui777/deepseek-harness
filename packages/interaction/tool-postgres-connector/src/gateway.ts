@@ -3,8 +3,8 @@
  * with every statement bounded and every failure translated into a sanitized
  * message.
  *
- * The gateway holds no credentials. It receives a resolved password per call so a
- * rotated credential applies to the next statement without rebuilding the pool.
+ * The gateway receives a resolved password per call. A changed password replaces
+ * the pool before the next statement can borrow a connection.
  *
  * @module connector-postgres/gateway
  */
@@ -75,7 +75,9 @@ async function loadDriver(): Promise<PostgresDriver> {
  * credential reaches the caller.
  */
 export class PostgresGateway {
-  private pool: Pool | undefined
+  private pool: { handle: Pool; password: string } | undefined
+  private readonly retiring = new Set<Promise<void>>()
+  private closed = false
 
   /**
    * @param options - resolved connection settings; the password arrives per call.
@@ -91,30 +93,38 @@ export class PostgresGateway {
   }
 
   /**
-   * Open the pool on first use. The pool is reused across calls so repeated reads
-   * do not pay connection setup.
+   * Open the pool on first use or after credential rotation.
    * @param password - credential resolved for this call.
    * @returns the shared pool.
    */
   private async connection(password: string): Promise<Pool> {
-    if (!this.pool) {
-      const { Pool: PoolCtor } = await loadDriver()
-      this.pool = new PoolCtor({
-        host: this.options.host,
-        port: this.options.port,
-        database: this.options.database,
-        user: this.options.user,
-        password,
-        max: this.options.maxConnections,
-        idleTimeoutMillis: 30_000,
-        connectionTimeoutMillis: Math.min(this.options.statementTimeoutMs, 15_000),
-        ...(this.options.ssl ? { ssl: { rejectUnauthorized: true } } : {}),
-        application_name: 'dsh-tool-postgres-connector',
-        // Defence in depth: the statement guard already refuses writes.
-        options: `-c statement_timeout=${this.options.statementTimeoutMs} -c default_transaction_read_only=on`,
-      })
-    }
-    return this.pool
+    this.assertOpen()
+    if (this.pool?.password === password) return this.pool.handle
+    const { Pool: PoolCtor } = await loadDriver()
+    this.assertOpen()
+    if (this.pool?.password === password) return this.pool.handle
+    const previous = this.pool
+    const handle = new PoolCtor({
+      host: this.options.host,
+      port: this.options.port,
+      database: this.options.database,
+      user: this.options.user,
+      password,
+      max: this.options.maxConnections,
+      idleTimeoutMillis: 30_000,
+      connectionTimeoutMillis: Math.min(this.options.statementTimeoutMs, 15_000),
+      ...(this.options.ssl ? { ssl: { rejectUnauthorized: true } } : {}),
+      application_name: 'dsh-tool-postgres-connector',
+      // Defence in depth: the statement guard already refuses writes.
+      options: `-c statement_timeout=${this.options.statementTimeoutMs} -c default_transaction_read_only=on`,
+    })
+    this.pool = { handle, password }
+    if (previous) this.retire(previous.handle)
+    return handle
+  }
+
+  private assertOpen(): void {
+    if (this.closed) throw new Error('PostgreSQL connection is closing. Retry the request.')
   }
 
   /**
@@ -295,7 +305,7 @@ export class PostgresGateway {
     return this.withClient(password, async (client) => {
       const result = await client.query(limitStatement(accepted.sql, limit))
       const elapsedMs = Date.now() - started
-      const rows = result.rows as Array<Record<string, unknown>>
+      const rows = result.rows
       const truncated = rows.length > limit
       const bounded = truncated ? rows.slice(0, limit) : rows
       return {
@@ -314,9 +324,17 @@ export class PostgresGateway {
    * @returns a promise that settles when the pool has drained.
    */
   async close(): Promise<void> {
+    this.closed = true
     const pool = this.pool
     this.pool = undefined
-    if (pool) await pool.end().catch(() => undefined)
+    if (pool) this.retire(pool.handle)
+    await Promise.all(this.retiring)
+  }
+
+  private retire(pool: Pool): void {
+    const drained = pool.end().catch(() => undefined)
+    this.retiring.add(drained)
+    void drained.then(() => { this.retiring.delete(drained) })
   }
 }
 

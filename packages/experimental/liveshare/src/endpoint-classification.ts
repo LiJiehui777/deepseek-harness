@@ -51,6 +51,7 @@ export const VIEWER_ENDPOINT_CLASSES = {
   'businessWorkflows/conversationWorkflow': 'owner-only',
   'businessWorkflows/selectConversationWorkflow': 'owner-only',
   'businessWorkflows/conversationReviews': 'owner-only',
+  'businessWorkflows/conversationProcessDetail': 'owner-only',
   'businessWorkflows/followFromConversation': 'owner-only',
   'businessWorkflows/conversationReviewDetail': 'owner-only',
   'businessWorkflows/reviewFromConversation': 'owner-only',

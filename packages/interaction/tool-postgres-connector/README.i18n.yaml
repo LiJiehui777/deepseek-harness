@@ -1,0 +1,70 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write packages/interaction/tool-postgres-connector/README.md
+/:
+  en: 87a83cddb2b251be
+  zh: fb42a4b5d977e731
+/deepseek-ai-dsh-tool-postgres-connector:
+  en: ecd88f426dc48795
+  zh: 59d6d5eff94a2bec
+/deepseek-ai-dsh-tool-postgres-connector/summary:
+  en: 9f822da2401018b3
+  zh: 49a5adc11f845557
+/deepseek-ai-dsh-tool-postgres-connector/table-of-contents:
+  en: d152484eb41ac6b4
+  zh: 09388d293f9be9cb
+/deepseek-ai-dsh-tool-postgres-connector/use-this-package:
+  en: ad9741f05bd7fb9d
+  zh: 1af0878b571aaeff
+/deepseek-ai-dsh-tool-postgres-connector/use-this-package/when-to-choose-it:
+  en: 015c516334aecb58
+  zh: 2c56916e02c142f0
+/deepseek-ai-dsh-tool-postgres-connector/use-this-package/minimal-configuration:
+  en: 5817cedaf570620f
+  zh: 68ac38de23dab185
+/deepseek-ai-dsh-tool-postgres-connector/use-this-package/the-service-other-plugins-call:
+  en: 1a1ce49f1fcdde52
+  zh: a9ed2804c1a5cdaf
+/deepseek-ai-dsh-tool-postgres-connector/understand-the-implementation:
+  en: dccf0e9f3403debb
+  zh: 9b987f72c26d0ae8
+/deepseek-ai-dsh-tool-postgres-connector/understand-the-implementation/source-map:
+  en: d579b51d54650014
+  zh: 0317123012d3002b
+/deepseek-ai-dsh-tool-postgres-connector/further-exploration:
+  en: a18c6e5b4586f661
+  zh: 62911f7ab9faa5e9
+/deepseek-ai-dsh-tool-postgres-connector/model-experience:
+  en: 215e7ba838619b7b
+  zh: a311da3843709f90
+/deepseek-ai-dsh-tool-postgres-connector/model-experience/tool-definitions:
+  en: 5cf98046cb6eda53
+  zh: d18677364e8fe82c
+/deepseek-ai-dsh-tool-postgres-connector/model-experience/tool-definitions/what-the-model-sees:
+  en: b47b3c1911c1402e
+  zh: c509b1553e5b354e
+/deepseek-ai-dsh-tool-postgres-connector/model-experience/tool-definitions/token-effect:
+  en: f20852dd261955e8
+  zh: 3e19b00e1a061f62
+/deepseek-ai-dsh-tool-postgres-connector/model-experience/tool-definitions/kv-cache-effect:
+  en: b2a8e8b83ca0deb6
+  zh: fa408f89326eb6fe
+/deepseek-ai-dsh-tool-postgres-connector/model-experience/tool-call-history-and-result:
+  en: 9717b983b6a857e3
+  zh: 611a2dadf7c0c706
+/deepseek-ai-dsh-tool-postgres-connector/model-experience/tool-call-history-and-result/what-the-model-sees:
+  en: 18c6e22810049b20
+  zh: ae4e3dbaf140bd2d
+/deepseek-ai-dsh-tool-postgres-connector/model-experience/tool-call-history-and-result/token-effect:
+  en: 9470833c73107f8a
+  zh: 5735f96150e8a3c8
+/deepseek-ai-dsh-tool-postgres-connector/model-experience/tool-call-history-and-result/kv-cache-effect:
+  en: e9f5431e714b0d57
+  zh: 9f0d0a6d1c9032d2
+/deepseek-ai-dsh-tool-postgres-connector/known-limitations-and-deferred-work:
+  en: d43df1301d2a3918
+  zh: 405365e2dbd32ab9
+/deepseek-ai-dsh-tool-postgres-connector/known-limitations-and-deferred-work/dev-note:
+  en: 47d1c6de2ec4c5c0
+  zh: cd68a5559d2e106a

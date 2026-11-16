@@ -38,19 +38,20 @@ Choose it when a composition needs database reads and nothing else: it offers no
   name: '@deepseek-ai/dsh-tool-postgres-connector'
   config:
     enabled: true
-    host: 10.0.0.21
+    host: mes-db.example.invalid
+    port: 5432
     database: mes
     user: mes_reader
     passwordEnv: MES_PG_PASSWORD
 ```
 
-`enabled` defaults to `false`, and every read is refused with an actionable message until it is `true`. `passwordEnv` names a credential reference; it is never a literal password.
+The settings page is available before the connection is configured. Set `enabled: false` to refuse reads. `passwordEnv` names a credential reference; it does not store a password.
 
 | Field | Default | Meaning |
 |---|---|---|
-| `enabled` | `false` | Whether this connection may issue statements |
-| `host` | `192.168.33.43` | PostgreSQL host name or address |
-| `port` | `5432` | PostgreSQL TCP port |
+| `enabled` | `true` | Whether this connection may issue statements |
+| `host` | empty | PostgreSQL host name or address |
+| `port` | empty | PostgreSQL TCP port |
 | `database` | empty | Database name to connect to |
 | `user` | empty | Role the connection authenticates as |
 | `passwordEnv` | `MES_PG_PASSWORD` | Credential reference resolved on every call |
@@ -60,7 +61,7 @@ Choose it when a composition needs database reads and nothing else: it offers no
 | `timeoutMs` | `30000` | Server-enforced statement deadline, in milliseconds |
 | `exposeTools` | `true` | Register the four built-in read tools |
 
-The plugin validates at load that `host`, `database`, and `user` are non-empty and that `passwordEnv` has the shape of an environment variable name, so an unusable configuration fails at mount instead of at the first read.
+Before each read the plugin checks the host, port, database, role, and credential reference together. Saved connection changes apply without a restart. If settings change during credential lookup, retry the rejected read.
 
 ### The service other plugins call
 
@@ -78,7 +79,7 @@ The connector is a data source, not an SQL console. Three layers decide what a r
 
 The guard blanks string literals, quoted identifiers, and comments before it scans for denied keywords, so `WHERE note = 'DROP TABLE users'` passes and a writable CTE is refused for the `INSERT` it really contains. The row cap is applied by wrapping the accepted statement in an outer `SELECT ... LIMIT n+1`, so a trailing comment or clause cannot escape it and one extra row makes truncation observable.
 
-Credentials stay out of the pool: the gateway receives a resolved password per call, so a rotated credential reaches the next statement without rebuilding the pool. The `pg` driver loads on the first read rather than at mount, which keeps a deployment without the driver loadable and turns a missing dependency into one actionable error instead of a failed plugin.
+The connector resolves the password for the same settings snapshot that owns the gateway. If that password changes, the gateway opens a new pool and drains the previous one. The `pg` driver loads on the first read rather than at mount, which keeps a deployment without the driver loadable and turns a missing dependency into one actionable error instead of a failed plugin.
 
 ### Source map
 

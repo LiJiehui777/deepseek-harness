@@ -111,6 +111,7 @@ const IDENTIFIER = /^[\p{L}\p{N}_$][\p{L}\p{N}_$.]{0,127}$/u
 export class PostgresConnector extends Service {
   private gateway: PostgresGateway | undefined
   private snapshot: Config
+  private readonly retiring = new Set<Promise<void>>()
 
   /**
    * @param ctx - connector lifetime owning the gateway and registered tools.
@@ -120,10 +121,11 @@ export class PostgresConnector extends Service {
     super(ctx, 'postgres')
     this.snapshot = config.get()
     this.gateway = new PostgresGateway(gatewayOptions(this.snapshot))
-    ctx.effect(() => () => {
-      const closing = this.gateway
+    ctx.effect(() => async () => {
+      const gateway = this.gateway
       this.gateway = undefined
-      void closing?.close()
+      if (gateway) this.retire(gateway)
+      await Promise.all(this.retiring)
     }, 'postgres.close()')
   }
 
@@ -137,10 +139,16 @@ export class PostgresConnector extends Service {
    * @param next - validated settings snapshot.
    */
   reconfigure(next: Config): void {
-    const previous = this.gateway
+    const previous = this.current()
     this.snapshot = next
     this.gateway = new PostgresGateway(gatewayOptions(next))
-    void previous?.close()
+    this.retire(previous)
+  }
+
+  private retire(gateway: PostgresGateway): void {
+    const drained = gateway.close()
+    this.retiring.add(drained)
+    void drained.then(() => { this.retiring.delete(drained) })
   }
 
   /**
@@ -160,24 +168,25 @@ export class PostgresConnector extends Service {
     return this.snapshot.passwordEnv
   }
 
-  /**
-   * Resolve the password and refuse reads while the account is disabled.
-   * @returns the resolved secret value.
-   * @throws Error when the account is disabled or the credential is missing.
-   */
-  private async secret(): Promise<string> {
+  private async read<T>(operation: (gateway: PostgresGateway, password: string, settings: Config) => Promise<T>): Promise<T> {
     this.syncSettings()
-    assertConfig(this.snapshot)
-    if (!this.snapshot.enabled) {
+    const gateway = this.current()
+    const settings = this.snapshot
+    assertConfig(settings)
+    if (!settings.enabled) {
       throw new Error('PostgreSQL connector is disabled. Enable it in Settings > Plugins.')
     }
-    const reference = credentialRef(this.snapshot.passwordEnv)
+    const reference = credentialRef(settings.passwordEnv)
     const resolved = await this.ctx.credentials.resolve(reference)
-    const value = resolved?.value?.trim()
-    if (!value) {
-      throw new Error(`PostgreSQL password is missing. Configure ${this.snapshot.passwordEnv} in Settings > Plugins.`)
+    // A saved edit may replace either the address or the credential reference while resolution waits.
+    if (this.current() !== gateway || this.config.get() !== settings) {
+      throw new Error('PostgreSQL connection settings changed. Retry the request.')
     }
-    return value
+    const value = resolved?.value.trim()
+    if (!value) {
+      throw new Error(`PostgreSQL password is missing. Configure ${settings.passwordEnv} in Settings > Plugins.`)
+    }
+    return operation(gateway, value, settings)
   }
 
   /**
@@ -186,9 +195,10 @@ export class PostgresConnector extends Service {
    */
   async testConnection(): Promise<{ ok: boolean; message: string }> {
     try {
-      const password = await this.secret()
-      await this.current().listSchemas(password)
-      return { ok: true, message: `Connected to ${this.snapshot.database}.` }
+      return await this.read(async (gateway, password, settings) => {
+        await gateway.listSchemas(password)
+        return { ok: true, message: `Connected to ${settings.database}.` }
+      })
     } catch (error) {
       return { ok: false, message: messageOf(error) }
     }
@@ -199,7 +209,7 @@ export class PostgresConnector extends Service {
    * @returns schemas excluding PostgreSQL's internal catalogs.
    */
   async listSchemas(): Promise<PostgresSchema[]> {
-    return this.current().listSchemas(await this.secret())
+    return this.read((gateway, password) => gateway.listSchemas(password))
   }
 
   /**
@@ -216,7 +226,7 @@ export class PostgresConnector extends Service {
   ): Promise<{ tables: PostgresTable[]; page: number; hasMore: boolean }> {
     assertIdentifier(schema, 'schema')
     const size = Math.min(Math.max(1, Math.trunc(pageSize)), 200)
-    return this.current().listTables(await this.secret(), schema, Math.max(1, Math.trunc(page)), size)
+    return this.read((gateway, password) => gateway.listTables(password, schema, Math.max(1, Math.trunc(page)), size))
   }
 
   /**
@@ -228,7 +238,7 @@ export class PostgresConnector extends Service {
   async describeTable(schema: string, table: string): Promise<PostgresTableDetail> {
     assertIdentifier(schema, 'schema')
     assertIdentifier(table, 'relation')
-    return this.current().describeTable(await this.secret(), schema, table)
+    return this.read((gateway, password) => gateway.describeTable(password, schema, table))
   }
 
   /**
@@ -238,7 +248,7 @@ export class PostgresConnector extends Service {
    * @returns rows, column names, and explicit truncation state.
    */
   async query(sql: string, limit?: number): Promise<PostgresQueryResult> {
-    return this.current().query(await this.secret(), sql, limit)
+    return this.read((gateway, password) => gateway.query(password, sql, limit))
   }
 
   /**
