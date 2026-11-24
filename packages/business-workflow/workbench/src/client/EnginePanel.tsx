@@ -38,7 +38,8 @@ export function EnginePanel(props: Props) {
             : item.error === 'CONNECTOR_NOT_CONFIGURED' ? t('missingConnector')
               : item.error === 'WECOM_TODOS_UNAVAILABLE' ? t('wecomUnavailable')
                 : item.error === 'WECOM_TODOS_READ_FAILED' ? t('wecomReadFailed')
-                  : item.error === 'WORKFLOW_STEP_TIMED_OUT' ? t('stepTimedOut') : item.error}</p>}
+                  : item.error === 'WECOM_TODOS_INVALID_RESULT' ? t('wecomInvalidResult')
+                    : item.error === 'WORKFLOW_STEP_TIMED_OUT' ? t('stepTimedOut') : item.error}</p>}
           <div className={css.actions}>
             {item.kind === 'human' && <>
               <Button variant="primary" disabled={state.busy} onClick={() => { props.reviewProcess(run.id, item.id, true) }}>{t('engineApprove')}</Button>

@@ -38,8 +38,10 @@
     "cordis.patch.yml",
     "lib/types/**/*.d.ts",
     "lib/typert.host.js",
+    "lib/typert.host.d.ts.map",
     "lib/typert.host.d.ts",
     "lib/typert.remote-client.js",
+    "lib/typert.remote-client.d.ts.map",
     "lib/typert.remote-client.d.ts",
     "lib/types/**/*.js"
   ],
@@ -55,6 +57,7 @@
     "@deepseek-ai/dsh-tools": "workspace:*",
     "@deepseek-ai/cordis-plugin-loader": "workspace:*",
     "@deepseek-ai/dsh-agent": "workspace:*",
+    "@deepseek-ai/dsh-session-projection": "workspace:*",
     "@deepseek-ai/dsh-system-prompt": "workspace:*",
     "@deepseek-ai/dsh-llm": "workspace:*",
     "@deepseek-ai/cordis-plugin-include": "workspace:*",

@@ -30,6 +30,6 @@ Save service-address and API Key edits before loading their catalog. The setting
 
 ## Other connectors
 
-The enhanced launcher also mounts independent [Feishu and WeCom connectors](enterprise-connectors.md). Configure their own credentials and sender scopes in the same native plugin page. They can run without RAGFlow; remote tasks use RAGFlow only when its connector is separately enabled.
+Install the official [Feishu and WeCom plugins](enterprise-connectors.md) separately and authorize their CLI accounts in Plugins.
 
 The implementation decision is recorded in [Standalone knowledge connector](../../.agents/notes/implemented/feature/2026-10-09-standalone-ragflow-connector.md).

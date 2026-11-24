@@ -33,13 +33,13 @@
       "path": "../ui-slots"
     },
     {
-      "path": "../ui-workspace"
+      "path": "../ui-workspace/tsconfig.client.json"
     },
     {
       "path": "../../host/webserver"
     },
     {
-      "path": "../ui-settings/tsconfig.client.json"
+      "path": "../ui-plugin-manager/tsconfig.client.json"
     }
   ]
 }

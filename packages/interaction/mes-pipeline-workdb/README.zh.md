@@ -1,6 +1,6 @@
 ---
 description: "MES 流水线各环节共同读写的 SQLite 交接表：拉取、审核、推送三步认同一份文件、同一套状态与同一条迁移规则。"
-kind: "package-library"
+kind: "package-reference"
 ---
 
 # @deepseek-ai/dsh-mes-pipeline-workdb
@@ -67,7 +67,6 @@ kind: "package-library"
 <a id="further-exploration"></a>
 ## 进一步探索
 
-- [流水线契约](../tool-review-gate/CONTRACT.md) —— 这些表实现的跨包约定。
 - [interaction 分组导览](../README.zh.md) —— 消费这份约定的各环节包。
 - [存储子系统](../../../docs/subsystems/storage.zh.md) —— Harness 自带的存储后端；本流水线刻意不使用它们。
 

@@ -30,6 +30,6 @@ pnpm run start:enhanced
 
 ## 其他连接器
 
-增强版启动器还挂载独立的[飞书和企业微信连接器](enterprise-connectors.zh.md)。在同一原生插件页配置各自凭据和发送者范围。它们可独立于 RAGFlow 运行；只有另行启用 RAGFlow 连接器时，远程任务才使用其知识服务。
+可单独安装[飞书和企业微信官方插件](enterprise-connectors.zh.md)，并在插件页为各自的 CLI 账号授权。
 
 实现决定见 [独立知识连接器](../../.agents/notes/implemented/feature/2026-10-09-standalone-ragflow-connector.zh.md)。

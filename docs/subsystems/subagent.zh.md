@@ -8,7 +8,17 @@
 
 所有后端都使用 startActivation。能力标记校验请求选项；prepareContinuable 选择本地 Agent 创建，start 选择一次外部执行。面向模型的工具采用 parent 回传。Workflow 与 code mode 消费者可以等待 caller 结果，不额外向父代理注入消息。历史子会话的 descriptor 不可用时，以 `mode: 'unknown'` 保持可发现性，但不授予继续执行能力；[包 README](../../packages/subagent/subagent/README.zh.md) 定义目录持久化语义。
 
-可选的 `cwd` 指定子级的初始目录；相对路径以父级当前有效目录为基准解析。省略时，在准入阶段捕获该目录。本地子 Session 保留父级的原始项目，冷恢复保留其日志中的目录状态。
+由 Host 选定的可选 `cwd` 指定子级的初始目录；相对路径以父级的当前目录为基准解析。省略时，在准入阶段捕获该目录。面向模型的委派工具不传目录。本地子 Session 保留父级的原始项目，冷恢复保留其日志中的目录状态。
+
+```ts type-equiv
+/** Current concurrency capacity of one subagent tree; observing it reserves no slots. */
+interface SubagentCapacity {
+  /** Occupied slots, including starting, resident, and stopping children; excludes the root. */
+  readonly running: number
+  /** Configured maximum; running may exceed it after the limit is lowered. */
+  readonly limit: number
+}
+```
 
 ```ts type-equiv
 /**
@@ -33,6 +43,12 @@ interface SubagentActivationSpec extends Omit<SubagentStartRequest, 'label' | 's
   readonly provider: string
   /** Short task label retained in cataloged child membership. */
   readonly label: string
+  /**
+   * Requested name, unique among the parent's children: 1–32 lower-case
+   * letters, digits, or hyphens starting with a letter, other than `lead`.
+   * Omission selects the first free `agent-N`.
+   */
+  readonly name?: string
   /** Optional reserved identity for a local child; external backends allocate their own ids. */
   readonly childId?: SessionId
   /** Cancellation before publication; callers own later cancellation through dispose. */
@@ -47,6 +63,11 @@ interface SubagentActivationSpec extends Omit<SubagentStartRequest, 'label' | 's
 interface SubagentActivation {
   /** Stable identity of the child. */
   readonly childId: SessionId
+  /**
+   * Model-facing name: slash-separated names from the root when every creator
+   * below the root is named, otherwise the child Session id.
+   */
+  readonly name: string
   /** Accepted inbox message, when the backend has a local inbox. */
   readonly messageId?: MessageId
   /**
@@ -75,7 +96,7 @@ interface SubagentStartRequest {
   readonly agentPreset?: string
   /** Optional short display label persisted with a session-backed child. */
   readonly label?: string
-  /** Content delivered as the child's user message. */
+  /** Initial task; local continuable children record it as a message from the parent agent. */
   readonly prompt: ContentBlock[]
   /**
    * The spawning agent. Its effective directory supplies the default cwd;
@@ -160,11 +181,26 @@ interface ContinuableCreateRequest {
  */
 interface ContinuableCreateSpec {
   /**
-   * Completed-turn prefix of the parent's log to seed the child session with,
-   * or absent for a fresh child. Same durable contract as
-   * `CreateAgentOptions.seed`: contiguous from seq 0, lossless JSON, balanced.
+   * Unmodified completed-turn prefix of the parent's log, contiguous from seq
+   * 0 with lossless JSON and balanced steps and turns; absent for a fresh child.
+   * The manager uses its length as the fork cut and stores the prefix as
+   * supplied, so a transformed prefix would diverge from the parent history.
    */
   readonly seed?: readonly SessionEvent[]
+}
+```
+
+## Agent 名称
+
+Session id 仍是路由、授权、持久化和任务归属使用的唯一执行身份；名称是面向模型的引用。`SubagentActivation.name` 是子级的完整名称；当从根开始的每一级都有名称时，`listDescendants()` 的行以 `path` 携带该名称。`namesOf(agent)` 报告在线成员及其直接创建者的名称；根的名称为 `lead`。`resolveName(caller, name, signal)` 为 `lead` 或完整名称返回对应 Session id；树中不存在的其他文本原样作为 Session id 返回，而指向无成员的斜杠路径以 `AGENT_NAME_NOT_FOUND` 失败。调用方授权解析结果；解析本身不授予权限。[包 README](../../packages/subagent/subagent/README.zh.md#agent-names) 定义名称规则、默认值、失败和目录持久化。
+
+```ts type-equiv
+/** Model-facing names of one live tree member and its direct creator. */
+interface SubagentMemberNames {
+  /** `lead` for the root, the slash-separated path for a named descendant, otherwise the Session id. */
+  readonly self: string
+  /** The direct creator's name by the same rule; absent for the root. */
+  readonly parent?: string
 }
 ```
 
@@ -377,7 +413,7 @@ interface SubagentProvider {
 
 通过 `ctx.sessionQuery.observeSession(parentSessionId, { signal })`，可从 `observation.projections?.values.subagentCatalog` 获取直接子级条目；调用方使用 `using` 释放观察对象。条目遵循父会话事件顺序，不读取子级日志，也不枚举 Session 语料库。查询失败直接传播；缺少目录投影意味着发现功能不可用。浏览器条目从共享 projection store 派生成员关系，并从 Session 状态补充活动状态；control stream 推送完整目录更新。`listDescendants()` 递归读取这些目录，并从每个子级目录推导 `hasChildren`。[父目录 Agent Note](../../.agents/notes/implemented/architecture/2026-09-01-parent-owned-subagent-catalog.zh.md) 说明创建、fork 隔离、排序和持久化成本。
 
-`SubagentRuntime.listDescendants(rootSessionId)` 以稳定前序递归调用同一目录读取函数，保留每个父级的事件顺序。外部条目是没有本地 Session 的叶节点。一次性和未知模式条目仍是遍历节点；未知模式产生 `unsupported` 诊断。无法读取的子级目录产生 `corrupt` 或 `unavailable`，只停止该分支。根读取失败、服务或投影缺失、取消会使整个查询失败。每个可达目录只观察一次，并在下一次读取前释放；重复 id 和循环引用会被跳过。可达目录中不存在的 Session 不会被发现，包括普通 Session fork 及其下的子 agent。每行携带目录中的父级和相对根的深度：
+`SubagentRuntime.listDescendants(rootSessionId)` 以稳定前序递归调用同一目录读取函数，保留每个父级的事件顺序。外部条目是没有本地 Session 的叶节点。一次性和未知模式条目仍是遍历节点；未知模式产生 `unsupported` 诊断。无法读取的子级目录产生 `corrupt` 或 `unavailable`，只停止该分支。根读取失败、服务或投影缺失、取消会使整个查询失败。每个可达目录只观察一次，并在下一次读取前释放；重复 id 和循环引用会被跳过。可达目录中不存在的 Session 不会被发现，包括普通 Session fork 及其下的子 agent。每行携带目录中的父级、相对根的深度；当从根开始的每一级都有名称时，还以 `path` 携带完整名称：
 
 ```ts type-equiv
 /** One catalog descendant with its direct parent and edge distance from the requested root. */
@@ -386,6 +422,8 @@ type SubagentDescendantListEntry = SubagentListEntry & {
   readonly parentId: SessionId
   /** Edge distance from the requested root; direct children are `1`. */
   readonly depth: number
+  /** Slash-separated names from the requested root; absent when this child or an ancestor below the root has no name. */
+  readonly path?: string
 }
 ```
 
@@ -405,7 +443,18 @@ Generated from source by `scripts/gen-cordis-catalog.ts` (verified fresh by `pnp
 
 ### `ctx.subagentModelSelection` — `SubagentModelSelectionConfig`
 
-Host settings owner that records Session authorization before the first model request.
+Host settings owner whose current value authorizes explicit child routes in every Session.
+
+```ts cordis-catalog
+/**
+ * Read the routes the setting currently authorizes. Each call samples the
+ * live setting, so an edit applies to the next delegation in every Session.
+ * @returns a detached route list, or undefined when the setting is disabled.
+ * @throws {SubagentError} `INVALID_MODEL_SELECTION_SETTINGS` when the enabled setting has no route,
+ *   or its routes are malformed or repeated. Disabled settings do not read or validate routes.
+ */
+allowedRoutes(): AllowedModelRoute[] | undefined
+```
 
 Source: [`packages/subagent/tool-subagent/src/model-selection-settings.ts`](../../packages/subagent/tool-subagent/src/model-selection-settings.ts)
 
@@ -444,6 +493,40 @@ startActivation(spec: SubagentActivationSpec): Promise<SubagentActivation>
  * @throws when the caller or its runtime owner is unavailable.
  */
 rootOf(caller: Agent): Agent
+
+/**
+ * Observe the shared concurrency capacity of the caller's subagent tree.
+ * @param caller - exact live root or resident tree member.
+ * @returns occupied slots and the current limit; this observation reserves no capacity.
+ */
+capacityOf(caller: Agent): SubagentCapacity
+
+/**
+ * Report the model-facing names of a live tree member and its direct creator.
+ * The root is `lead`; a descendant is the slash-separated path of names from
+ * the root, or its Session id when it or a creator below the root has no name.
+ * @param agent - exact live root or resident tree member.
+ * @returns the member's name and, for a descendant, its creator's name.
+ * @throws when the caller or its runtime owner is unavailable.
+ */
+namesOf(agent: Agent): SubagentMemberNames
+
+/**
+ * Resolve a model-supplied agent reference within the caller's tree. `lead`
+ * selects the root and a slash-separated path is looked up through the
+ * catalogs along it. Any other text that is not a name in the tree is
+ * returned as a Session id, because a single token can be one; a
+ * slash-separated address never is, so an unmatched path fails instead of
+ * reaching a member lookup as an unknown id. Resolution grants no authority:
+ * messaging, interruption, and assignment authorize the result.
+ * @param caller - exact live Agent whose tree root anchors the lookup.
+ * @param name - `lead`, a full name from the root, or a Session id.
+ * @param signal - cancellation forwarded to each catalog read.
+ * @returns the referenced Session id.
+ * @throws {@link SubagentError} `AGENT_NAME_NOT_FOUND` when a path names no member;
+ *   when the caller's root is unavailable; or when a catalog along the path cannot be read.
+ */
+async resolveName(caller: Agent, name: string, signal: AbortSignal): Promise<SessionId>
 
 /**
  * Join progressing subagent tree work for its root. Idle members with parked input

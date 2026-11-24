@@ -51,7 +51,7 @@ kind: "package-reference"
 
 ### 一次委派会做什么
 
-一次工具调用创建后台子 agent 并立即返回子会话 ID。子级在自己的会话中工作，父级通过完成通知收到其最终答案。子级也可以通过 `send_message` 发送消息。被拒绝的启动不会留下已发布的子 agent；工作流等程序调用方可以直接等待 activation 的结果。
+一次工具调用创建后台子 agent 并立即返回其名称。子级在自己的会话中工作，父级通过完成通知收到其最终答案。子级也可以通过 `send_message` 发送消息。被拒绝的启动不会留下已发布的子 agent；工作流等程序调用方可以直接等待 activation 的结果。
 
 显式 `agentPreset` 独立选择当前注册的 preset；省略时加入父方的活跃代际。只有 spawn 支持此选择。persona 与工具放在 [preset 定义](../../preset/agent-preset-registry/README.zh.md)中。冷恢复遵守共享的[子级组装规则](../subagent/README.zh.md#restoring-child-composition)。
 
@@ -106,7 +106,7 @@ kind: "package-reference"
 
 #### 模型看到什么
 
-全新子 agent 逐字接收任务内容，作为新空对话中的唯一用户消息，默认使用父级提供方、模型、推理强度、输出 token 上限与工作目录。继承或选定的 preset 提供工具和提示词片段。不包含任何父级对话消息。
+全新子 agent 在新空对话中接收唯一一条用户消息，即来自父 agent 的任务：`Agent <parent name> sent a message: ` 后接逐字任务内容。默认使用父级提供方、模型、推理强度、输出 token 上限与工作目录。继承或选定的 preset 提供工具和提示词片段。不包含任何父级对话消息。
 
 #### Token 影响
 
@@ -120,7 +120,7 @@ kind: "package-reference"
 
 #### 模型看到什么
 
-通过 `dsh-tool-subagent`，父级先收到子会话 ID，随后收到包含最终答案的完成通知。子级自行编写的消息通过 `send_message` 到达。子级内部工具调用保留在子会话中。
+通过 `dsh-tool-subagent`，父级先收到子级名称，随后收到包含最终答案的完成通知。子级自行编写的消息通过 `send_message` 到达。子级内部工具调用保留在子会话中。
 
 #### Token 影响
 

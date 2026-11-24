@@ -43,7 +43,7 @@ kind: "package-reference"
 <a id="extension-points"></a>
 ## 扩展点
 
-插件占用 `sidebar.brand.action`、`sidebar.brand.mark`、`sidebar.brand.name`、`conversation.hero.brand.mark`、`conversation.hero.identity` 和 `shell.document-title`。配置账号管理时，还会在 `settings.plugins.tab` 注册 `chat-services` 贡献。返回按钮位于展开状态品牌行的智能体身份之前，并导航顶层浏览器上下文，因此 Web 嵌入 iframe 时也能正常返回。智能体名称浮层只负责展示，可通过 Esc 或点击外部关闭，且绝不会修改由宿主持有的绑定关系。它不声明子插槽，也不持有持久状态。
+插件占用 `sidebar.brand.action`、`sidebar.brand.mark`、`sidebar.brand.name`、`conversation.hero.brand.mark`、`conversation.hero.identity` 和 `shell.document-title`。配置账号管理时，还会在 `plugins.item` 注册 `chat-services` 贡献。返回按钮位于展开状态品牌行的智能体身份之前，并导航顶层浏览器上下文，因此 Web 嵌入 iframe 时也能正常返回。智能体名称浮层只负责展示，可通过 Esc 或点击外部关闭，且绝不会修改由宿主持有的绑定关系。它不声明子插槽，也不持有持久状态。
 
 <a id="model-experience"></a>
 ## 模型体验

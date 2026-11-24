@@ -1,6 +1,6 @@
 ---
 description: "The shared SQLite handover tables the MES pipeline stages write and read, so the pull, review, and push stages agree on one file, one set of statuses, and one migration rule."
-kind: "package-library"
+kind: "package-reference"
 ---
 
 # @deepseek-ai/dsh-mes-pipeline-workdb
@@ -67,7 +67,6 @@ Opening is synchronous because each stage opens the file while the plugin mounts
 <a id="further-exploration"></a>
 ## Further Exploration
 
-- [Pipeline contract](../tool-review-gate/CONTRACT.md) — the cross-package agreement these tables implement.
 - [Interaction group map](../README.md) — the stage packages that consume this agreement.
 - [Storage subsystem](../../../docs/subsystems/storage.md) — the Harness storage backends, which this pipeline deliberately does not use.
 

@@ -72,7 +72,7 @@ function declareFooter(ctx: Context): () => void {
   return ctx.slots.register({
     name: 'root',
     children: {
-      'settings.plugins.tab': { kind: 'list', scope: 'root' },
+      'plugins.item': { kind: 'list', scope: 'root' },
       'sidebar.brand.mark': { kind: 'single', scope: 'root' },
       'sidebar.brand.name': { kind: 'single', scope: 'root' },
       'sidebar.brand.action': { kind: 'single', scope: 'root' },
@@ -114,13 +114,13 @@ describe('host-return browser half', () => {
     await fiber.await()
     declareFooter(ctx)
     await Promise.resolve()
-    const entry = ctx.slots.entries('settings.plugins.tab')[0]!
+    const entry = ctx.slots.entries('plugins.item')[0]!
     expect(entry.options.id).toBe('chat-services')
     expect(entry.options.order).toBe(5)
     expect((entry.options.label as () => string)()).toBe(en.channelsTab)
     expect(entry.inject!()).toEqual({ managementUrl: config.channelManagementUrl, hostOrigin: 'https://ragflow.test' })
     await fiber.dispose()
-    expect(ctx.slots.entries('settings.plugins.tab')).toHaveLength(0)
+    expect(ctx.slots.entries('plugins.item')).toHaveLength(0)
     await ctx.fiber.dispose()
   })
 

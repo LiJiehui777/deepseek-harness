@@ -1,6 +1,7 @@
 /** Opt-in real Flowable acceptance; each run owns a separate tenant and cleans its deployments. */
 import Storage, { storageBackendServiceKey } from '@deepseek-ai/dsh-storage'
 import * as StorageDomain from '@deepseek-ai/dsh-storage-domain'
+import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
 import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
 import ToolRuntime from '@deepseek-ai/dsh-tools'
 import { MemoryStorageBackend } from '../../../storage/storage-domain/tests/helpers/memory-backend.ts'
@@ -47,6 +48,7 @@ describe.skipIf(!password || !baseUrl)('business workflow against Flowable', () 
     ctx.storage.backend.register('memory', backend)
     ctx.provide(storageBackendServiceKey('memory'), backend)
     await ctx.plugin(StorageDomain, { backend: 'memory' }).await()
+    await ctx.plugin(SessionProjectionRegistry).await()
     await ctx.plugin(SystemPrompt).await()
     await ctx.plugin(ToolRuntime).await()
     ctx.provide('credentials', { resolve: () => Promise.resolve({ value: password, source: 'env' }) } as never)

@@ -10,7 +10,7 @@ Messaging-channel credentials connect bots but do not register model tools or gr
 
 ## Decision
 
-The optional [chat-record bundle](../../../../packages/interaction/tool-chat-records/README.md) is installed through the native plugin command. Its empty profile patch grants no process-global tools; separate Feishu and enterprise WeChat instances are mounted by an authorized conversation preset. A host-issued token names the saved conversation and owner. Each bridge read resolves the live account binding and permissions, so changing tool arguments cannot widen account access and disabling storage revokes further reads.
+The optional chat-record bundle is installed through the native plugin command. Its empty profile patch grants no process-global tools; separate Feishu and enterprise WeChat instances are mounted by an authorized conversation preset. A host-issued token names the saved conversation and owner. Each bridge read resolves the live account binding and permissions, so changing tool arguments cannot widen account access and disabling storage revokes further reads.
 
 Platform credentials stay in RAGFlow. Feishu uses official app access and bot-visible history. Enterprise WeChat captures opt-in received text messages independently of ordinary assistant replies; complete enterprise archives require a separate integration. Persisted tool text supplies the standard Web inspection view.
 

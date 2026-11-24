@@ -16,7 +16,7 @@ The examples below use Bash, and the current `build:enhanced` and `start:enhance
 
 | Component | Requirement | When needed |
 |---|---|---|
-| Node.js | **24.9.0 or newer**; prefer the 24.x series | DH and builds |
+| Node.js | **24.22.3 or newer**; prefer the 24.x series | DH and builds |
 | pnpm | **11.28.5**, as pinned in `package.json` | Dependency installation and commands |
 | Git | 2.26 or newer | Clone and development hooks |
 | Native build tools | C/C++ compiler, `make`, and Node development headers; macOS uses Xcode Command Line Tools | Source build and native dependencies |
@@ -76,15 +76,14 @@ if [ ! -d "$DSH_ENHANCED_HOME/profiles/enhanced" ]; then
 fi
 ```
 
-Before the first start, open `.local/enhanced-home/profiles/enhanced/package.json` (or the equivalent path under your selected home). The Web template selects only the first two bundles below. Append the three enhanced bundles to `dsh.profile.bundles` so the new profile has this list. Keep the other manifest fields and any additional bundles already used by an existing deployment.
+Before the first start, open `.local/enhanced-home/profiles/enhanced/package.json` (or the equivalent path under your selected home). The Web template selects only the first two bundles below. Append the two enhanced bundles to `dsh.profile.bundles` so the new profile has this list. Keep the other manifest fields and any additional bundles already used by an existing deployment.
 
 ```json
 [
   "@deepseek-ai/dsh-base",
   "@deepseek-ai/dsh-web-app",
   "@deepseek-ai/dsh-plugin-management",
-  "@deepseek-ai/dsh-tool-ragflow-connector",
-  "@deepseek-ai/dsh-enterprise-connectors"
+  "@deepseek-ai/dsh-tool-ragflow-connector"
 ]
 ```
 
@@ -127,7 +126,7 @@ On first entry, select a local workspace directory, then complete the model setu
 
 Open Plugins to configure the connectors your enhanced profile loads. To use MES, append `@deepseek-ai/dsh-tool-postgres-connector` to `dsh.profile.bundles` from step 3, keep the existing entries, and restart DH.
 
-- [Feishu and WeCom](docs/user/enterprise-connectors.md): configure their own accounts and resource/ingress permissions.
+- [Feishu and WeCom](docs/user/enterprise-connectors.md): install the official plugins and authorize their CLI accounts.
 - [RAGFlow](docs/user/ragflow-connector.md): provide an independently running service, an API key and selected knowledge bases.
 - Open **Plugins → MES connector** and enter the PostgreSQL host, port, database, read-only username and password. Check **Enable this connection** and save. For a first check, ask in ordinary chat, “Use the MES connector to list the available schemas. Return their names only.” The machine running DH must be able to reach the database.
 

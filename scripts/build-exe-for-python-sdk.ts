@@ -19,7 +19,6 @@ import { resolveLinuxNodePtyAddon, resolveWindowsNodePtyAddons } from './executa
 import { officeSidecarArchives, runtimeNpmArchive, OFFICE_ASSET_IGNORES } from './build-exe-for-python-sdk-office.ts'
 import { syncPythonRuntimeProduct } from './build-exe-for-python-sdk-resources.ts'
 import { deduplicateStagedWorkspacePackages, materializeStagedLinks } from './build-exe-for-python-sdk-staging.ts'
-import { prepareOfficeSkillAssets } from './primary-runtime/prepare.ts'
 import primaryLock from './primary-runtime/lock.json' with { type: 'json' }
 
 const root = resolve(import.meta.dirname, '..')
@@ -30,8 +29,10 @@ const DEPLOY_ROOT_PACKAGE = 'dsh-python-runtime-closure'
 const ENTRY_BIN = 'runtime-bootstrap.mjs'
 /** Python-visible executable basename. */
 const OUTPUT_BASENAME = 'deepseek-harness-sdk-runtime'
-/** Default Node major; SEA mode requires at least Node 22. */
-const DEFAULT_NODE_RANGE = 'node24'
+/** Node major accepted in `--targets`; SEA mode requires at least Node 22. */
+const NODE_RANGE = 'node24'
+/** Exact Node release embedded in every executable, shared with the desktop primary runtime. */
+const NODE_VERSION = primaryLock.nodeVersion
 const OUT_DIR = 'dist-exe'
 /** Python package destination; created when absent. */
 const PYTHON_RUNTIME_DIR = 'python/sdk-runtime/src/deepseek_harness_runtime/runtime'
@@ -71,6 +72,13 @@ const ASSET_GLOBS = [
   'node_modules/@deepseek-ai/dsh-sandbox-windows-acl/assets/**/*',
 ]
 
+/** Published source and documentation: types and maps already describe the runtime, so no load path needs them. */
+const PUBLISHED_PAYLOAD_IGNORES = [
+  '**/node_modules/@deepseek-ai/dsh/src/**',
+  '**/node_modules/@deepseek-ai/dsh-*/src/**',
+  '**/node_modules/@deepseek-ai/dsh/docs/**',
+]
+
 const PLATFORMS = ['linux', 'macos', 'win'] as const
 const ARCHES = ['x64', 'arm64'] as const
 type Platform = (typeof PLATFORMS)[number]
@@ -89,17 +97,20 @@ function isArch(value: string): value is Arch {
  */
 class Target {
   private constructor(
-    /** pkg Node range (`node<major>`). */
-    readonly nodeRange: string,
     /** pkg platform tag. */
     readonly platform: Platform,
     /** pkg CPU tag. */
     readonly arch: Arch,
   ) {}
 
-  /** The pkg `--targets` spec string `<nodeRange>-<platform>-<arch>`. */
+  /** The command-line target `node24-<platform>-<arch>`. */
   get spec(): string {
-    return `${this.nodeRange}-${this.platform}-${this.arch}`
+    return `${NODE_RANGE}-${this.platform}-${this.arch}`
+  }
+
+  /** The pkg `--targets` value, which pins the embedded Node release. */
+  get pkgSpec(): string {
+    return `node${NODE_VERSION}-${this.platform}-${this.arch}`
   }
 
   /**
@@ -113,8 +124,8 @@ class Target {
     if (parts.length !== 3 || nodeRange === undefined || platform === undefined || arch === undefined) {
       throw new Error(`build-exe-for-python-sdk: target ${JSON.stringify(spec)} must be <nodeRange>-<platform>-<arch>, e.g. node24-linux-x64.`)
     }
-    if (!/^node\d+$/.test(nodeRange)) {
-      throw new Error(`build-exe-for-python-sdk: target ${JSON.stringify(spec)}: node range must look like node24, got ${JSON.stringify(nodeRange)}.`)
+    if (nodeRange !== NODE_RANGE) {
+      throw new Error(`build-exe-for-python-sdk: target ${JSON.stringify(spec)}: node range must be ${NODE_RANGE}, got ${JSON.stringify(nodeRange)}.`)
     }
     if (!isPlatform(platform)) {
       throw new Error(`build-exe-for-python-sdk: target ${JSON.stringify(spec)}: platform must be one of ${PLATFORMS.join(', ')}, got ${JSON.stringify(platform)}.`)
@@ -125,7 +136,7 @@ class Target {
     if (platform === 'win' && arch !== 'x64') {
       throw new Error(`build-exe-for-python-sdk: target ${JSON.stringify(spec)}: Windows supports x64 only.`)
     }
-    return new Target(nodeRange, platform, arch)
+    return new Target(platform, arch)
   }
 
   /**
@@ -150,7 +161,7 @@ class Target {
     if (platform === 'win' && arch !== 'x64') {
       throw new Error('build-exe-for-python-sdk: Windows supports x64 only; use an x64 Node process.')
     }
-    return new Target(DEFAULT_NODE_RANGE, platform, arch)
+    return new Target(platform, arch)
   }
 }
 
@@ -244,7 +255,7 @@ class BuildCli {
       'Usage: pnpm exec tsx scripts/build-exe-for-python-sdk.ts [flags]',
       '',
       '  --targets=<t1,t2,...>  pkg targets, e.g. node24-linux-x64,node24-linux-arm64,node24-macos-arm64,node24-macos-x64,node24-win-x64.',
-      '                         Default: the host platform only (on node24).',
+      `                         Default: the host platform only. Every executable embeds Node ${NODE_VERSION}.`,
       '  --skip-build           skip `pnpm run build` (lib/ artifacts must already exist).',
       '  --build-artifacts      run `pnpm run build:artifacts` instead, omitting the aggregate test and script typechecks.',
       '  --compress=<type>      pkg archive compression: None | GZip | Brotli | Zstd. Default: Brotli (smallest, slowest).',
@@ -342,6 +353,7 @@ class SingleExeBuild {
     const sourceModules = join(root, 'node_modules').replaceAll('\\', '/')
     const patch = { bin: ENTRY_BIN, pkg: { assets: ASSET_GLOBS, ignore: [
       ...OFFICE_ASSET_IGNORES,
+      ...PUBLISHED_PAYLOAD_IGNORES,
       `${sourceModules}/**`, `${sourceModules}/.pnpm/**`,
       ...['packages', 'apps', 'vendor', 'native', 'scripts'].map(directory => `${join(root, directory).replaceAll('\\', '/')}/**`),
       `${root.replaceAll('\\', '/')}/tsconfig*.json`,
@@ -394,7 +406,7 @@ class SingleExeBuild {
     await this.prepareNativePty(target)
     const platform = target.platform === 'macos' ? 'darwin' : target.platform === 'win' ? 'win32' : target.platform
     if (!this.cli.dryRun) await mkdir(this.outDir, { recursive: true })
-    await this.runPnpm(`pkg ${target.spec}`, [
+    await this.runPnpm(`pkg ${target.pkgSpec}`, [
       'exec',
       'pkg',
       this.staging,
@@ -402,7 +414,7 @@ class SingleExeBuild {
       '--compress',
       this.cli.compress,
       '--targets',
-      target.spec,
+      target.pkgSpec,
       '--output',
       product,
     ])
@@ -412,7 +424,7 @@ class SingleExeBuild {
     const ripgrep = await this.copyRipgrepSidecar(target, product)
     const resources = join(this.outDir, `${target.platform}-${target.arch}`)
     if (this.cli.dryRun) {
-      console.log(`build-exe-for-python-sdk: [dry-run] lock optional resource downloads and copy Office skills to ${resources}`)
+      console.log(`build-exe-for-python-sdk: [dry-run] lock optional resource downloads in ${resources}`)
     } else {
       await rm(resources, { recursive: true, force: true })
       await mkdir(resources, { recursive: true })
@@ -422,7 +434,6 @@ class SingleExeBuild {
       const inputs = { version, target: `${target.platform === 'macos' ? 'mac' : target.platform}-${target.arch}`, office, pnpm }
       const identity = createHash('sha256').update(JSON.stringify({ ...inputs, primaryLock })).digest('hex')
       await writeFile(join(resources, 'downloads.json'), JSON.stringify({ ...inputs, identity }, undefined, 2) + '\n')
-      await prepareOfficeSkillAssets(join(this.staging, 'node_modules/@deepseek-ai/dsh-skill-office/assets'), join(resources, 'office-skills'))
     }
     if (target.platform !== 'macos') return [product, ripgrep, resources]
     const spawnHelper = `${product}-spawn-helper`

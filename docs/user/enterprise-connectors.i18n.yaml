@@ -2,27 +2,18 @@
 # section, a hash of its English and Chinese blocks outside code blocks and generated regions.
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/user/enterprise-connectors.md
-/feishu-and-wecom-in-independent-dh:
-  en: 45b6ba96fb2a6055
-  zh: 450fa8714c8d5f3f
-/feishu-and-wecom-in-independent-dh/start-and-configure:
-  en: dd0fe5af6a6f2094
-  zh: 7ee392e067d12f14
-/feishu-and-wecom-in-independent-dh/connect-feishu:
-  en: 25eb3621b554d4ae
-  zh: 20bcad3f875eb7d1
-/feishu-and-wecom-in-independent-dh/authorize-your-feishu-account:
-  en: efab16a36393bea7
-  zh: 4ae9ba29adaca6d0
-/feishu-and-wecom-in-independent-dh/connect-enterprise-wechat:
-  en: 4d1ef4089f1962ad
-  zh: a341a7b5865b27a8
-/feishu-and-wecom-in-independent-dh/connect-office-access-by-qr-code:
-  en: 33dee37f9ed63271
-  zh: c12bb2153df7a3f6
-/feishu-and-wecom-in-independent-dh/execution-and-troubleshooting:
-  en: 860d2513b39cc7b6
-  zh: becd1c67937998a2
-/feishu-and-wecom-in-independent-dh/open-source-basis:
-  en: aa74dddfabbd5a7c
-  zh: 3711e06791ea2c86
+/:
+  en: e441bd68b60ce488
+  zh: 368265978259c2f2
+/feishu-and-wecom:
+  en: 6eeb9d35a2f91268
+  zh: 3603719b3d7cfe9f
+/feishu-and-wecom/install-and-authorize:
+  en: e80fb347c6a69f20
+  zh: db36f7ccdeeb653c
+/feishu-and-wecom/run-a-wecom-workflow:
+  en: 0e22066f30d06a40
+  zh: 87d58ad75c849594
+/feishu-and-wecom/upgrade-an-existing-profile:
+  en: 3b7c02a893ae3b1a
+  zh: c981d92359f57698

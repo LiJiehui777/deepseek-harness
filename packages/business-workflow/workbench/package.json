@@ -83,7 +83,9 @@
     "@deepseek-ai/dsh-tools": "workspace:*",
     "@deepseek-ai/dsh-api-remotes": "workspace:*",
     "@deepseek-ai/dsh-storage-domain": "workspace:*",
+    "@deepseek-ai/dsh-wecom": "workspace:*",
     "@deepseek-ai/dsh-session-query": "workspace:*",
+    "@deepseek-ai/dsh-session-projection": "workspace:*",
     "@deepseek-ai/dsh-system-prompt": "workspace:*",
     "@deepseek-ai/dsh-client-ui-conversation": "workspace:*",
     "@deepseek-ai/dsh-client-ui-session": "workspace:*",
@@ -94,8 +96,10 @@
     "lib/client.js",
     "lib/types/**/*.d.ts",
     "lib/typert.host.js",
+    "lib/typert.host.d.ts.map",
     "lib/typert.host.d.ts",
     "lib/typert.remote-client.js",
+    "lib/typert.remote-client.d.ts.map",
     "lib/typert.remote-client.d.ts"
   ],
   "dependencies": {

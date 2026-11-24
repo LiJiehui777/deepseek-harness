@@ -19,7 +19,7 @@ export interface ChannelPluginsPanelInjected {
   hostOrigin: string
 }
 /** Props bound by the native Plugins-settings tab renderer. */
-export type ChannelPluginsPanelProps = PropsRuntime<'settings.plugins.tab'>
+export type ChannelPluginsPanelProps = PropsRuntime<'plugins.item'>
   & PropsLocale<typeof NS> & InjectFace<ChannelPluginsPanelInjected>
 
 function statuses(value: unknown): Status[] | undefined {

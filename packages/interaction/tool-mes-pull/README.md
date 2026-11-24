@@ -1,6 +1,6 @@
 ---
 description: "The pull stage of the MES pipeline: reads one order's data by key through the queries/*.sql definitions, builds the exact downstream message at pull time, and writes it into the shared review pool. Read-only; never pushes."
-kind: "package-reference"
+kind: "package-bundle"
 ---
 
 # @deepseek-ai/dsh-tool-mes-pull
@@ -25,7 +25,7 @@ English | [中文](README.zh.md)
 <a id="use-this-package"></a>
 ## Use this package
 
-Mount this plugin beside the [PostgreSQL connector](../tool-postgres-connector/README.md) it reads through and the [review gate](../tool-review-gate/README.md) that reads what it writes. The common path is one call with a key: `mes_pull_by_key` runs every configured module, builds each message, and pools the rows.
+Mount this plugin beside the [PostgreSQL connector](../tool-postgres-connector/README.md) it reads through. The common path is one call with a key: `mes_pull_by_key` runs every configured module, builds each message, and pools the rows.
 
 ### When to choose it
 
@@ -89,8 +89,6 @@ Building the message here rather than in the delivery stage is what makes review
 
 - [Detailed pull contract](docs/DETAIL.md) — the module table, query directives, and failure semantics.
 - [PostgreSQL connector](../tool-postgres-connector/README.md) — the read-only source `ctx.postgres` resolves to.
-- [Review gate](../tool-review-gate/README.md) — the stage that screens and decides what was pulled.
-- [Pipeline contract](../tool-review-gate/CONTRACT.md) — the tables and statuses shared across all three stages.
 - [Interaction group map](../README.md) — the neighbouring pipeline and human-interaction packages.
 
 -----

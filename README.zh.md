@@ -16,7 +16,7 @@ DH 可以在 Windows 原生环境或 WSL 2 中运行，WSL 2 是可选项，已�
 
 | 组件 | 要求 | 什么时候需要 |
 |---|---|---|
-| Node.js | **24.9.0 或更高**；建议使用 24.x 系列 | DH 运行与构建 |
+| Node.js | **24.22.3 或更高**；建议使用 24.x 系列 | DH 运行与构建 |
 | pnpm | **11.28.5**，以 `package.json` 固定版本为准 | 安装依赖与运行命令 |
 | Git | 2.26 或更高 | 拉取代码和开发钩子 |
 | 原生构建工具 | C/C++ 编译器、`make` 及 Node 开发头文件；macOS 使用 Xcode Command Line Tools | 源码构建与原生依赖 |
@@ -76,15 +76,14 @@ if [ ! -d "$DSH_ENHANCED_HOME/profiles/enhanced" ]; then
 fi
 ```
 
-首次启动前，打开 `.local/enhanced-home/profiles/enhanced/package.json`（自定义目录时使用对应位置）。Web 模板只有下面前两项，请在 `dsh.profile.bundles` 中追加后三个增强版包，使新配置包含以下列表。保留文件中的其他字段；已有部署还要保留自己已使用的其他包。
+首次启动前，打开 `.local/enhanced-home/profiles/enhanced/package.json`（自定义目录时使用对应位置）。Web 模板只有下面前两项，请在 `dsh.profile.bundles` 中追加后两个增强版包，使新配置包含以下列表。保留文件中的其他字段；已有部署还要保留自己已使用的其他包。
 
 ```json
 [
   "@deepseek-ai/dsh-base",
   "@deepseek-ai/dsh-web-app",
   "@deepseek-ai/dsh-plugin-management",
-  "@deepseek-ai/dsh-tool-ragflow-connector",
-  "@deepseek-ai/dsh-enterprise-connectors"
+  "@deepseek-ai/dsh-tool-ragflow-connector"
 ]
 ```
 
@@ -127,7 +126,7 @@ DH 监听 `http://127.0.0.1:3001/`。首次访问请打开终端打印的完整�
 
 在「插件」页配置增强版已加载的连接器。使用 MES 时，在第 3 步的 `dsh.profile.bundles` 中追加 `@deepseek-ai/dsh-tool-postgres-connector`，保留其他条目，再重启 DH。
 
-- [飞书与企业微信](docs/user/enterprise-connectors.zh.md)：分别配置账号，以及资源和消息来源权限。
+- [飞书与企业微信](docs/user/enterprise-connectors.zh.md)：安装官方插件，并分别完成 CLI 账号授权。
 - [RAGFlow](docs/user/ragflow-connector.zh.md)：准备单独运行的服务、API Key 和需要检索的知识库。
 - 打开「插件 → MES 连接器」，填写 PostgreSQL 主机、端口、数据库名、只读账号和密码。勾选「启用此连接」并保存。首次验证可在普通聊天发送「用 MES 连接器列出可访问的 schema，只返回名称」。数据库须能从运行 DH 的机器访问。
 

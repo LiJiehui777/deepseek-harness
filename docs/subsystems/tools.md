@@ -455,7 +455,7 @@ interface ToolDispatchExecution extends Omit<ToolExecution, 'signal'> {
 
 `ToolExecutionToken` is an opaque runtime `Symbol` used only for identity comparison. Before policy, `execute()` materializes and freezes arguments, rejects non-JSON input, and assigns the token. Identity fields, the required caller signal, and the optional parent token remain readonly. A `ToolDispatchExecution` wrapper may replace but not remove the signal; the registry re-fuses the caller signal before invoking the body. Final observers receive the frozen execution identity.
 
-A `ToolGuard` is scope-aware final pre-dispatch policy. Its return type deliberately has no allow result: `undefined` preserves the waterfall decision, while a returned reason can only reduce permission, so a later listener cannot undo it.
+A `ToolGuard` is scope-aware final pre-dispatch policy. Its return type deliberately has no allow result: `undefined` preserves the waterfall decision, while a returned reason or `ToolGuardDenial` can only reduce permission, so a later listener cannot undo it. A denial's optional `info` becomes the failed result's structured error identity.
 
 ```ts type-equiv
 /**
@@ -464,9 +464,19 @@ A `ToolGuard` is scope-aware final pre-dispatch policy. Its return type delibera
  * returning `undefined` leaves it unchanged. Because guards have no allow
  * result, listener ordering cannot turn a denial back into permission.
  * @param execution - the identity-protected call after extensible pre-execute policy completed.
- * @returns a final denial reason, or `undefined` to leave the call allowed.
+ * @returns a final denial reason, a denial with structured error identity, or `undefined` to leave the call allowed.
  */
-type ToolGuard = (execution: Readonly<ToolExecution>) => string | undefined
+type ToolGuard = (execution: Readonly<ToolExecution>) => string | ToolGuardDenial | undefined
+```
+
+```ts type-equiv
+/** A guard denial: the model-facing reason and optional structured error identity recorded on the result. */
+interface ToolGuardDenial {
+  /** Model-facing reason rendered as the failed call's content. */
+  readonly reason: string
+  /** Structured error identity persisted beside the reason. */
+  readonly info?: ToolErrorInfo
+}
 ```
 
 ```ts type-equiv
@@ -522,7 +532,7 @@ interface ToolErrorInfo {
 }
 ```
 
-The result carries only the outcome. Call identity remains on the immutable `ToolExecution` that accompanies it through every hook and on the durable `tool/call` / `tool/result` session events, so wrappers cannot create a second, disagreeing identity. The canonical `value` is execution-local: the loop persists only `content`, `error`, and `meta`, while `tool/ptc-dispatch` stores the sub-call's rendered `content`, `isError`, optional structured `error`, and presentation `meta`. Replay reproduces presentation but cannot reconstruct canonical intermediate values. Optional `ToolErrorInfo.reason` retains raw user-facing detail without adding it to model-facing content.
+The result carries only the outcome. Call identity remains on the immutable `ToolExecution` that accompanies it through every hook and on the durable `tool/call` / `tool/result` session events, so wrappers cannot create a second, disagreeing identity. The canonical `value` is execution-local: the loop persists only `content`, `error`, and `meta`, while `tool/ptc-dispatch` stores the sub-call's rendered `content`, `isError`, optional structured `error`, and presentation `meta`. Replay reproduces presentation but cannot reconstruct canonical intermediate values. Optional `ToolErrorInfo.reason` retains raw user-facing detail without adding it to model-facing content. The registry sets `info` from a thrown `HarnessError` (its `name` and `code`), from a pre-execute `deny` that supplies it, and on its own cancellation results (`AbortError` with `ABORTED` or `ABORTED_BEFORE_DISPATCH`); when a started body throws the signal's reason or an `Error` named `AbortError` after cancellation, the result keeps that message and carries `AbortError` with `ABORTED`, and a `tools/execute` wrapper that throws such a value after caller cancellation gets the same identity, with `ABORTED_BEFORE_DISPATCH` when the body never started; a `tools/execute` wrapper may also return a result with `info`, such as the timeout policy's `TOOL_TIMEOUT`. An `ask` that approval does not grant becomes a denial with the name `ApprovalError`, which identifies the registry's denial and is not a thrown class, and `APPROVAL_REJECTED`, `APPROVAL_CANCELLED`, or `APPROVAL_UNAVAILABLE`. A guard denial or post-execute block carries `info` only when it supplies one; any other thrown value produces an `error` without `info`.
 
 On success the registry snapshots and validates the body value, freezes it, and invokes the pure renderer plus the optional presentation metadata projector for native and nested calls. It separately materializes the durable presentation fields immediately before `tools/result`; an invalid value, renderer/projector failure, or non-JSON presentation becomes a JSON-safe `isError`. The final live observer therefore sees the exact execution-local value beside fields safe for the later durable append.
 
@@ -550,17 +560,18 @@ type PreToolDecision =
 ```ts type-equiv
 /**
  * Post-dispatch decision: accept, replace one projection, attach context for the
- * next request, or block by turning corrective feedback into an error result.
+ * next request, or block by turning corrective feedback into an error result
+ * whose optional `info` is its structured error identity.
  */
 type PostToolDecision =
   | { kind: 'accept'; content?: ContentBlock[]; value?: never; additionalContexts?: UserMessage[] }
   | { kind: 'accept'; value: JsonValue; content?: never; additionalContexts?: UserMessage[] }
-  | { kind: 'block'; feedback: ContentBlock[]; additionalContexts?: UserMessage[] }
+  | { kind: 'block'; feedback: ContentBlock[]; info?: ToolErrorInfo; additionalContexts?: UserMessage[] }
 ```
 
 Call `next()` for the default or return a decision to short-circuit. Pre-policy may deny or ask; only `allowed-once` proceeds, while a non-grant, missing approval channel or service, or agent-less request becomes a denial. A deny may attach structured identity and user-facing detail without changing its model-facing reason. Guards may still impose a final denial. Arguments cannot be rewritten because history, audit, UI, and execution must agree.
 
-Post-policy may replace either content or value, never both. Content replacement preserves the canonical value and existing metadata; value replacement is revalidated and recomputes content/metadata; a block removes the value and becomes an `isError` containing corrective feedback. Content replacement is presentation policy, not confidentiality policy: a listener that must hide the programmatic value blocks or replaces it. `tools/result` receives the frozen execution and result after normalization; observers cannot transform them, and observer failures are contained. Unknown and throwing tools both become structured errors (`ToolNotFoundError` maps to `UNKNOWN_TOOL`), so the call fails without ending the turn.
+Post-policy may replace either content or value, never both. Content replacement preserves the canonical value and existing metadata; value replacement is revalidated and recomputes content/metadata; a block removes the value and becomes an `isError` containing corrective feedback. Content replacement is presentation policy, not confidentiality policy: a listener that must hide the programmatic value blocks or replaces it. `tools/result` receives the frozen execution and result after normalization; observers cannot transform them, and observer failures are contained. Unknown and throwing tools both become structured errors (`ToolNotFoundError` maps to `UNKNOWN_TOOL`), so the call fails without ending the turn. A tool body whose composition or call lacks a required Agent, service, or open turn throws `ToolContextUnavailableError` (`TOOL_CONTEXT_UNAVAILABLE`).
 
 ## The enforced raw JSON Schema subset
 
@@ -634,73 +645,109 @@ The full presentation field docs live in [`packages/core/tools/src/presentation.
 
 Generated from source by `scripts/gen-cordis-catalog.ts` (verified fresh by `pnpm run verify-cordis-catalog` in doc-sync; regenerate with `pnpm run gen-cordis-catalog`) — the language sides differ only in locale-specific paired document paths. Signature blocks use a `ts cordis-catalog` fence and keep the original source JSDoc; dispatch modes are defined in the [primer](../cordis-primer.md#dispatch-modes), and the framework-inherited `ctx` API lives in [cordis-api/inherited.md](../cordis-api/inherited.md).
 
-<a id="ctxenterpriseconnectors--enterpriseconnectors"></a>
+<a id="ctxmespull--mespullservice"></a>
 
-### `ctx.enterpriseConnectors` — `EnterpriseConnectors`
+### `ctx.mesPull` — `MesPullService`
 
-Native tools, live account sections, and redacted connection status.
+The pull stage, shared through the Cordis context as `ctx.mesPull`.
 
 ```ts cordis-catalog
 /**
- * Read current authentication state and last received sender/chat IDs.
- * @returns detached, credential-free status for both accounts.
+ * Report whether a pull could run now.
+ * @returns readiness and the reason when it is not ready.
  */
-@Remote status(): EnterpriseConnectionStatus[]
+async health(): Promise<PullHealth>
 
 /**
- * Re-read saved account credentials and await its bounded authentication attempt.
- * @param channel - the account to reconnect; unsaved browser drafts are never used.
- * @returns credential-free status after the authentication attempt.
+ * List the configured query modules.
+ * @returns the definitions, freshly read from disk.
  */
-@Remote async reconnect(channel: EnterpriseChannel): Promise<EnterpriseConnectionStatus[]>
+async listQueries(): Promise<QueryDefinition[]>
 
 /**
- * Describe the saved user grant without exposing tokens.
- * @returns credential-free OAuth state and exact callback URI.
+ * Pull one key's data across modules and pool it for review.
+ * @param options - key, module selection, and whether to persist.
+ * @returns the per-module summary and pool counts.
+ * @throws Error when pulls are disabled, the connector is absent, or the key is empty.
  */
-@Remote async feishuAuthorization(): Promise<FeishuAuthorizationStatus>
+async pull(options: PullOptions): Promise<PullResult>
 
 /**
- * Begin user consent using the saved account, scopes and callback URI.
- * @returns an authenticated local browser start URL.
+ * Read the items one batch wrote.
+ * @param batchId - batch id returned by {@link pull}.
+ * @param module - restrict to one module.
+ * @param limit - maximum rows.
+ * @returns the pooled items.
  */
-@Remote async authorizeFeishu(): Promise<string>
-
-/** Remove the saved user grant from this DH home. Feishu consent is managed separately. */
-@Remote async revokeFeishu(): Promise<void>
-
-/**
- * Read office metadata and a pending private QR image.
- * @returns current credential-free office status.
- */
-@Remote async wecomOfficeStatus(): Promise<WecomOfficeStatus>
+async readBatch(batchId: string, module?: string, limit: number = 200): Promise<PooledItem[]>
 
 /**
- * Start one office QR binding.
- * @returns pending office status; subsequent reads expose the QR image.
+ * List recent batches, newest first.
+ * @param limit - maximum rows.
+ * @returns the batch rows.
  */
-@Remote async authorizeWecomOffice(): Promise<WecomOfficeStatus>
+async listBatches(limit: number = 20): Promise<Array<Record<string, unknown>>>
 
-/**
- * Cancel pending office consent and await cleanup.
- * @returns saved account status.
- */
-@Remote async cancelWecomOffice(): Promise<WecomOfficeStatus>
-
-/**
- * Inspect the saved account and read interfaces.
- * @returns independent capability discovery results.
- */
-@Remote async checkWecomOffice(): Promise<WecomOfficeStatus>
-
-/**
- * Stop office access and remove its local binding.
- * @returns disconnected office status.
- */
-@Remote async disconnectWecomOffice(): Promise<WecomOfficeStatus>
+/** Release the pool handle. */
+dispose(): void
 ```
 
-Source: [`packages/interaction/enterprise-connectors/src/index.ts`](../../packages/interaction/enterprise-connectors/src/index.ts)
+Source: [`packages/interaction/tool-mes-pull/src/service.ts`](../../packages/interaction/tool-mes-pull/src/service.ts)
+
+<a id="ctxpostgres--postgresconnector"></a>
+
+### `ctx.postgres` — `PostgresConnector`
+
+Read-only PostgreSQL access exposed as a Cordis service.
+
+Consumers call the methods directly. The service owns one gateway and the connection settings snapshot, resolves the credential per call, and refuses every read while the account is disabled.
+
+```ts cordis-catalog
+/**
+ * Replace the connection settings; the next call rebuilds the pool.
+ * @param next - validated settings snapshot.
+ */
+reconfigure(next: Config): void
+
+/**
+ * Report whether the connector can currently reach the database.
+ * @returns connection state with a sanitized failure reason when unreachable.
+ */
+async testConnection(): Promise<{ ok: boolean; message: string }>
+
+/**
+ * List schemas visible to the configured role.
+ * @returns schemas excluding PostgreSQL's internal catalogs.
+ */
+async listSchemas(): Promise<PostgresSchema[]>
+
+/**
+ * List relations in one schema.
+ * @param schema - schema name.
+ * @param page - one-based page number.
+ * @param pageSize - relations per page.
+ * @returns one page of relation metadata.
+ */
+async listTables( schema: string, page: number = 1, pageSize: number = 50, ): Promise<{ tables: PostgresTable[]; page: number; hasMore: boolean }>
+
+/**
+ * Describe one relation.
+ * @param schema - schema name.
+ * @param table - relation name.
+ * @returns columns, defaults, comments and primary key.
+ */
+async describeTable(schema: string, table: string): Promise<PostgresTableDetail>
+
+/**
+ * Run one read-only statement with a bounded result.
+ * @param sql - a single SELECT (or WITH ... SELECT) statement.
+ * @param limit - caller row limit, capped by the configured maximum.
+ * @returns rows, column names, and explicit truncation state.
+ */
+async query(sql: string, limit?: number): Promise<PostgresQueryResult>
+```
+
+Source: [`packages/interaction/tool-postgres-connector/src/index.ts`](../../packages/interaction/tool-postgres-connector/src/index.ts)
 
 <a id="ctxragflowcatalog--ragflowcatalogcontroller"></a>
 
@@ -797,6 +844,7 @@ schemas(scope?: ScopeKey, toolSet?: ResolvedToolSet): ToolSchema[]
 /**
  * Provide the executor for the calling scope; an unscoped contribution is the deployment default.
  * Rendering any executor-owned section requires the viewing scope's selection to remain available.
+ * Disposal retires its sections; a replacement's same-name sections supersede those notices.
  * @param executor - initialized provider owned by the contributing plugin.
  * @returns the effect disposer. Unloading leaves the selection unavailable until it is replaced.
  */
@@ -820,9 +868,9 @@ guard(guard: ToolGuard): () => void
 /**
  * Check global and inherited guards after pre-execute policy and approval resolve.
  * @param exec - invocation whose guards are checked before dispatch.
- * @returns the first denial reason, or undefined when no guard denies.
+ * @returns the first denial with its optional structured identity, or undefined when no guard denies.
  */
-checkGuards(exec: ToolExecution): string | undefined
+checkGuards(exec: ToolExecution): ToolGuardDenial | undefined
 ```
 
 Types: [ScopeKey](scope.md)

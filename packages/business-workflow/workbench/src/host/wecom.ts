@@ -1,41 +1,51 @@
-/** Reuse the existing WeCom executor for one engine-owned read; no model runs here. */
-import { NativeToolExecutor } from '@deepseek-ai/dsh-tool-executor-native'
+/** Normalize the official WeCom CLI page into the saved workflow action's result. */
 import type { Context } from '@deepseek-ai/cordis'
-import { brandString } from '@deepseek-ai/dsh-brand'
-import type { ToolCallId } from '@deepseek-ai/dsh-llm'
-import type { SessionId } from '@deepseek-ai/dsh-session'
-import type {} from '@deepseek-ai/dsh-agent'
-import type {} from '@deepseek-ai/dsh-tools'
+import type {} from '@deepseek-ai/dsh-wecom'
+import { object } from './flowable.ts'
 
-const tool = 'wecom_office_list_todos'
-const query = { page_size: 10, status_filter: ['proceed'] }
+const query = { page_size: 10, status_filter: ['proceed'] } as const
+const maximumResultBytes = 64 * 1024
+const fields = ['todo_id', 'title', 'description', 'status', 'user_status', 'success'] as const
+
+function pick(row: Record<string, unknown>, keys: readonly string[]) {
+  return Object.fromEntries(keys.flatMap((key) => {
+    const value = row[key]
+    return typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean' ? [[key, value]] : []
+  }))
+}
 
 /**
- * Read the first page of pending todos through saved office permissions.
- * @param ctx - local workflow owner.
- * @param sessionId - engine-persisted attempt identity.
+ * Run the official connector's one-page pending-todo read.
+ * @param ctx - workflow Host with the optional official WeCom plugin.
  * @param signal - current job lifetime.
- * @returns bounded connector reference data, including pagination facts.
+ * @returns the existing action's bounded reference data and pagination fields.
  */
-export async function readWecomTodos(ctx: Context, sessionId: string, signal: AbortSignal) {
-  if (!ctx.tools.get(tool)) throw new Error('WECOM_TODOS_UNAVAILABLE')
-  const handle = await ctx.agents.create({ sessionId: brandString<SessionId>(sessionId), signal,
-    meta: { cwd: process.cwd() },
-    setup: (scope) => {
-      scope.tools.setExecutor(new NativeToolExecutor(scope))
-      scope.tools.restrict({ allow: [tool] })
-      scope.tools.guard(exec => exec.name === tool && JSON.stringify(exec.arguments) === JSON.stringify(query)
-        ? undefined : 'This workflow action permits only its configured read of pending WeCom todos.')
-    },
-  })
+export async function readWecomTodos(ctx: Context, signal: AbortSignal) {
+  const read = ctx.get('wecomPendingTodos')
+  if (!read) throw new Error('WECOM_TODOS_UNAVAILABLE')
+  const output = await read(query.page_size, signal)
+  signal.throwIfAborted()
   try {
-    const batch = await handle.agent.ctx.tools.execute({ agent: handle.agent, calls: [{ type: 'tool-call', name: tool, arguments: JSON.stringify(query),
-      id: brandString<ToolCallId>(`workflow-${sessionId}`) }], signal })
-    const result = batch.results[0]?.result
-    signal.throwIfAborted()
-    if (!result || result.isError || typeof result.value !== 'string') throw new Error('WECOM_TODOS_READ_FAILED')
-    const data: unknown = JSON.parse(result.value)
-    await ctx.sessions.flush(handle.agent.session)
-    return { result: data, query }
-  } finally { await handle.dispose() }
+    const decoded: unknown = JSON.parse(output)
+    const page = object(decoded)
+    if ((page.errcode !== undefined && page.errcode !== 0) || page.error || !Array.isArray(page.items)) {
+      throw new Error('WECOM_TODOS_INVALID_RESULT')
+    }
+    const rows = page.items as unknown[]
+    const items = rows.slice(0, query.page_size).map((value) => {
+      const row = object(value)
+      if (typeof row.todo_id !== 'string' || row.todo_id === '') throw new Error('WECOM_TODOS_INVALID_RESULT')
+      const deadline = row.deadline
+      return { ...pick(row, fields), ...(deadline ? { deadline: pick(object(deadline), ['type', 'value']) } : {}) }
+    })
+    const result = { items, has_more: page.has_more === true, next_cursor: typeof page.next_cursor === 'string' ? page.next_cursor.slice(0, 1024) : '',
+      truncated: rows.length > query.page_size, reference_only: true }
+    while (Buffer.byteLength(JSON.stringify(result)) > maximumResultBytes) {
+      result.items.pop()
+      result.truncated = true
+    }
+    return { query, result }
+  } catch {
+    throw new Error('WECOM_TODOS_INVALID_RESULT')
+  }
 }

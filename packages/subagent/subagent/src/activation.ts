@@ -15,6 +15,11 @@ import type { SubagentResult, SubagentRun, SubagentRunId } from './types.ts'
 export class ActivationPool {
   private readonly slots = new Set<symbol>()
 
+  /** Slots reserved by starting, resident, or stopping children. */
+  get size(): number {
+    return this.slots.size
+  }
+
   /**
    * Reserve before reconstruction; release also tolerates unpublished rollback.
    * @param capacity - the maximum simultaneous activations in this pool.
@@ -51,6 +56,8 @@ interface ActivationBase {
   readonly root: Agent
   /** Verified creation ancestors, from subagent tree root to direct creator. */
   readonly ancestors: readonly SessionId[]
+  /** Slash-separated names from the root; undefined when this child or a creator below the root has no name. */
+  readonly path: string | undefined
   readonly delivery: 'parent' | 'caller'
   readonly result: PromiseWithResolvers<SubagentResult>
   /** Published synchronously before teardown; subsequent callers share this transaction. */

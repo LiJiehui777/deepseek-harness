@@ -4,6 +4,7 @@ import { executeOne } from './execute.ts'
 import { Context } from '@deepseek-ai/cordis'
 import { brandString } from '@deepseek-ai/dsh-brand'
 import type { ToolCallId } from '@deepseek-ai/dsh-llm'
+import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
 import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
 import Tools from '@deepseek-ai/dsh-tools'
 import { expect, it, vi } from 'vitest'
@@ -17,6 +18,7 @@ it('pins model-visible schemas, rejects missing identity and unknown fields, and
   const ctx = new Context()
   const invoked = vi.fn(() => Promise.reject(new Error('operation must not be reached')))
   try {
+    await ctx.plugin(SessionProjectionRegistry)
     await ctx.plugin(SystemPrompt)
     await ctx.plugin(Tools)
     await ctx.plugin(NativeExecutor)
@@ -52,6 +54,7 @@ it('requires the manually selected version at the executor even without the prom
     completed: [], results: [], items: [] }
   const start = vi.fn(() => Promise.resolve(run))
   try {
+    await ctx.plugin(SessionProjectionRegistry)
     await ctx.plugin(SystemPrompt)
     await ctx.plugin(Tools)
     await ctx.plugin(NativeExecutor)

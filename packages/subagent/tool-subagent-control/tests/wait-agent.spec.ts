@@ -4,8 +4,10 @@ import { Context } from '@deepseek-ai/cordis'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import { agentCarrier, emitAgentEvent } from '@deepseek-ai/dsh-agent'
 import { mountAgentLoopTestDependencies, mountAgentLoopTestHarness } from '@deepseek-ai/dsh-agent-loop-testkit'
-import { createUserMessage, HarnessError, ToolCallId } from '@deepseek-ai/dsh-llm'
-import { SessionId } from '@deepseek-ai/dsh-session'
+import { brandString } from '@deepseek-ai/dsh-brand'
+import type { ToolCallId } from '@deepseek-ai/dsh-llm/types'
+import { createUserMessage, HarnessError } from '@deepseek-ai/dsh-llm'
+import type { SessionId } from '@deepseek-ai/dsh-session'
 import SubagentRuntime from '@deepseek-ai/dsh-subagent'
 import { renderContextSnapshot } from '@deepseek-ai/dsh-system-prompt'
 import * as control from '../src/index.ts'
@@ -24,8 +26,8 @@ async function setup() {
   const harness = await mountAgentLoopTestHarness(ctx)
   await ctx.plugin(SubagentRuntime)
   const fiber = await ctx.plugin(control)
-  const handle = await ctx.agents.create({ sessionId: SessionId('waiting') })
-  const other = await harness.create(SessionId('other'))
+  const handle = await ctx.agents.create({ sessionId: brandString<SessionId>('waiting') })
+  const other = await harness.create(brandString<SessionId>('other'))
   return { ctx, harness, fiber, handle, agent: handle.agent, other }
 }
 
@@ -34,7 +36,7 @@ function input(text = 'new input') {
 }
 
 /** Observe body admission through the real execution waterfall before triggering competing events. */
-async function startWait(ctx: Context, agent: Agent, args: unknown = {}, signal = new AbortController().signal) {
+async function startWait(ctx: Context, agent: Agent, args: unknown = {}, signal = new AbortController().signal, callId = 'wait', rootCallId = callId) {
   const entered = Promise.withResolvers<undefined>()
   const off = ctx.on('tools/execute', (exec, next) => {
     const result = next()
@@ -42,7 +44,7 @@ async function startWait(ctx: Context, agent: Agent, args: unknown = {}, signal 
     return result
   })
   const result = executeToolFixture(ctx, {
-    name: 'wait_agent', callId: ToolCallId('wait'), arguments: args, agent, signal,
+    name: 'wait_agent', callId: brandString<ToolCallId>(callId), rootCallId: brandString<ToolCallId>(rootCallId), arguments: args, agent, signal,
   })
   await entered.promise
   off()
@@ -55,7 +57,7 @@ describe('wait_agent', () => {
     const assembled = await ctx.systemPrompt.assemble({ agent, scope: agent })
     expect(assembled.sections.some(section => section.name === 'subagent:policy')).toBe(false)
     expect(assembled.contexts.some(context => context.name === 'team:identity')).toBe(false)
-    expect(renderContextSnapshot(assembled)).toContain(`You are the root agent. Your agent id is ${JSON.stringify(agent.id)}.`)
+    expect(renderContextSnapshot(assembled)).toContain('You are the root agent. Your name is "lead".')
     expect(renderContextSnapshot(assembled)).not.toContain('You are a subagent delegated by agent')
     expect(ctx.tools.get('wait_agent', agent)).toBeDefined()
     expect(JSON.stringify(ctx.tools.schemas(agent))).not.toMatch(/\b(?:Team|teammate|Lead)\b/)
@@ -75,6 +77,50 @@ describe('wait_agent', () => {
     await vi.advanceTimersByTimeAsync(10_000)
     expect(await later.result).toMatchObject({ isError: false, value: { timedOut: true } })
     expect(vi.getTimerCount()).toBe(0)
+  })
+
+  it('returns for reported pending input to a different model tool call', async () => {
+    const { ctx, agent } = await setup()
+    agent.inject(input('reported'))
+    expect(await (await startWait(ctx, agent)).result).toMatchObject({ isError: false, value: { timedOut: false } })
+    const next = await startWait(ctx, agent, {}, undefined, 'next-call')
+    expect(await next.result).toMatchObject({ isError: false, value: { timedOut: false } })
+  })
+
+  it('does not return again in one model tool call for pending input an earlier wait already reported', async () => {
+    const { ctx, agent } = await setup()
+    agent.inject(input('reported'))
+    expect(await (await startWait(ctx, agent, {}, undefined, 'code:ptc:1', 'code')).result).toMatchObject({ isError: false, value: { timedOut: false } })
+
+    vi.useFakeTimers()
+    const repeated = await startWait(ctx, agent, { timeout_ms: 10_000 }, undefined, 'code:ptc:2', 'code')
+    let returned = false
+    void repeated.result.then(() => { returned = true })
+    await vi.advanceTimersByTimeAsync(9_999)
+    expect(returned).toBe(false)
+    agent.inject(input('new'))
+    expect(await repeated.result).toMatchObject({ isError: false, value: { timedOut: false } })
+    expect(agent.inbox.nextStep).toHaveLength(2)
+    expect(vi.getTimerCount()).toBe(0)
+  })
+
+  it('returns to concurrent model calls when input is already pending', async () => {
+    const { ctx, agent } = await setup()
+    vi.useFakeTimers()
+    agent.inject(input('pending'))
+    const waits = await Promise.all([
+      startWait(ctx, agent, {}, undefined, 'first'),
+      startWait(ctx, agent, {}, undefined, 'second'),
+    ])
+    const results: unknown[] = []
+    for (const wait of waits) void wait.result.then((result) => { results.push(result) })
+    await vi.advanceTimersByTimeAsync(0)
+    expect(results).toEqual([
+      expect.objectContaining({ isError: false, value: { timedOut: false } }),
+      expect.objectContaining({ isError: false, value: { timedOut: false } }),
+    ])
+    expect(vi.getTimerCount()).toBe(0)
+    expect(agent.inbox.nextStep).toHaveLength(1)
   })
 
   it('wakes only for the caller next-step input, including while all other agents are idle', async () => {
@@ -224,7 +270,7 @@ describe('wait_agent', () => {
 
   it('reports agent disposal without claiming an inbox update', async () => {
     const { ctx, agent, handle } = await setup()
-    const unrelated = await ctx.agents.create({ sessionId: SessionId('unrelated') })
+    const unrelated = await ctx.agents.create({ sessionId: brandString<SessionId>('unrelated') })
     vi.useFakeTimers()
     const { result } = await startWait(ctx, agent)
     await unrelated.dispose()
@@ -250,7 +296,7 @@ describe('wait_agent', () => {
   it('rejects calls without a live calling agent', async () => {
     const { ctx, agent, handle } = await setup()
     const missing = await executeToolFixture(ctx, {
-      name: 'wait_agent', callId: ToolCallId('missing'), arguments: {}, signal: new AbortController().signal,
+      name: 'wait_agent', callId: brandString<ToolCallId>('missing'), arguments: {}, signal: new AbortController().signal,
     })
     expect(missing).toMatchObject({ isError: true, error: { info: { code: 'WAIT_UNAVAILABLE' } } })
     await handle.dispose()

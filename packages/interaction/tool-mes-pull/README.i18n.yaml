@@ -1,0 +1,73 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write packages/interaction/tool-mes-pull/README.md
+/:
+  en: 23c2d3bd59b487b9
+  zh: 2e7d6c566d9de408
+/deepseek-ai-dsh-tool-mes-pull:
+  en: e13716568c6f73a6
+  zh: c168c1486de6c81c
+/deepseek-ai-dsh-tool-mes-pull/summary:
+  en: 2f3254a86488797f
+  zh: 05853ca666c79a6c
+/deepseek-ai-dsh-tool-mes-pull/table-of-contents:
+  en: d152484eb41ac6b4
+  zh: 09388d293f9be9cb
+/deepseek-ai-dsh-tool-mes-pull/use-this-package:
+  en: f54cb7a15b269c38
+  zh: 7cdc4f7c16f929c0
+/deepseek-ai-dsh-tool-mes-pull/use-this-package/when-to-choose-it:
+  en: 2fa2b3e68b954da0
+  zh: 5204e0127e35ce55
+/deepseek-ai-dsh-tool-mes-pull/use-this-package/minimal-configuration:
+  en: c4bbddd04d076f4c
+  zh: afa28bce269846a3
+/deepseek-ai-dsh-tool-mes-pull/use-this-package/query-definitions:
+  en: 5daca8a2c9be60fb
+  zh: 997e4266acff2591
+/deepseek-ai-dsh-tool-mes-pull/use-this-package/what-reaches-the-pool:
+  en: 74bae05ef75fbc98
+  zh: 884ab09ec3a5e90e
+/deepseek-ai-dsh-tool-mes-pull/understand-the-implementation:
+  en: 05d656b108331616
+  zh: 36ba17d6e533c71b
+/deepseek-ai-dsh-tool-mes-pull/understand-the-implementation/source-map:
+  en: 7fcd05c5e627b892
+  zh: 2dd1d149f38609fe
+/deepseek-ai-dsh-tool-mes-pull/further-exploration:
+  en: 5fbc7b1be65da887
+  zh: a7483e815b694c39
+/deepseek-ai-dsh-tool-mes-pull/model-experience:
+  en: 215e7ba838619b7b
+  zh: a311da3843709f90
+/deepseek-ai-dsh-tool-mes-pull/model-experience/pull-tools:
+  en: 16e12b10032a6140
+  zh: f19e771791025baa
+/deepseek-ai-dsh-tool-mes-pull/model-experience/pull-tools/what-the-model-sees:
+  en: 9b6e9d8d63089596
+  zh: ffa145e958b39e83
+/deepseek-ai-dsh-tool-mes-pull/model-experience/pull-tools/token-effect:
+  en: 28d1177ff266ab3a
+  zh: 07d8d61ad4e930f9
+/deepseek-ai-dsh-tool-mes-pull/model-experience/pull-tools/kv-cache-effect:
+  en: 06f4255ed29de098
+  zh: 4c76bcbb43f3cbfc
+/deepseek-ai-dsh-tool-mes-pull/model-experience/tool-call-history-and-result:
+  en: 9717b983b6a857e3
+  zh: 611a2dadf7c0c706
+/deepseek-ai-dsh-tool-mes-pull/model-experience/tool-call-history-and-result/what-the-model-sees:
+  en: cad1c5c9a6232263
+  zh: 8eb1de55e3df5965
+/deepseek-ai-dsh-tool-mes-pull/model-experience/tool-call-history-and-result/token-effect:
+  en: ccb531c825c7ec63
+  zh: 0b50334b1e9c091e
+/deepseek-ai-dsh-tool-mes-pull/model-experience/tool-call-history-and-result/kv-cache-effect:
+  en: e9f5431e714b0d57
+  zh: 9f0d0a6d1c9032d2
+/deepseek-ai-dsh-tool-mes-pull/known-limitations-and-deferred-work:
+  en: 6604d516aeab4ff1
+  zh: beb8874d46fa0fd1
+/deepseek-ai-dsh-tool-mes-pull/known-limitations-and-deferred-work/dev-note:
+  en: a86e4796f02f05c0
+  zh: 691c6f8d68bb1034

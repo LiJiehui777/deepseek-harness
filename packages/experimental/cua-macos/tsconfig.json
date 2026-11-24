@@ -21,7 +21,7 @@
       "path": "../../subprocess/subprocess"
     },
     {
-      "path": "../../util/atomic-write"
+      "path": "../../llm/llm"
     }
   ]
 }

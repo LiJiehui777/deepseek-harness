@@ -7,7 +7,7 @@ import { captureStableAria, compareOrRefreshGolden, launchWebScaffold, watchCons
 import { ZH_BROWSER_LOCALE } from './support.ts'
 
 it('renders the ZTT identity, keeps sidebar navigation usable, and retains native connector settings', async () => {
-  const scaffold = await launchWebScaffold({ profile: { packages: ['enterprise-connectors', 'tool-ragflow-connector'].map(name => ({ dir: fileURLToPath(new URL('../../../packages/interaction/' + name, import.meta.url)), enabled: true })) }, extraOverlayPath: fileURLToPath(new URL('../../cli/config/examples/ztt/cordis.yml', import.meta.url)) })
+  const scaffold = await launchWebScaffold({ profile: { packages: ['tool-ragflow-connector'].map(name => ({ dir: fileURLToPath(new URL('../../../packages/interaction/' + name, import.meta.url)), enabled: true })) }, extraOverlayPath: fileURLToPath(new URL('../../cli/config/examples/ztt/cordis.yml', import.meta.url)) })
   const browser = await chromium.launch()
   try {
     const page = await browser.newPage({ viewport: { width: 1440, height: 960 }, locale: ZH_BROWSER_LOCALE })

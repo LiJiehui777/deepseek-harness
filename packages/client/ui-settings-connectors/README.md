@@ -1,5 +1,5 @@
 ---
-description: "Configure saved RAGFlow, Feishu and WeCom accounts in the native Plugins page."
+description: "Configure saved RAGFlow and MES accounts in the native Plugins page."
 kind: "package-reference"
 ---
 
@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-Open the Plugins page to select RAGFlow knowledge bases, authorize Feishu resource reads, or connect a WeCom office account. Account controls preserve staged edits until an explicit save; credentials remain write-only. Each page appears while its account configuration is available from the Host.
+Open the Plugins page to select RAGFlow knowledge bases or configure the MES database connection. Account controls preserve staged edits until an explicit save; credentials remain write-only. Each page appears while its account configuration is available from the Host.
 
 ## Table of Contents
 
@@ -25,7 +25,7 @@ Open the Plugins page to select RAGFlow knowledge bases, authorize Feishu resour
 <a id="use-this-package"></a>
 ## Use this package
 
-The [ZTT overlay](../../../apps/cli/config/examples/ztt/cordis.yml) enables this companion. Account permissions, authorization and resource scopes remain owned by the [enterprise connectors](../../interaction/enterprise-connectors/README.md) and [RAGFlow connector](../../interaction/tool-ragflow-connector/README.md). Opening a page does not grant permissions or start authorization. Save endpoint and credential changes before loading the knowledge-base directory; loading names does not change the retrieval allowlist.
+The [ZTT overlay](../../../apps/cli/config/examples/ztt/cordis.yml) enables this companion. The [MES connector](../../interaction/tool-postgres-connector/README.md) and [RAGFlow connector](../../interaction/tool-ragflow-connector/README.md) own their connection settings and data access. Save endpoint and credential changes before loading the knowledge-base directory; loading names does not change the retrieval allowlist.
 
 -----
 

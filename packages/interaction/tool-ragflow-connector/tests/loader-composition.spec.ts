@@ -10,6 +10,7 @@ import { Context } from '@deepseek-ai/cordis'
 import Loader from '@deepseek-ai/cordis-plugin-loader'
 import Include from '@deepseek-ai/cordis-plugin-include'
 import AgentRegistry from '@deepseek-ai/dsh-agent'
+import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
 import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
 import Tools from '@deepseek-ai/dsh-tools'
 import { credentialRef } from '@deepseek-ai/dsh-credentials'
@@ -61,7 +62,7 @@ async function boot(loader = false, overrides: Partial<Connector.Config> = {}): 
     await ctx.plugin(Loader)
     ctx.loader.builtins.include = Include
     const credentials = { apply(context: Context) { context.plugin(MemoryCredentials, { RAGFLOW_API_KEY: 'test-private-key' }) } }
-    const modules = new Map<string, unknown>([['@deepseek-ai/dsh-agent', AgentRegistry], ['@deepseek-ai/dsh-system-prompt', SystemPrompt], ['@deepseek-ai/dsh-tools', Tools], ['@deepseek-ai/dsh-tool-executor-native', NativeExecutor], ['test:credentials', credentials], ['@deepseek-ai/dsh-tool-ragflow-connector', Connector]])
+    const modules = new Map<string, unknown>([['@deepseek-ai/dsh-session-projection', SessionProjectionRegistry], ['@deepseek-ai/dsh-agent', AgentRegistry], ['@deepseek-ai/dsh-system-prompt', SystemPrompt], ['@deepseek-ai/dsh-tools', Tools], ['@deepseek-ai/dsh-tool-executor-native', NativeExecutor], ['test:credentials', credentials], ['@deepseek-ai/dsh-tool-ragflow-connector', Connector]])
     ctx.loader.internal = { version: 'v2', import(name: string) { return Promise.resolve(modules.get(name)) } } as unknown as NonNullable<typeof ctx.loader.internal>
     directory = await mkdtemp(join(tmpdir(), 'ragflow-loader-'))
     const file = join(directory, 'cordis.yml')
@@ -69,6 +70,7 @@ async function boot(loader = false, overrides: Partial<Connector.Config> = {}): 
     await ctx.loader.create({ name: 'cordis:include', config: { path: pathToFileURL(file).href } })
     await ctx.loader.await()
   } else {
+    await ctx.plugin(SessionProjectionRegistry)
     await ctx.plugin(AgentRegistry)
     await ctx.plugin(SystemPrompt)
     await ctx.plugin(Tools)

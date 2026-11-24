@@ -1,5 +1,5 @@
 import { executeOne } from './execute.ts'
-/** Actual Flowable and shipped connector execution, with fixture CLI and model responses. */
+/** Actual Flowable and shipped connector execution, with a fixture account reader and model responses. */
 import { randomUUID } from 'node:crypto'
 import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -14,7 +14,7 @@ import { REPO_ROOT } from '../../../../apps/web/tests/support.ts'
 import { FlowableClient, string } from '../src/host/flowable.ts'
 import type { SessionId } from '@deepseek-ai/dsh-session'
 import type { ProcessId } from '../src/shared/runtime.ts'
-import type {} from '@deepseek-ai/dsh-enterprise-connectors'
+import type {} from '@deepseek-ai/dsh-wecom'
 
 const baseUrl = process.env.DSH_FLOWABLE_TEST_URL
 const password = process.env.DSH_FLOWABLE_TEST_PASSWORD
@@ -79,42 +79,28 @@ describe.skipIf(!baseUrl || !password || MODE === 'record')('WeCom → DH → Fl
     const directory = await mkdtemp(join(tmpdir(), 'wecom-flowable-'))
     const tenant = `dh-wecom-${randomUUID().slice(0, 12)}`
     const overlayPath = join(directory, 'cordis.yml')
-    const fixture = join(REPO_ROOT, 'packages/interaction/enterprise-connectors/tests/fixtures/wecom-office-cli.mjs')
     const base = (await readFile(join(REPO_ROOT, 'apps/cli/config/examples/ztt/cordis.yml'), 'utf8'))
       .replace('passwordEnv: DH_FLOWABLE_PASSWORD', 'passwordEnv: DSH_FLOWABLE_TEST_PASSWORD')
       .replace('tenantId: dh-business', `tenantId: ${tenant}`)
       .replace('baseUrl: http://127.0.0.1:8082/flowable-rest/', `baseUrl: ${baseUrl}`)
-    await writeFile(overlayPath, base + '\n- id: agent-default-model\n  config:\n    provider: wecom-workflow-fixture\n    model: fixture\n'
-      + '- insert:\n'
-      + '    - id: office-connector\n      name: "@deepseek-ai/dsh-enterprise-connectors"\n      config:\n'
-      + '        wecom:\n          websocketURL: ws://127.0.0.1:1\n        wecomOffice:\n          enabled: true\n          todos: true\n'
-      + `        wecomOfficeRuntime:\n          directory: ${JSON.stringify(join(directory, 'account'))}\n`
-      + `          command: ${JSON.stringify([process.execPath, fixture, directory])}\n        timeoutMs: 3000\n`)
-    await writeFile(join(directory, 'approve'), '')
+    await writeFile(overlayPath, base + '\n- id: agent-default-model\n  config:\n    provider: wecom-workflow-fixture\n    model: fixture\n')
     const scaffold = await launchWebScaffold({ extraOverlayPath: overlayPath })
+    const readPendingTodos = vi.fn((limit: number, signal: AbortSignal) => {
+      signal.throwIfAborted()
+      expect(limit).toBe(10)
+      return Promise.resolve(JSON.stringify({ items: [{ todo_id: 'td_quality', title: 'Review inspection report',
+        status: 'proceed', credential: 'fixture-secret' }], has_more: false }))
+    })
+    await scaffold.ctx.plugin((ctx) => { ctx.provide('wecomPendingTodos', readPendingTodos) })
     const model = new TodoModel()
     const unregister = scaffold.ctx.llm.registerAdapter(['wecom-workflow-fixture'], model)
-    const denials: Promise<boolean>[] = []
     const boundaries: Array<{ id: string; type: string; reason: string }> = []
     scaffold.ctx.on('session/event', (session, event) => {
       if (event.type === 'turn/start' || event.type === 'turn/end') boundaries.push({ id: session.id, type: event.type,
         reason: event.type === 'turn/end' ? event.data.reason.kind : '' })
     })
-    scaffold.ctx.on('agent/created', ({ agent }) => {
-      const names = agent.ctx.tools.schemas(agent).map(tool => tool.name)
-      if (names.length !== 1 || names[0] !== 'wecom_office_list_todos') return
-      for (const [name, args] of [
-        ['wecom_office_list_todos', { page_size: 20, status_filter: ['proceed'] }],
-        ['wecom_office_write', {}],
-      ] as const) denials.push(executeOne(agent.ctx, { agent, name, arguments: args,
-        callId: brandString<ToolCallId>(`denial-${name}`), signal: new AbortController().signal,
-      }).then(result => result.isError))
-    })
     const browser = await chromium.launch()
     try {
-      await scaffold.ctx.enterpriseConnectors.authorizeWecomOffice()
-      await expect.poll(async () => (await scaffold.ctx.enterpriseConnectors.wecomOfficeStatus()).state,
-        { timeout: 30000 }).toBe('authorized')
       const page = await browser.newPage({ viewport: { width: 1680, height: 1100 }, locale: 'zh-CN' })
       const tripwire = watchConsole(page)
       await page.goto(scaffold.authenticatedUrl)
@@ -268,7 +254,6 @@ describe.skipIf(!baseUrl || !password || MODE === 'record')('WeCom → DH → Fl
       })
       expect((await call('workflow_outside_probe', {}, 'blocked-probe')).isError).toBe(true)
       expect(probeCalls).toBe(0)
-      expect((await call('wecom_office_list_todos', { page_size: 10, status_filter: ['proceed'] }, 'direct-office-bypass')).isError).toBe(true)
       expect((await call('business_workflow_start', { workflowId: 'other-flow', version: 1, inputs: {} }, 'outside-selection')).isError).toBe(true)
       const status = await call('business_workflow_status', { runId: id }, 'query-owned')
       expect(status.isError).toBe(false)
@@ -306,7 +291,6 @@ describe.skipIf(!baseUrl || !password || MODE === 'record')('WeCom → DH → Fl
       // Chat tools have no approval entry point; native review remains current.
       expect(scaffold.ctx.tools.get('business_workflow_approve')).toBeUndefined()
       expect((await scaffold.ctx.businessWorkflows.detail(id)).items.map(item => item.kind)).toEqual(['human'])
-      expect(await Promise.all(denials)).toEqual([true, true])
       await panel.locator('summary').filter({ hasText: 'DH 整理待办和建议' }).click()
       const aria = (await captureStableAria(page, '[data-business-workflow-view]', scaffold.workspaceCwd)).split(run.ownerSessionId).join('<session-id>')
       await compareOrRefreshGolden(join(import.meta.dirname, 'expected/wecom-human.expected.md'), aria, MODE)
@@ -400,10 +384,7 @@ describe.skipIf(!baseUrl || !password || MODE === 'record')('WeCom → DH → Fl
       await reviewDialog.getByText('此审核任务已处理或流程已终止。当前详情不会自动切换到下一项审核。', { exact: true }).waitFor()
       expect(await reviewDialog.getByRole('button', { name: '审核通过并继续', exact: true }).count()).toBe(0)
       await reviewDialog.getByRole('button', { name: '关闭审核详情', exact: true }).last().click()
-      const calls = (await readFile(join(directory, 'calls.ndjson'), 'utf8')).split('\n').filter(Boolean)
-        .map(line => JSON.parse(line) as { args?: string[] }).flatMap(row => row.args ? [row.args] : [])
-      expect(calls.filter(args => args[0] === 'todo' && args[1] === 'list')).toHaveLength(1)
-      expect(calls.some(args => args.includes('send') || args.includes('create') || args.includes('update'))).toBe(false)
+      expect(readPendingTodos).toHaveBeenCalledTimes(1)
       expect(tripwire.pageErrors).toEqual([])
     } finally {
       model.analysisRelease.resolve(undefined)

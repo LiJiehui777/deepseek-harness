@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { CommandId } from '@deepseek-ai/dsh-commands/brand'
+import { brandString } from '@deepseek-ai/dsh-brand'
+import type { CommandId } from '@deepseek-ai/dsh-commands/types'
 import type { ChatNode } from '../src/client/contract/chat-nodes.ts'
 import { isVisibleChatNode } from '../src/client/contract/chat-visibility.ts'
 
@@ -11,7 +12,7 @@ const placement = {
 function command(args: string | null, outcome: ChatNode<'command'>['data']['outcome'], name: string | null = 'team'): ChatNode<'command'> {
   return {
     ...placement, kind: 'command',
-    data: { kind: 'command', seq: 1, time: 0, commandId: CommandId('test'), name, args, outcome },
+    data: { kind: 'command', seq: 1, time: 0, commandId: brandString<CommandId>('test'), name, args, outcome },
   }
 }
 
@@ -51,7 +52,7 @@ describe('Chat-only command visibility', () => {
   })
 })
 
-it('keeps ordinary prompt/context hidden but retains tool changes', () => {
+it('hides system prompts but shows context injections', () => {
   const prompt: ChatNode<'system-prompt'> = { ...placement, kind: 'system-prompt', data: { text: 'system instructions' } }
   const context: ChatNode<'context'> = {
     ...placement, kind: 'context',
@@ -61,8 +62,5 @@ it('keeps ordinary prompt/context hidden but retains tool changes', () => {
     },
   }
   expect(isVisibleChatNode(prompt)).toBe(false)
-  expect(isVisibleChatNode(context)).toBe(false)
-  for (const type of ['tool-addition', 'tool-removal'] as const) {
-    expect(isVisibleChatNode({ ...context, data: { ...context.data, content: [{ type, toolName: 'example' }] } })).toBe(true)
-  }
+  expect(isVisibleChatNode(context)).toBe(true)
 })

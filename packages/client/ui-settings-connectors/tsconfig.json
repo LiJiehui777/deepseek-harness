@@ -39,9 +39,6 @@
       "path": "../ui-slots"
     },
     {
-      "path": "../../interaction/enterprise-connectors"
-    },
-    {
       "path": "../../interaction/tool-ragflow-connector"
     }
   ]

@@ -1,5 +1,5 @@
 ---
-description: "在原生插件页面配置已保存的 RAGFlow、飞书和企业微信账号。"
+description: "在原生插件页面配置已保存的 RAGFlow 和 MES 账号。"
 kind: "package-reference"
 ---
 
@@ -9,7 +9,7 @@ kind: "package-reference"
 
 ## 概述
 
-在插件页面选择 RAGFlow 知识库、授权飞书资源读取，或连接企微办公账号。账号控件保留暂存修改，直到用户明确保存；凭据保持只写。Host 提供相应账号配置时，才显示该页面。
+在插件页面选择 RAGFlow 知识库或配置 MES 数据库连接。账号控件保留暂存修改，直到用户明确保存；凭据保持只写。Host 提供相应账号配置时，才显示该页面。
 
 ## 目录
 
@@ -25,7 +25,7 @@ kind: "package-reference"
 <a id="use-this-package"></a>
 ## 使用本包
 
-[中天覆盖配置](../../../apps/cli/config/examples/ztt/cordis.yml)启用本配套插件。账号权限、授权及资源范围仍由[企业连接器](../../interaction/enterprise-connectors/README.zh.md)及 [RAGFlow 连接器](../../interaction/tool-ragflow-connector/README.zh.md)管理。打开页面不会授予权限或发起授权。服务地址与凭据修改后，先保存再加载知识库目录；加载名称不会改变检索允许范围。
+[中天覆盖配置](../../../apps/cli/config/examples/ztt/cordis.yml)启用本配套插件。连接配置和数据访问分别由 [MES 连接器](../../interaction/tool-postgres-connector/README.zh.md)和 [RAGFlow 连接器](../../interaction/tool-ragflow-connector/README.zh.md)管理。服务地址与凭据修改后，先保存再加载知识库目录；加载名称不会改变检索允许范围。
 
 -----
 

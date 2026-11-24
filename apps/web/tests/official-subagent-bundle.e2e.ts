@@ -96,6 +96,8 @@ describe.skipIf(MODE === 'record')('web snapshot: Official native subagent bundl
     } }]))
     scaffold = await launchWebScaffold({
       developerTools: true, profile: { packages: [{ dir: PACKAGE }] },
+      // The recorded program is an async function body.
+      ptcExecutionMode: 'per-call',
       extraOverlayPath: [fileURLToPath(new URL('./pin-browse-picker.overlay.yml', import.meta.url)), overlay],
       replayFixture: FIXTURE, compareReplaySession: true,
     })
@@ -141,7 +143,7 @@ describe.skipIf(MODE === 'record')('web snapshot: Official native subagent bundl
     const firstTurnEvents = agent.session.snapshotEvents()
     const toolResults = firstTurnEvents.filter(event => event.type === 'tool/result').map(event => event.data)
     expect(toolResults, `PTC execution must start the native child before waiting for its result: ${JSON.stringify(toolResults)}`)
-      .toMatchObject([{ message: { isError: false } }])
+      .toMatchObject([{ message: { isError: false, content: [{ type: 'text', text: 'agent-1\n' }] } }])
     const dispatches = firstTurnEvents.filter(event => event.type === 'tool/ptc-dispatch').map(event => event.data)
     expect(dispatches).toMatchObject([{ name: 'subagent_claude_code', isError: false }])
     const catalog = firstTurnEvents.filter(event => event.type === 'subagent/catalog').map(event => event.data)
@@ -161,7 +163,7 @@ describe.skipIf(MODE === 'record')('web snapshot: Official native subagent bundl
     if (notice?.data.source.kind !== 'subagent-settled') throw new Error('Native completion was not delivered to the parent')
     expect(notice.data.source.senderSessionId).toBe(catalog[0]?.childId)
     expect(notice.data.content).toContainEqual({ type: 'text', text: RESPONSE })
-    expect(dispatches[0]?.content).toEqual([{ type: 'text', text: `started subagent ${notice.data.source.senderSessionId}` }])
+    expect(dispatches[0]?.content).toEqual([{ type: 'text', text: 'started subagent agent-1' }])
     expect(events.filter(event => event.type === 'turn/end')).toHaveLength(2)
     expect(server.requests).toHaveLength(1)
     expect(server.requests[0]?.body).toMatchObject({ model: 'fixture-model' })

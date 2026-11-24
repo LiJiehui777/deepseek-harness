@@ -43,7 +43,7 @@ Static client entries are composed by package name rather than by copying Host L
 <a id="extension-points"></a>
 ## Extension points
 
-The plugin occupies `sidebar.brand.action`, `sidebar.brand.mark`, `sidebar.brand.name`, `conversation.hero.brand.mark`, `conversation.hero.identity`, and `shell.document-title`. When account management is configured it also registers the `chat-services` contribution in `settings.plugins.tab`. The return action appears before the Agent identity in the expanded brand row and navigates the top-level browser context, so it works when Web is embedded in an iframe. The Agent-name popover is presentation-only, closes on Escape or an outside pointer action, and never changes the host-owned binding. It declares no child slots and owns no persistent state.
+The plugin occupies `sidebar.brand.action`, `sidebar.brand.mark`, `sidebar.brand.name`, `conversation.hero.brand.mark`, `conversation.hero.identity`, and `shell.document-title`. When account management is configured it also registers the `chat-services` contribution in `plugins.item`. The return action appears before the Agent identity in the expanded brand row and navigates the top-level browser context, so it works when Web is embedded in an iframe. The Agent-name popover is presentation-only, closes on Escape or an outside pointer action, and never changes the host-owned binding. It declares no child slots and owns no persistent state.
 
 <a id="model-experience"></a>
 ## Model Experience

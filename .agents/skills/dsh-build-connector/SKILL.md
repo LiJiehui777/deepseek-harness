@@ -18,7 +18,7 @@ description: 在本 DH 项目新增或改造 EIP、MES、SDCC、企业协作等�
 | 独立且复杂的系统专属界面 | 必要时创建 `packages/client/ui-connector-<system>/` | 通过现有 Remote 与 Host 通信；不要将系统实现塞进通用设置、侧栏或聊天组件 |
 | 工作流动作适配 | `packages/business-workflow/workbench/` 内对应的动作适配模块 | 将节点参数映射到连接器服务，记录结果；顺序、分支、等待和审核归工作流所有 |
 
-已有系统新增动作时沿用其原包。企业微信、飞书仍在 [enterprise-connectors](../../../packages/interaction/enterprise-connectors/README.md)，RAGFlow 仍在 [tool-ragflow-connector](../../../packages/interaction/tool-ragflow-connector/README.md)；不要为符合新名称而搬迁、复制它们，也不要把所有新系统继续堆进企业消息连接器包。
+已有系统新增动作时沿用其原包。企业微信和飞书分别使用官方的 [wecom](../../../packages/connector/wecom/README.md) 和 [feishu](../../../packages/connector/feishu/README.md) 插件，RAGFlow 仍在 [tool-ragflow-connector](../../../packages/interaction/tool-ragflow-connector/README.md)；不要为符合新名称而搬迁、复制它们，也不要把所有新系统继续堆进企业消息连接器包。
 
 连接器包内按实际复杂度划分 `src/`、`tests/` 和包级文档：插件入口、配置、外部通信、动作服务、类型及工具适配都归本包。简单实现可以合并文件，不创建空层次或通用连接器基类。新增包按[包接入说明](../../../docs/cookbook/adding-a-package.md)登记依赖、编译引用和产品角色，并通过所需 profile/overlay 启用；允许这些必要接入改动，不修改 Agent 主循环承载连接器逻辑。
 

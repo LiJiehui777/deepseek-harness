@@ -1,7 +1,8 @@
 import { fileURLToPath } from 'node:url'
+import { realpathSync } from 'node:fs'
 import { createServer } from 'node:http'
 import type { IncomingMessage, ServerResponse } from 'node:http'
-import { join } from 'node:path'
+import { basename, dirname, join } from 'node:path'
 import { expect, it } from 'vitest'
 import {
   runScenario,
@@ -140,13 +141,14 @@ it('pins Messages Files offload and inline fallback in assembled requests', asyn
     const fileImage = { type: 'image', source: { type: 'file', file_id: 'file-api-snapshot-1' } }
     const offloadedImage = `[image omitted to fit request image limits; ${attachmentId}.${normalizedAccess}]`
     const imageHandle = `Image ${attachmentId}; request preview 1x1px.${normalizedAccess}`
-    const runtimeContext = (cwd: string, sessionId: string): string => 'Current runtime context. This snapshot supersedes earlier runtime-context snapshots.\n\n'
-      + `Current working directory: ${JSON.stringify(cwd)}.\n\n`
+    // The Session header records the canonical spelling of the scenario's directory, which is removed by now.
+    const runtimeContext = (cwd: string): string => '<system-reminder>\nThe following information describes your current session:\n\n'
+      + `Current working directory: ${JSON.stringify(join(realpathSync.native(dirname(cwd)), basename(cwd)))}.\n\n`
       + 'Current DSH file policy: danger-full-access. The DSH file sandbox does not restrict file modifications by available operations.\n\n'
       + 'Approval prompts are disabled in this session: actions that require approval are rejected automatically — do not request sandbox escalation (do not set `sandbox_permissions`).\n\n'
-      + `You are the root agent. Your agent id is ${JSON.stringify(sessionId)}.\n\n`
-      + 'To message other agents, use send_message({ agent_id: "<agent-id>", message: "..." }).\n'
-      + 'Use list_agents({}) to find your collaborator agents and their ids.'
+      + 'You are the root agent. Your name is "lead".\n\n'
+      + 'To message other agents, use send_message({ agent: "<agent-name>", message: "..." }).\n'
+      + 'Use list_agents({}) to find your collaborator agents and their names.\n</system-reminder>'
     const messages = requests[0]?.messages as { content?: unknown }[] | undefined
     const offloaded = messages?.find(message => JSON.stringify(message.content).includes('[image omitted'))
     expect(offloaded?.content).toEqual([
@@ -156,7 +158,7 @@ it('pins Messages Files offload and inline fallback in assembled requests', asyn
       { type: 'text', text: imageHandle },
       fileImage,
       { type: 'text', text: ', then use read_image on red.png and reply with DONE.' },
-      { type: 'text', text: runtimeContext(result.cwd, result.sessionId) },
+      { type: 'text', text: runtimeContext(result.cwd) },
     ])
 
     const followup = requests[1]?.messages as Array<{ role: string; content: Array<Record<string, unknown>> }>
@@ -208,7 +210,7 @@ it('pins Messages Files offload and inline fallback in assembled requests', asyn
       { type: 'text', text: `Image ${attachmentId}; request preview 1x1px.${fallbackAccess}` },
       { type: 'image', source: { type: 'base64', media_type: 'image/png', data: image } },
       { type: 'text', text: ', then use read_image on red.png and reply with DONE.' },
-      { type: 'text', text: runtimeContext(fallback.cwd, fallback.sessionId) },
+      { type: 'text', text: runtimeContext(fallback.cwd) },
     ])
   } finally {
     await new Promise<void>(resolve => server.close(() => { resolve() }))

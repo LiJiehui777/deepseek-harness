@@ -62,20 +62,42 @@ afterEach(() => {
 })
 
 describe('shared config schema catalog', () => {
-  it.each([false, true])('checks a volatile schema refined through a local alias (invalid=%s)', (invalid) => {
-    const { root, write } = fixture(invalid
-      ? sharedSchema.replace('headless: Schema.boolean()', 'headless: Schema.boolean(), hidden: Schema.string()')
-      : sharedSchema)
+  it.each([false, true])('checks imported object fields and spread overrides (invalid=%s)', (invalid) => {
+    const { root, write } = fixture(`
+import Schema from '@deepseek-ai/schemastery'
+export interface BrowserConfig {
+  /** Shared switch. */
+  enabled: boolean
+  /** Provider-owned nested fields. */
+  nested: { /** Current nested setting. */ current: string }
+}
+export const Fields = { enabled: Schema.boolean(), nested: Schema.object({ retired: Schema.string() }) ${invalid ? ', hidden: Schema.string()' : ''} }
+export const Shared = Schema.object(Fields)
+`)
     write('packages/test/provider/src/index.ts', `
-import { Shared, type BrowserConfig } from '@test/runtime/config'
+import Schema from '@deepseek-ai/schemastery'
+import { Fields, type BrowserConfig } from '@test/runtime/config'
 export type Config = BrowserConfig
-const AccountSchema = Shared
-export const Config = AccountSchema.default({}).volatile()
+export const Config = Schema.object({ ...Fields, nested: Schema.object({ current: Schema.string() }) })
 export function apply(ctx: unknown, config: Config): void {}
 `)
     if (invalid) expect(() => collectConfigCatalog(root)).toThrow("schema validates key 'hidden'")
     else expect(new Set(collectConfigCatalog(root).find(entry => entry.pkg === '@test/provider')?.schemaKeys))
-      .toEqual(new Set(['mode', 'headless', 'endpoint']))
+      .toEqual(new Set(['enabled', 'nested', 'nested.current']))
+  })
+
+  it('rejects recursive field spreads and dynamic object factories', () => {
+    const { root, write } = fixture()
+    const source = (fields: string) => `
+import Schema from '@deepseek-ai/schemastery'
+export interface Config { /** Visible field. */ enabled: boolean }
+${fields}
+export function apply(ctx: unknown, config: Config): void {}
+`
+    write('packages/test/provider/src/index.ts', source('const Fields = { ...Fields }; export const Config = Schema.object(Fields)'))
+    expect(() => collectConfigCatalog(root)).toThrow('cyclic schema object alias')
+    write('packages/test/provider/src/index.ts', source('const fields = () => ({}); export const Config = Schema.object({ ...fields() })'))
+    expect(() => collectConfigCatalog(root)).toThrow('object literal or const alias')
   })
 
   it('collects every branch through a renamed named import from a public source subpath', () => {

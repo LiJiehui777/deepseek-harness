@@ -85,14 +85,18 @@ describe('dsh run with Agent Teams enabled', () => {
       expect(files).toHaveLength(4)
       const logs = await Promise.all(files.map(file => readFile(join(sessions, file), 'utf8')))
       const parsed = logs.map(records)
+      const workflowTask = [
+        { type: 'text', text: 'Agent lead sent a message: ' },
+        { type: 'text', text: 'TEAM_WORKFLOW_CHILD' },
+      ]
       const workflowChild = parsed.find(log => log.some(record => record.type === 'user/message'
-        && JSON.stringify((record.data as { content: unknown }).content) === JSON.stringify([{ type: 'text', text: 'TEAM_WORKFLOW_CHILD' }])))
+        && JSON.stringify((record.data as { content: unknown }).content) === JSON.stringify(workflowTask)))
       expect(workflowChild).toBeDefined()
       const workflowDescriptor = workflowChild!.find(record => record.type === 'subagent/descriptor')?.data as Record<string, unknown>
       expect(workflowDescriptor).toMatchObject({ mode: 'continuable', provider: 'spawn' })
       expect(workflowChild!.filter(record => record.type === 'user/message'
-        && (record.data as { source: { kind: string } }).source.kind === 'user').map(record => record.data))
-        .toEqual([expect.objectContaining({ content: [{ type: 'text', text: 'TEAM_WORKFLOW_CHILD' }] })])
+        && (record.data as { source: { kind: string } }).source.kind === 'agent-message').map(record => record.data))
+        .toEqual([expect.objectContaining({ content: workflowTask })])
       const root = parsed.find((log) => {
         const header = log[0]
         return header?.type === 'session' && typeof header.parentSession !== 'string'
@@ -102,16 +106,17 @@ describe('dsh run with Agent Teams enabled', () => {
       expect(eventTypes).not.toContain('team/member')
       const catalog = root!.filter(record => record.type === 'subagent/catalog').map(record => record.data)
       expect(catalog).toEqual(expect.arrayContaining([
-        expect.objectContaining({ version: 0, childId: workflowChild![0]?.id }),
-        expect.objectContaining({ version: 0, label: 'Own deterministic implementation.' }),
-        expect.objectContaining({ version: 0, label: 'Own deterministic research.' }),
+        expect.objectContaining({ version: 3, childId: workflowChild![0]?.id, name: 'agent-1' }),
+        expect.objectContaining({ version: 3, label: 'Own deterministic implementation.', name: 'agent-2' }),
+        expect.objectContaining({ version: 3, label: 'Own deterministic research.', name: 'agent-3' }),
       ]))
-      for (const entry of catalog) expect(entry).not.toHaveProperty('name')
+      for (const entry of catalog) expect(entry).toHaveProperty('name')
       expect(eventTypes).not.toContain('subagent-name/bound')
       expect(eventTypes).not.toContain('team/message/queued')
       expect(eventTypes).not.toContain('team/message/delivered')
       const peerMessages = parsed.flatMap(log => log.filter(record => record.type === 'user/message'
-        && (record.data as { source: { kind: string } }).source.kind === 'agent-message'))
+        && (record.data as { source: { kind: string } }).source.kind === 'agent-message'
+        && (record.data as { source: { senderSessionId: string } }).source.senderSessionId !== root![0]?.id))
       expect(peerMessages).toHaveLength(2)
       const taskEvents = root!.filter(record => record.type === 'team/task')
       expect(taskEvents.filter((record) => {

@@ -4,7 +4,8 @@ import { describe, expect, vi } from 'vitest'
 import type { SessionId } from '@deepseek-ai/dsh-api-remotes/client'
 import type { SessionReference } from '../src/client/contract/sessions.ts'
 import { RemoteError } from '@deepseek-ai/dsh-typert-protocol'
-import { LlmAttemptId } from '@deepseek-ai/dsh-llm'
+import { brandString } from '@deepseek-ai/dsh-brand'
+import type { LlmAttemptId } from '@deepseek-ai/dsh-llm'
 import { RemoteStreamCarrierError } from '@deepseek-ai/dsh-api-gateway/client'
 import { SESSION_FORMAT_VERSION, SessionSeq } from '@deepseek-ai/dsh-session/types'
 import { ok, streamHandle, type RemoteMock } from '@deepseek-ai/dsh-remote-mock'
@@ -215,7 +216,7 @@ describe('scope tree', () => {
     await vi.waitFor(() => {
       expect(binding.session.getSnapshot().openState).toBe('open')
     })
-    const attemptId = LlmAttemptId('web-live-attempt')
+    const attemptId = brandString<LlmAttemptId>('web-live-attempt')
     const durableMessage = {
       type: 'event' as const,
       event: {
@@ -292,7 +293,7 @@ describe('scope tree', () => {
 
   it('replaces an active assistant baseline on reconnect without duplicate chunks', async ({ bench }) => {
     const b = bench()
-    const attemptId = LlmAttemptId('reconnect-attempt')
+    const attemptId = brandString<LlmAttemptId>('reconnect-attempt')
     let records: SessionHistoryRecord[] = []
     let assistantStreamBaseline: SessionAssistantStreamBaseline = {
       revision: 2,
@@ -339,7 +340,7 @@ describe('scope tree', () => {
 
   it('stages a post-opening assistant settlement behind its exact active attempt', async ({ bench }) => {
     const b = bench()
-    const attemptId = LlmAttemptId('reconnect-settlement-attempt')
+    const attemptId = brandString<LlmAttemptId>('reconnect-settlement-attempt')
     const priorMessage = {
       type: 'event' as const,
       event: {
@@ -431,7 +432,7 @@ describe('scope tree', () => {
 
   it('replaces an invalid settlement with the authoritative post-end baseline', async ({ bench }) => {
     const b = bench()
-    const attemptId = LlmAttemptId('reconnect-end-index-attempt')
+    const attemptId = brandString<LlmAttemptId>('reconnect-end-index-attempt')
     const prior = {
       type: 'event' as const,
       event: { type: 'turn/start', seq: 0, time: 19, data: { turn: 1 } },
@@ -1024,6 +1025,29 @@ describe('fork', () => {
       title: childTitle,
       displayTitle: childTitle,
     })
+  })
+
+  it('gives repeated forks distinct titles past numbers listed sessions use', async ({ bench }) => {
+    const b = bench()
+    for (const [id, value] of [['source', 'Roadmap'], ['sibling', 'Roadmap (2)']] as const) {
+      b.svc.handleControlFrame({ type: 'projection', sessionId: sid(id), changes: [{ key: 'title', val: value }], seq: 2 })
+    }
+    await feedList(b, [{ id: 'source' }, { id: 'sibling' }])
+    b.mock.remote.session.rename.mockImplementation((payload) => {
+      const { title } = payload as { title: string }
+      return Promise.resolve(ok({ title, seq: 3 }))
+    })
+
+    for (const child of ['child-1', 'child-2']) {
+      b.mock.remote.session.fork.mockResolvedValueOnce(ok({ sessionId: sid(child) }))
+      await b.svc.fork({ sessionId: sid('source'), increaseTitle: true })
+    }
+
+    expect(b.mock.remote.session.rename.mock.calls).toEqual([
+      [{ sessionId: 'child-1', title: 'Roadmap (1)' }],
+      [{ sessionId: 'child-2', title: 'Roadmap (3)' }],
+    ])
+    expect(b.svc.list.getSnapshot().byId[sid('child-2')]?.title).toBe('Roadmap (3)')
   })
 
   it('sends the exact boundary seq verbatim: callers pass real event seqs', async ({ bench }) => {

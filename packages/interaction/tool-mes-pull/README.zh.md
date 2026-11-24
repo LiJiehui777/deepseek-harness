@@ -1,6 +1,6 @@
 ---
 description: "MES 流水线的拉取环节：按唯一键通过 queries/*.sql 定义读取单张订单的数据，在拉取时就构好下游报文，写入共享待审池。只读，不推送。"
-kind: "package-reference"
+kind: "package-bundle"
 ---
 
 # @deepseek-ai/dsh-tool-mes-pull
@@ -25,7 +25,7 @@ kind: "package-reference"
 <a id="use-this-package"></a>
 ## 使用本包
 
-把本插件与它读取的 [PostgreSQL 连接器](../tool-postgres-connector/README.zh.md)、以及读取它写入内容的[审核闸](../tool-review-gate/README.zh.md)一并挂载。常见路径是一次带键的调用：`mes_pull_by_key` 跑完所有已配置模块、构好每份报文，把行写进池子。
+把本插件与它读取的 [PostgreSQL 连接器](../tool-postgres-connector/README.zh.md)、以及读取它写入内容的审核闸一并挂载。常见路径是一次带键的调用：`mes_pull_by_key` 跑完所有已配置模块、构好每份报文，把行写进池子。
 
 ### 何时选用它
 
@@ -89,8 +89,6 @@ kind: "package-reference"
 
 - [拉取详细契约](docs/DETAIL.md) —— 模块对照表、查询指令与失败语义。
 - [PostgreSQL 连接器](../tool-postgres-connector/README.zh.md) —— `ctx.postgres` 解析到的只读来源。
-- [审核闸](../tool-review-gate/README.zh.md) —— 对拉取结果做预筛并决定的环节。
-- [流水线契约](../tool-review-gate/CONTRACT.md) —— 三个环节共用的表与状态。
 - [interaction 分组导览](../README.zh.md) —— 相邻的流水线与交互包。
 
 -----

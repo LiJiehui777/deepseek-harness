@@ -44,7 +44,7 @@ kind: "package-reference"
 
 设置 `interrupt`、`freshProvider` 或 `forkProvider` 的配置行不会激活，dsh 会在启动警告中指出该键。[升级指南](../../../docs/upgrade-guide/v0.2.1-rc.2/agent-team-subagents/guide.zh.md)把已移除的工具与键对应到替代方式，生成的[配置目录](../../../docs/config-catalog.zh.md#deepseek-aidsh-tool-agent-team)记录空配置。
 
-让 Lead 启动子代理审查差异、创建审查任务并等待结果。`description` 说明子代理的工作；返回的 id 用于寻址。
+让 Lead 启动子代理审查差异、创建审查任务并等待结果。`description` 说明子代理的工作；返回的名称用于寻址。
 
 ### 模型能做什么
 
@@ -54,7 +54,9 @@ kind: "package-reference"
 - **等待收件箱输入** — `wait_agent` 属于 `@deepseek-ai/dsh-tool-subagent-control`，无需此包即可使用。
 - **创建和联系队友**——`subagent`、`subagent_fork`、`send_message`、`list_agents` 和 `interrupt_agent` 来自子代理工具包，本包不修改它们。
 
-任务 `owner` 参数和 `ownerId` 结果使用 Session id。根可将任务重新分配给自身或任意可达的可继续执行后代；历史名册记录不授予权限。其他 agent 自行认领就绪任务。更新会检查归属和修订。
+任务 `owner` 参数接受 `list_agents` 显示的名称：`lead`、完整名称（例如 `reviewer/checker`）或 Session id。任务结果以 `owner` 报告该名称；所有者没有名称时报告其 Session id；`unowned: true` 筛选没有所有者的任务，`unowned: false` 筛选已分配任务。`owner` 和 `unowned` 筛选不可同时使用。Team 服务以 `ownerId` Session id 授权所有者，并在分配时将完整名称保存到 `ownerName`。根可将任务重新分配给自身或任意可达的可继续执行后代；历史名册记录不授予权限。其他 agent 自行认领就绪任务。更新会检查归属和修订。
+
+`write_scopes` 接受相对工作区根目录的文件或目录前缀，仅作提示，不接受绝对路径或 `..` 路径段。创建不修改工作区文件的任务时省略或传 `[]`；执行 `edit` 时省略会保留原范围，`[]` 会清空范围。
 
 ### 成功与失败的表现
 
@@ -89,11 +91,11 @@ kind: "package-reference"
 
 ### 策略与工具
 
-一次插件注册提供动态的 `team:policy` 段落和四个条件任务工具。各提供方读取调用者根 Session 的选择，包括 fork 子级。根不可用时禁用 Team 工具与指导。树权限从 `ctx.subagents.rootOf(agent)` 派生；任务负责人保留为 Session id。身份、发现、通信和等待属于 [subagent 控制工具](../../subagent/tool-subagent-control/README.zh.md)，在切换 Team 模式时保持不变。subagent 运行时负责投递最终结果。
+一次插件注册提供动态的 `team:policy` 段落和四个条件任务工具。各提供方读取调用者根 Session 的选择，包括 fork 子级。根不可用时禁用 Team 工具与指导。树权限从 `ctx.subagents.rootOf(agent)` 派生；在 `ctx.agentTeams` 中任务负责人保留为 Session id。所有者参数通过 `ctx.subagents.resolveName()` 解析，解析不授予权限。结果以 `owner: ownerName ?? ownerId` 取代保存的 `ownerId` 和 `ownerName` 字段。展示任务或编辑其内容无需读取后代目录。身份、发现、通信和等待属于 [subagent 控制工具](../../subagent/tool-subagent-control/README.zh.md)，切换 Team 模式时归属不变；开启 Team 模式只会去掉其中的结果汇报要求。subagent 运行时负责投递最终结果。
 
 ### 按作用域注册与拆除
 
-工具的 `when` 条件在步骤准备时求值，包括新建、分叉和恢复的 Agent 的首个步骤。策略文本在提示词组装时求值。已经准备好的步骤保留其工具选择，但任务操作在开始前检查当前模式。插件释放时由各注册所属的 effect 移除全部注册。
+工具的 `when` 条件在步骤准备时求值，包括新建、分叉和恢复的 Agent 的首个步骤。策略文本在提示词组装时求值。策略已准入后，禁用 Team 模式会追加撤销通知；卸载此插件会在下一次被接受的组装中追加退出通知。已经准备好的步骤保留其工具选择，但任务操作在开始前检查当前模式。插件释放时由各注册所属的 effect 移除全部注册。
 
 </details>
 
@@ -124,11 +126,11 @@ kind: "package-reference"
 ##### Team 策略
 
 ```markdown
-A shared task board is available in this session. Task owners are agent ids from list_agents. The root can reassign tasks to itself or any continuable descendant; other agents claim ready tasks themselves.
+Agent Teams is available in this session.
 
-Split write work into disjoint scopes, record expected write scopes on shared tasks, and use task dependencies when work must be ordered. Write-scope overlap is advisory, not a lock.
+The Team Lead and all teammates share the same working directory and filesystem. Edits are immediately visible to every member. Split write work into disjoint scopes, record expected write scopes on shared tasks, and use task dependencies when work must be ordered. Write-scope overlap is advisory, not a lock.
 
-Shared-task workflow is list, get, claim with the current revision, perform the work, then complete. Task readiness never starts an owner. The root agent must wait for required teammates before giving the final answer.
+Use the names returned by subagent, subagent_fork, or list_agents as owner when assigning or filtering shared tasks. The root can reassign tasks to itself or any continuable descendant; other agents claim ready tasks themselves. Shared-task workflow is list, get, claim with the current revision, perform the work, then complete. Task readiness never starts an owner. The root agent must wait for required teammates before giving the final answer.
 
 Task changes do not end wait_agent calls, add inbox messages, or start idle agents. Use send_message when another agent needs to act on a task.
 ```
@@ -149,7 +151,7 @@ Task changes do not end wait_agent calls, add inbox messages, or start idle agen
 
 #### Token 影响
 
-四个 schema 为每次请求的固定开销。工具结果增加紧凑 JSON；`team_task_list` 每页最多返回 100 个任务。
+四个 schema 为每次请求的固定开销。工具结果增加紧凑 JSON；`team_task_list` 每页最多返回 100 个任务。所有者名称通常比其取代的 36 字符 Session id 更短。
 
 #### KV Cache 影响
 

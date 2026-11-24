@@ -8,7 +8,7 @@ import type {} from '@deepseek-ai/dsh-plugin-manager'
 import { captureStableAria, compareOrRefreshGolden, launchWebScaffold, webSnapshotMode, watchConsole } from './scaffold.ts'
 
 it('configures all three connectors and persists native enablement through the real Loader', async () => {
-  const scaffold = await launchWebScaffold({ profile: { packages: ['enterprise-connectors', 'tool-ragflow-connector'].map(name => ({ dir: fileURLToPath(new URL('../../../packages/interaction/' + name, import.meta.url)), enabled: true })) }, extraOverlayPath: fileURLToPath(new URL('../../cli/config/examples/ztt/cordis.yml', import.meta.url)) })
+  const scaffold = await launchWebScaffold({ profile: { packages: ['tool-ragflow-connector'].map(name => ({ dir: fileURLToPath(new URL('../../../packages/interaction/' + name, import.meta.url)), enabled: true })) }, extraOverlayPath: fileURLToPath(new URL('../../cli/config/examples/ztt/cordis.yml', import.meta.url)) })
   const browser = await chromium.launch()
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 }, locale: 'zh-CN' })
   const console = watchConsole(page)

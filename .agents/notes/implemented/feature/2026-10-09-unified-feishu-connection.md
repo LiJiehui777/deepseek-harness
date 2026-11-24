@@ -10,7 +10,7 @@ Bot-channel credentials do not express document or Base access, user authorizati
 
 ## Decision
 
-The optional [Feishu connection bundle](../../../../packages/interaction/tool-feishu-connection/README.md) adds only the selected chat, document and Base read tools through a private conversation preset. Its empty profile patch grants no global tools. RAGFlow owns application credentials, per-user encrypted OAuth grants and capability selection; each read resolves the current saved connection and authorization. Model arguments cannot select another account. User identity failures never fall back to application identity.
+The optional Feishu connection bundle adds only the selected chat, document and Base read tools through a private conversation preset. Its empty profile patch grants no global tools. RAGFlow owns application credentials, per-user encrypted OAuth grants and capability selection; each read resolves the current saved connection and authorization. Model arguments cannot select another account. User identity failures never fall back to application identity.
 
 The native Settings Plugins Connections tab delegates management to RAGFlow. User authorization requests are owner-bound, application-bound, single-use and expire after ten minutes. Refresh leases and grant revisions prevent concurrent refresh rotation and prevent disconnect from being overwritten. Resource links are parsed into identifiers; only fixed official API hosts are contacted. Feishu sharing and membership rules still apply.
 
@@ -24,4 +24,4 @@ Selected capability schemas remain fixed in a conversation, while current host a
 
 ## Verification
 
-The Loader composition pins six tool schemas, capability omission, unload behavior and complete-result failures with full source coverage. The keyless [Feishu connection session](../../../../snapshots/session/feishu-connection/snapshot.yml) executes document, table, field and record reads through the shipped headless profile. Built Web expectations pin the connection-management tab and preserved drafts. Gateway installation smoke verifies the official native plugin command and private preset selection.
+The Loader composition pins six tool schemas, capability omission, unload behavior and complete-result failures with full source coverage. The keyless Feishu connection session executes document, table, field and record reads through the shipped headless profile. Built Web expectations pin the connection-management tab and preserved drafts. Gateway installation smoke verifies the official native plugin command and private preset selection.

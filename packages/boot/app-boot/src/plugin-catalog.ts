@@ -2,7 +2,7 @@
 import type { PluginLocalizedMeta } from '@deepseek-ai/dsh-package-manifest'
 /** Packages supplied by this distribution without being required for profile management. */
 export const OPTIONAL_BUNDLES: readonly string[] = [
-  '@deepseek-ai/dsh-tool-ragflow-connector', '@deepseek-ai/dsh-enterprise-connectors',
+  '@deepseek-ai/dsh-tool-ragflow-connector', '@deepseek-ai/dsh-tool-postgres-connector',
 ]
 /** Source-backed metadata offered independently from profile activation. */
 export interface OfficialBundleCatalogEntry {

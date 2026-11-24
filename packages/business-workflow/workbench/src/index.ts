@@ -654,7 +654,7 @@ export class BusinessWorkflows extends TypertRemoteService {
         const sessionId = randomUUID()
         await this.api.request(`service/runtime/process-instances/${encode(processId)}/variables`, 'PUT', [variable(`dh_attempt_${index}`, sessionId)])
         output = node.kind === 'agent' ? await runAnalysis(this.ctx, sessionId, node.instruction, input, signal)
-          : await readWecomTodos(this.ctx, sessionId, signal)
+          : await readWecomTodos(this.ctx, signal)
       } else if (node.kind === 'action' && node.action === 'demo.wecom.todos') output = createDemoTodos(input)
       else if (node.kind === 'condition') {
         const matches = node.operator === 'exists' ? input !== undefined

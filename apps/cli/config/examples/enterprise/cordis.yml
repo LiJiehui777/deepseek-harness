@@ -1,5 +1,5 @@
 - insert:
-    - id: enterprise-authorization
-      name: '@deepseek-ai/dsh-authorization'
-    - id: enterprise-connectors
-      name: '@deepseek-ai/dsh-enterprise-connectors'
+    - id: feishu
+      name: '@deepseek-ai/dsh-feishu'
+    - id: wecom
+      name: '@deepseek-ai/dsh-wecom'

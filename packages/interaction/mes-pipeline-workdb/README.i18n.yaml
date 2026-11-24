@@ -1,0 +1,58 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write packages/interaction/mes-pipeline-workdb/README.md
+/:
+  en: a727ba1aa27370b4
+  zh: 3437a74a18c8a25d
+/deepseek-ai-dsh-mes-pipeline-workdb:
+  en: 0e83f55b5f38e014
+  zh: 3c6e01979c9b2361
+/deepseek-ai-dsh-mes-pipeline-workdb/summary:
+  en: 39bb765275da3abc
+  zh: 8c7babdb50a75d62
+/deepseek-ai-dsh-mes-pipeline-workdb/table-of-contents:
+  en: d152484eb41ac6b4
+  zh: 09388d293f9be9cb
+/deepseek-ai-dsh-mes-pipeline-workdb/use-this-package:
+  en: ad1fa6b2f09bb595
+  zh: 311f462fcb97bab1
+/deepseek-ai-dsh-mes-pipeline-workdb/use-this-package/when-to-use-it:
+  en: cec5263e20f98808
+  zh: 723e56060305176c
+/deepseek-ai-dsh-mes-pipeline-workdb/use-this-package/opening-the-shared-database:
+  en: dc2a57693c204a23
+  zh: a5040a2db57268ff
+/deepseek-ai-dsh-mes-pipeline-workdb/use-this-package/writing-and-reading:
+  en: bc8f28685b7edd64
+  zh: 4628b9c709ab762e
+/deepseek-ai-dsh-mes-pipeline-workdb/understand-the-implementation:
+  en: e33221f1d2500873
+  zh: 6090d9d6731cb6b9
+/deepseek-ai-dsh-mes-pipeline-workdb/understand-the-implementation/source-map:
+  en: a1e862c86e31b5ea
+  zh: 4b7959480ed6ce3f
+/deepseek-ai-dsh-mes-pipeline-workdb/further-exploration:
+  en: c1bf15b2623d665a
+  zh: 2cc7f43209fcbd60
+/deepseek-ai-dsh-mes-pipeline-workdb/model-experience:
+  en: 215e7ba838619b7b
+  zh: a311da3843709f90
+/deepseek-ai-dsh-mes-pipeline-workdb/model-experience/no-model-facing-contribution-of-its-own:
+  en: 496d29aeb8e1929d
+  zh: c3c6b78b913e81f9
+/deepseek-ai-dsh-mes-pipeline-workdb/model-experience/no-model-facing-contribution-of-its-own/what-the-model-sees:
+  en: dd79f33a8cc6f533
+  zh: 09b980f66f2ba0d2
+/deepseek-ai-dsh-mes-pipeline-workdb/model-experience/no-model-facing-contribution-of-its-own/token-effect:
+  en: 5e9bd15356d3e6fa
+  zh: 68e7faae6a70e09a
+/deepseek-ai-dsh-mes-pipeline-workdb/model-experience/no-model-facing-contribution-of-its-own/kv-cache-effect:
+  en: c50f66c8b2bf68d3
+  zh: dac26a49d7e2f8be
+/deepseek-ai-dsh-mes-pipeline-workdb/known-limitations-and-deferred-work:
+  en: a732ec7e95e3040e
+  zh: 264f1ceb77de36ec
+/deepseek-ai-dsh-mes-pipeline-workdb/known-limitations-and-deferred-work/dev-note:
+  en: 133ff7c802085467
+  zh: f0d5521c8b6b4504

@@ -6,7 +6,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar/client'
 import type {} from '@deepseek-ai/dsh-client-ui-workspace/client'
-import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
+import type {} from '@deepseek-ai/dsh-client-ui-plugin-manager/client'
 import {
   HostAgentDocumentTitle,
   HostAgentHero,
@@ -58,8 +58,8 @@ export function apply(ctx: ClientContext): void {
   const managementUrl = bootstrap.channelManagementUrl
   if (managementUrl !== undefined) {
     const t = ctx.locale.bind(NS)
-    ctx.slots.inject('settings.plugins.tab', () => ctx.slots.register({
-      name: 'settings.plugins.tab', id: 'chat-services', order: 5,
+    ctx.slots.inject('plugins.item', () => ctx.slots.register({
+      name: 'plugins.item', id: 'chat-services', order: 5,
       label: () => t('channelsTab'), locale: NS,
       inject: () => ({ managementUrl, hostOrigin: new URL(bootstrap.returnUrl).origin }),
     }, ChannelPluginsPanel))
