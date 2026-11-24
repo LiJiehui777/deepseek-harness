@@ -16,7 +16,7 @@ DH 可以在 Windows 原生环境或 WSL 2 中运行，WSL 2 是可选项，已�
 
 | 组件 | 要求 | 什么时候需要 |
 |---|---|---|
-| Node.js | **24.22.3 或更高**；建议使用 24.x 系列 | DH 运行与构建 |
+| Node.js | **24.x 系列的 24.22.3 或更高补丁版本**，或 **26.13.1 及以上** | DH 运行与构建 |
 | pnpm | **11.28.5**，以 `package.json` 固定版本为准 | 安装依赖与运行命令 |
 | Git | 2.26 或更高 | 拉取代码和开发钩子 |
 | 原生构建工具 | C/C++ 编译器、`make` 及 Node 开发头文件；macOS 使用 Xcode Command Line Tools | 源码构建与原生依赖 |
@@ -174,7 +174,7 @@ docker compose --project-name dh-flowable --env-file .local/flowable/engine.env 
 
 | 现象 | 检查项 |
 |---|---|
-| Node 版本或原生模块构建失败 | Node >=24.9、C/C++ 工具和匹配的 Node 开发头文件 |
+| Node 版本或原生模块构建失败 | 受支持的 Node 版本、C/C++ 工具和匹配的 Node 开发头文件 |
 | `profile "enhanced" does not exist` | 在同一个 DH 数据目录完成带判断保护的首次初始化 |
 | Flowable 不可用或鉴权失败 | Docker 引擎/容器、8082 端口，以及 DH 与 Compose 是否使用相同且已导出的 `DH_FLOWABLE_PASSWORD` |
 | 模型请求失败 | 模型选择、账号/API Key 和服务可访问性；页面能打开不等于模型已连通 |

@@ -16,7 +16,7 @@ The examples below use Bash, and the current `build:enhanced` and `start:enhance
 
 | Component | Requirement | When needed |
 |---|---|---|
-| Node.js | **24.22.3 or newer**; prefer the 24.x series | DH and builds |
+| Node.js | **24.22.3 or later in the 24.x series**, or **26.13.1 or later** | DH and builds |
 | pnpm | **11.28.5**, as pinned in `package.json` | Dependency installation and commands |
 | Git | 2.26 or newer | Clone and development hooks |
 | Native build tools | C/C++ compiler, `make`, and Node development headers; macOS uses Xcode Command Line Tools | Source build and native dependencies |
@@ -174,7 +174,7 @@ Back up the DH directory, private engine env file and engine volume together bef
 
 | Symptom | Check |
 |---|---|
-| Node version or native build failure | Node >=24.9, C/C++ tools and the matching Node development headers |
+| Node version or native build failure | A supported Node version, C/C++ tools and the matching Node development headers |
 | `profile "enhanced" does not exist` | Complete the guarded initialization in the same DH data directory |
 | Flowable unavailable or unauthorized | Docker engine/container, port 8082, and the same exported `DH_FLOWABLE_PASSWORD` in DH and Compose |
 | Model requests fail | Model selection, account/API key and service access; opening DH is not a model connectivity test |
