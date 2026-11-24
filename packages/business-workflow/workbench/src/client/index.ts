@@ -84,13 +84,32 @@ export function apply(ctx: Context): void {
       inject: (sessionId) => {
         let controller = reviews.get(sessionId)
         if (!controller) {
-          const sessionScope = scope.sessions.scope(sessionId)
-          if (!sessionScope) throw new Error('WORKFLOW_SESSION_SCOPE_MISSING')
-          controller = new ReviewController(scope.remote.businessWorkflows, sessionId, () => { void engine.load() })
-          const owned = controller
+          const binding = scope.sessions.binding(sessionId)
+          if (!binding) throw new Error('WORKFLOW_SESSION_SCOPE_MISSING')
+          const { session, ctx: sessionScope } = binding
+          const catalog = scope.sessions.list
+          const isReady = () => {
+            const state = session.getSnapshot()
+            // The history baseline can arrive before the Host finishes activating a cold session.
+            return state.openState === 'open' && !state.removed && state.subagent === null
+              && catalog.getSnapshot().byId[sessionId]?.agentAvailable === true
+              && !sessionId.startsWith('enterprise-')
+          }
+          const owned = new ReviewController(scope.remote.businessWorkflows, sessionId, () => { void engine.load() }, isReady)
+          controller = owned
           reviews.set(sessionId, owned)
-          sessionScope.effect(() => async () => { reviews.delete(sessionId); await owned.dispose() })
-          void owned.load()
+          sessionScope.effect(() => {
+            const changed = () => { owned.syncReadiness() }
+            const stopSession = session.subscribe(changed)
+            const stopCatalog = catalog.subscribe(changed)
+            changed()
+            return async () => {
+              stopSession()
+              stopCatalog()
+              reviews.delete(sessionId)
+              await owned.dispose()
+            }
+          })
         }
         return controller.face()
       },

@@ -8,7 +8,7 @@ import { chromium } from 'playwright'
 import { brandString } from '@deepseek-ai/dsh-brand'
 import { LlmAdapter } from '@deepseek-ai/dsh-llm'
 import type { GenerateOptions, LlmModelInfo, LlmProviderInfo, StreamChunk, ToolCallId } from '@deepseek-ai/dsh-llm'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { captureStableAria, compareOrRefreshGolden, launchWebScaffold, watchConsole, webSnapshotMode } from '../../../../apps/web/tests/scaffold.ts'
 import { REPO_ROOT } from '../../../../apps/web/tests/support.ts'
 import { FlowableClient, string } from '../src/host/flowable.ts'
@@ -318,11 +318,27 @@ describe.skipIf(!baseUrl || !password || MODE === 'record')('WeCom → DH → Fl
       await page.getByRole('treeitem').filter({ hasText: '帮我整理待办' }).first().click()
       expect(await page.getByRole('button', { name: '选择工作流：企业微信待办整理 · v1', exact: true }).isDisabled()).toBe(true)
       expect(model.chatCalls).toBe(2)
+      const inboxOutage = vi.spyOn(scaffold.ctx.businessWorkflows, 'conversationReviews')
+        .mockResolvedValue({ refreshIntervalMs: 60_000, following: [], items: [], total: 0, error: 'FLOWABLE_UNAVAILABLE' })
+      try {
+        await reviews.getByRole('alert').filter({ hasText: '暂时无法读取待审核状态，请刷新重试。' }).waitFor()
+      } finally { inboxOutage.mockRestore() }
+      await reviews.getByRole('button', { name: '刷新状态', exact: true }).click()
       await reviews.getByRole('button', { name: '查看并审核', exact: true }).click()
       await reviewDialog.getByRole('heading', { name: '本次待审核内容', exact: true }).waitFor()
       if (screenshots) await page.screenshot({ path: join(screenshots, 'DH_会话内工作流审核.png'), fullPage: true })
       const reviewedTask = run.items[0]!.id
-      await reviewDialog.getByRole('button', { name: '审核通过并继续', exact: true }).click()
+      const approve = reviewDialog.getByRole('button', { name: '审核通过并继续', exact: true })
+      const failedSubmit = vi.spyOn(scaffold.ctx.businessWorkflows, 'reviewFromConversation')
+        .mockRejectedValueOnce(new Error('fixture submission response unavailable'))
+      try {
+        await approve.click()
+        await reviewDialog.getByRole('alert').filter({ hasText: '暂时无法确认审核是否提交成功，请先刷新状态。' }).waitFor()
+        expect(failedSubmit).toHaveBeenCalledExactlyOnceWith(owner.id, id, reviewedTask, true)
+        expect((await scaffold.ctx.businessWorkflows.detail(id)).items.map(item => item.id)).toEqual([reviewedTask])
+      } finally { failedSubmit.mockRestore() }
+      await reviewDialog.getByRole('button', { name: '刷新状态', exact: true }).click()
+      await approve.click()
       await expect.poll(async () => (await scaffold.ctx.businessWorkflows.detail(id)).status).toBe('completed')
       await reviewDialog.getByText('已审核通过，流程将继续执行。', { exact: true }).waitFor()
       await reviewDialog.getByRole('button', { name: '关闭审核详情', exact: true }).last().click()

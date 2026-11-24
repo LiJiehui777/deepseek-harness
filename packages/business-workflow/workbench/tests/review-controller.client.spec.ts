@@ -23,7 +23,7 @@ it('coalesces polling, sends one exact decision, and refreshes pending tasks aft
   const review = vi.fn(async () => { items = []; return ok(detail().process) })
   const committed = vi.fn()
   const controller = new ReviewController({ conversationReviews: read,
-    conversationReviewDetail: async () => ok(detail()), reviewFromConversation: review } as never, owner, committed)
+    conversationReviewDetail: async () => ok(detail()), reviewFromConversation: review } as never, owner, committed, () => true)
   const face = controller.face(), source = face.hooks.workflowReviews
   await Promise.all([controller.load(), controller.load()])
   expect(read).toHaveBeenCalledTimes(1)
@@ -49,7 +49,7 @@ it('discards a replaced detail response and prevents an ended task from being su
     conversationReviews: async () => ok({ items: [next], total: 1, following: [], refreshIntervalMs: 1000, error: '' }),
     conversationReviewDetail: vi.fn().mockImplementationOnce(() => oldRead).mockResolvedValue(ok(detail(next, null))),
     reviewFromConversation: review,
-  } as never, owner, () => {})
+  } as never, owner, () => {}, () => true)
   const face = controller.face(), source = face.hooks.workflowReviews
   face.openReview(task)
   await vi.waitFor(() => { expect(source.getSnapshot().inbox?.total).toBe(1) })
@@ -67,12 +67,12 @@ it('keeps retrying after an engine outage and recovers pending tasks', async () 
   vi.useFakeTimers()
   const read = vi.fn().mockResolvedValueOnce(ok({ items: [], total: 0, following: [], refreshIntervalMs: 100, error: 'FLOWABLE_UNAVAILABLE' }))
     .mockResolvedValue(ok({ items: [task], total: 1, following: [], refreshIntervalMs: 100, error: '' }))
-  const controller = new ReviewController({ conversationReviews: read } as never, owner, () => {})
+  const controller = new ReviewController({ conversationReviews: read } as never, owner, () => {}, () => true)
   await controller.load()
-  expect(controller.face().hooks.workflowReviews.getSnapshot().error).toBe('FLOWABLE_UNAVAILABLE')
+  expect(controller.face().hooks.workflowReviews.getSnapshot().inboxError).toBe('FLOWABLE_UNAVAILABLE')
   await vi.advanceTimersByTimeAsync(100)
   expect(controller.face().hooks.workflowReviews.getSnapshot().inbox?.items).toEqual([task])
-  expect(controller.face().hooks.workflowReviews.getSnapshot().error).toBe('')
+  expect(controller.face().hooks.workflowReviews.getSnapshot().inboxError).toBe('')
   await controller.dispose()
 })
 
@@ -84,7 +84,7 @@ it('drains an accepted decision queued behind a read when its Session scope is d
   const controller = new ReviewController({
     conversationReviews: async () => ok({ items: [task], total: 1, following: [], refreshIntervalMs: 1000, error: '' }),
     conversationReviewDetail: readDetail, reviewFromConversation: review,
-  } as never, owner, () => {})
+  } as never, owner, () => {}, () => true)
   const face = controller.face()
   face.openReview(task); await controller.load()
   const refreshing = controller.load()
@@ -108,7 +108,7 @@ it('reads progress only after inspection, retains evidence on failure, and stops
   const controller = new ReviewController({
     conversationReviews: async () => ok({ items: [task], total: 1, following: [], refreshIntervalMs: 1000, error: '' }),
     conversationProcessDetail: readProgress, reviewFromConversation: review,
-  } as never, owner, () => {})
+  } as never, owner, () => {}, () => true)
   try {
     await controller.load()
     expect(readProgress).not.toHaveBeenCalled()
@@ -140,7 +140,7 @@ it('discards a progress response after selection replacement and drains a closed
   const controller = new ReviewController({
     conversationReviews: async () => ok({ items: [], total: 0, following: [], refreshIntervalMs: 1000, error: '' }),
     conversationProcessDetail: readProgress,
-  } as never, owner, () => {})
+  } as never, owner, () => {}, () => true)
   const face = controller.face(), source = face.hooks.workflowReviews
   try {
     face.openProgress(task.processId)
@@ -159,4 +159,84 @@ it('discards a progress response after selection replacement and drains a closed
     first.resolve(ok(detail().process)); second.resolve(ok(detail().process))
     await controller.dispose()
   }
+})
+
+it('starts and restores polling only after session readiness and ignores reads from before a readiness change', async () => {
+  vi.useFakeTimers()
+  let loaded = false, active = false
+  const online = ok({ items: [task], total: 1, following: [], refreshIntervalMs: 100, error: '' })
+  const oldRead = Promise.withResolvers<typeof online>()
+  const read = vi.fn().mockReturnValueOnce(oldRead.promise).mockResolvedValue(online)
+  const controller = new ReviewController({ conversationReviews: read } as never, owner, () => {}, () => loaded && active)
+  const { hooks: { workflowReviews: source }, refreshReviews } = controller.face()
+  try {
+    controller.syncReadiness()
+    refreshReviews()
+    await controller.load()
+    loaded = true
+    controller.syncReadiness()
+    await controller.load()
+    expect(read).not.toHaveBeenCalled()
+    active = true
+    controller.syncReadiness()
+    const stale = controller.load()
+    await Promise.resolve()
+    expect(read).toHaveBeenCalledTimes(1)
+    loaded = false
+    controller.syncReadiness()
+    await controller.load()
+    oldRead.resolve({ ...online, value: { ...online.value, error: 'previous connection' } })
+    await stale
+    await vi.advanceTimersByTimeAsync(500)
+    expect(source.getSnapshot().inbox).toBeNull()
+    expect(read).toHaveBeenCalledTimes(1)
+    loaded = true
+    controller.syncReadiness()
+    await controller.load()
+    expect(source.getSnapshot().inbox?.items).toEqual([task])
+    await vi.advanceTimersByTimeAsync(100)
+    expect(read).toHaveBeenCalledTimes(3)
+    active = false
+    controller.syncReadiness()
+    await vi.advanceTimersByTimeAsync(500)
+    expect(read).toHaveBeenCalledTimes(3)
+  } finally { await controller.dispose() }
+})
+
+it('keeps detail reads and unconfirmed submissions separate and refreshes before allowing a new decision', async () => {
+  const readDetail = vi.fn().mockResolvedValue(ok(detail())).mockRejectedValueOnce(new Error('detail unavailable'))
+  const review = vi.fn().mockRejectedValueOnce(new Error('transport lost')).mockResolvedValue(ok(detail().process))
+  const read = vi.fn(async () => ok({ items: [task], total: 1, following: [], refreshIntervalMs: 1000, error: '' }))
+  const controller = new ReviewController({
+    conversationReviews: read, conversationReviewDetail: readDetail, reviewFromConversation: review,
+  } as never, owner, () => {}, () => true)
+  const face = controller.face(), source = face.hooks.workflowReviews
+  try {
+    face.openReview(task)
+    await controller.load()
+    expect(source.getSnapshot()).toMatchObject({ inboxError: '', detailError: true, submitError: null })
+    face.decideReview(true)
+    expect(review).not.toHaveBeenCalled()
+    face.refreshReviews()
+    await controller.load()
+    expect(source.getSnapshot().detailError).toBe(false)
+    face.decideReview(true)
+    await controller.load()
+    expect(source.getSnapshot()).toMatchObject({ inboxError: '', detailError: false, submitError: 'unconfirmed' })
+    await controller.load()
+    face.decideReview(true)
+    expect(review).toHaveBeenCalledTimes(1)
+    readDetail.mockRejectedValueOnce(new Error('still unavailable'))
+    face.refreshReviews()
+    await controller.load()
+    expect(source.getSnapshot()).toMatchObject({ detailError: true, submitError: 'unconfirmed' })
+    face.refreshReviews()
+    await controller.load()
+    expect(source.getSnapshot()).toMatchObject({ detailError: false, submitError: null })
+    read.mockRejectedValueOnce(new Error('inbox unavailable after commit'))
+    face.decideReview(true)
+    await controller.load()
+    expect(review).toHaveBeenCalledTimes(2)
+    expect(source.getSnapshot()).toMatchObject({ inboxError: 'inbox unavailable after commit', submitError: null, decision: 'approved' })
+  } finally { await controller.dispose() }
 })

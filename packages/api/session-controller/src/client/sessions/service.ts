@@ -38,6 +38,8 @@ export interface SessionSummary {
   formatStatus?: SessionListEntry['formatStatus']
   /** Host running state for `ids` members; a display fallback for other rows. */
   running: boolean
+  /** Host Agent availability, absent for rows inferred without a Host list entry. */
+  agentAvailable?: boolean
   /** Local ownership counts; Host metadata refreshes cannot overwrite them. */
   readonly retainedBy: SessionRetainInfo['retainedBy']
   /**
@@ -633,6 +635,7 @@ export class ClientSessions implements ISessions {
         id: entry.sessionId,
         displayTitle: displayTitleOf(entry.title, entry.cwd, entry.sessionId),
         running: entry.running,
+        agentAvailable: entry.agentAvailable,
         retainedBy: this.retentionSnapshot(entry.sessionId).retainedBy,
         blank: entry.blank,
         updatedAt: entry.updatedAt,

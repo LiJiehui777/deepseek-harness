@@ -125,10 +125,11 @@ DH listens on `http://127.0.0.1:3001/`. Open the complete URL printed by the ter
 
 On first entry, select a local workspace directory, then complete the model setup before sending a chat request or running an analysis node. API keys are managed by the native credential service. You can also provide `DEEPSEEK_API_KEY` through a private environment; no model key is needed for the built-in data-transfer/approval connection check.
 
-The enhanced bundle list above selects plugin management and both connector packages. Open Plugins to configure their saved-account pages; individual account connections remain disabled until configured and enabled. Selecting a bundle alone does not authorize an account.
+Open Plugins to configure the connectors your enhanced profile loads. To use MES, append `@deepseek-ai/dsh-tool-postgres-connector` to `dsh.profile.bundles` from step 3, keep the existing entries, and restart DH.
 
 - [Feishu and WeCom](docs/user/enterprise-connectors.md): configure their own accounts and resource/ingress permissions.
 - [RAGFlow](docs/user/ragflow-connector.md): provide an independently running service, an API key and selected knowledge bases.
+- Open **Plugins → MES connector** and enter the PostgreSQL host, port, database, read-only username and password. Check **Enable this connection** and save. For a first check, ask in ordinary chat, “Use the MES connector to list the available schemas. Return their names only.” The machine running DH must be able to reach the database.
 
 <a id="verify-workflow"></a>
 
@@ -142,7 +143,7 @@ Start with the connection-check template, then configure a model for the simulat
 4. Review the exact saved inputs in the initiating conversation or Workflow page. DH waits without model polling and continues after approval.
 5. The simulated WeCom risk template requires `scenario=risk` or `scenario=routine`. It does not access WeCom, but its DH analysis nodes still need a model.
 
-See the [workflow reference](packages/business-workflow/workbench/README.md) for the full behavior. MES, SDCC and EIP business actions still require connector implementations; a template is not a delivered integration with those systems.
+See the [workflow reference](packages/business-workflow/workbench/README.md) for the full behavior. The MES connector supports read-only queries in chat. The Flowable MES, SDCC and EIP actions still need integration.
 
 <a id="daily-use-and-data"></a>
 
@@ -178,7 +179,7 @@ Back up the DH directory, private engine env file and engine volume together bef
 | `profile "enhanced" does not exist` | Complete the guarded initialization in the same DH data directory |
 | Flowable unavailable or unauthorized | Docker engine/container, port 8082, and the same exported `DH_FLOWABLE_PASSWORD` in DH and Compose |
 | Model requests fail | Model selection, account/API key and service access; opening DH is not a model connectivity test |
-| Missing account cards | Check that the enhanced bundle list contains plugin management and both connector packages |
+| Missing account cards | Check that the enhanced profile lists plugin management and the relevant connector bundle. MES uses `@deepseek-ai/dsh-tool-postgres-connector` |
 | Browser access refused | Use the full terminal launch URL and check whether another process owns port 3001 |
 
 <a id="development"></a>

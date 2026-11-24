@@ -772,7 +772,7 @@ export class SessionManager {
       const prev = this.entryCache.get(entry.sessionId)
       if (
         prev !== undefined && prev.updatedAt === entry.updatedAt && prev.running === entry.running
-        && prev.blank === entry.blank
+        && prev.blank === entry.blank && prev.agentAvailable === entry.agentAvailable
         && prev.parentSessionId === entry.parentSessionId && prev.cwd === entry.cwd
         && prev.origin === entry.origin && prev.title === entry.title && prev.depth === entry.depth
         && prev.formatStatus === entry.formatStatus

@@ -125,10 +125,11 @@ DH 监听 `http://127.0.0.1:3001/`。首次访问请打开终端打印的完整�
 
 首次进入时先选择一个本地工作区目录，再完成模型配置，然后发送对话请求或运行分析节点。API Key 由原生凭证服务管理，也可以通过私有环境提供 `DEEPSEEK_API_KEY`。内置的数据传递和人工确认接入验证不需要模型密钥。
 
-上面的增强版列表包含插件管理和两类连接器包。启动后在「插件」页配置对应账号；各账号连接在配置并开启前仍保持关闭。选中插件包本身不等于完成账号授权。
+在「插件」页配置增强版已加载的连接器。使用 MES 时，在第 3 步的 `dsh.profile.bundles` 中追加 `@deepseek-ai/dsh-tool-postgres-connector`，保留其他条目，再重启 DH。
 
 - [飞书与企业微信](docs/user/enterprise-connectors.zh.md)：分别配置账号，以及资源和消息来源权限。
 - [RAGFlow](docs/user/ragflow-connector.zh.md)：准备单独运行的服务、API Key 和需要检索的知识库。
+- 打开「插件 → MES 连接器」，填写 PostgreSQL 主机、端口、数据库名、只读账号和密码。勾选「启用此连接」并保存。首次验证可在普通聊天发送「用 MES 连接器列出可访问的 schema，只返回名称」。数据库须能从运行 DH 的机器访问。
 
 <a id="verify-workflow"></a>
 
@@ -142,7 +143,7 @@ DH 监听 `http://127.0.0.1:3001/`。首次访问请打开终端打印的完整�
 4. 在发起会话或工作流页面核对该节点保存的准确输入并审核。DH 等待期间不轮询模型，通过后继续执行。
 5. 「企业微信待办风控演示（模拟）」需要 `scenario=risk` 或 `scenario=routine`；它不访问企微，但 DH 分析节点仍需可用模型。
 
-完整行为见[工作流说明](packages/business-workflow/workbench/README.zh.md)。MES、SDCC、EIP 的实际业务动作仍需实现连接器，模板不等于已经打通这些系统。
+完整行为见[工作流说明](packages/business-workflow/workbench/README.zh.md)。MES 连接器目前提供会话中的只读查询，Flowable 的 MES 节点仍待接入。SDCC 和 EIP 的业务动作也仍待接入。
 
 <a id="daily-use-and-data"></a>
 
@@ -178,7 +179,7 @@ docker compose --project-name dh-flowable --env-file .local/flowable/engine.env 
 | `profile "enhanced" does not exist` | 在同一个 DH 数据目录完成带判断保护的首次初始化 |
 | Flowable 不可用或鉴权失败 | Docker 引擎/容器、8082 端口，以及 DH 与 Compose 是否使用相同且已导出的 `DH_FLOWABLE_PASSWORD` |
 | 模型请求失败 | 模型选择、账号/API Key 和服务可访问性；页面能打开不等于模型已连通 |
-| 找不到账号卡片 | 检查增强版包列表是否包含插件管理和两类连接器包 |
+| 找不到账号卡片 | 检查增强版包列表是否包含插件管理和对应连接器。MES 使用 `@deepseek-ai/dsh-tool-postgres-connector` |
 | 浏览器无法访问 | 使用终端打印的完整启动地址，检查 3001 端口是否被其他进程占用 |
 
 <a id="development"></a>

@@ -79,6 +79,22 @@ async function feedList(b: Bench, rows: FeedRow[]): Promise<void> {
 }
 
 describe('list store projection', () => {
+  it('publishes Host activation even when the idle session row otherwise stays the same', async ({ bench }) => {
+    const b = bench()
+    const sessionId = sid('s1')
+    const idle = { sessionId, updatedAt: 1, running: false, blank: false, agentAvailable: false }
+    b.mock.remote.session.list.mockResolvedValue(ok({ items: [idle] }))
+    await b.svc.refresh()
+    await Promise.resolve()
+    expect(b.svc.list.getSnapshot().byId[sessionId]?.agentAvailable).toBe(false)
+    b.svc.handleSessionAdded({ ...idle, agentAvailable: true })
+    await Promise.resolve()
+    expect(b.svc.list.getSnapshot().byId[sessionId]?.agentAvailable).toBe(true)
+    b.svc.handleSessionAdded(idle)
+    await Promise.resolve()
+    expect(b.svc.list.getSnapshot().byId[sessionId]?.agentAvailable).toBe(false)
+  })
+
   it('publishes format-status changes and preserves a newer update over an in-flight list', async ({ bench }) => {
     const b = bench()
     const historical = {

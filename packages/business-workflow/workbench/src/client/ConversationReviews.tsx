@@ -25,7 +25,7 @@ export function ConversationReviews({ useSession, useWorkflowReviews, refreshRev
   if (session.subagent !== null || session.removed || session.openState !== 'open') return null
   const { inbox, selected, detail, decision } = state
   const following = inbox?.following ?? []
-  if (!selected && !state.progress && !inbox?.items.length && !following.length && !state.error) return null
+  if (!selected && !state.progress && !inbox?.items.length && !following.length && !state.inboxError && !state.followError) return null
   const run = detail?.process
   const processes = [...new Set([...following.map(value => value.processId), ...(inbox?.items ?? []).map(value => value.processId)])]
     .map(id => ({ id, follow: following.find(value => value.processId === id),
@@ -33,14 +33,17 @@ export function ConversationReviews({ useSession, useWorkflowReviews, refreshRev
   const draft = run ? parseDraft(run.draftJson) : null
   const item = run?.items.find(value => value.id === selected?.taskId && value.kind === 'human')
   const node = draft?.nodes.find(value => value.id === item?.nodeId)
-  const canReview = !!item && detail?.inputJson !== null && !state.busy && !state.error && !decision
+  const readError = state.inboxError ? t('reviewListFailed') : state.detailError ? t('reviewDetailFailed') : ''
+  const submissionError = state.submitError === 'stale' ? t('reviewStale') : state.submitError ? t('reviewSubmitUnconfirmed') : ''
+  const canReview = !!item && detail?.inputJson !== null && !state.busy && !readError && !submissionError && !decision
   const value: unknown = detail?.inputJson ? JSON.parse(detail.inputJson) : null
-  const error = state.error.includes('CURRENT_HUMAN_TASK_REQUIRED') || state.error.includes('FLOWABLE_HTTP_404')
-    || state.error.includes('FLOWABLE_HTTP_409') ? t('reviewStale') : t('reviewFailed')
   return <>
-    {(!!inbox?.items.length || !!following.length || !!state.error) && <section
+    {(!!inbox?.items.length || !!following.length || !!state.inboxError || state.followError) && <section
       className={css.card} aria-label={t('progressRegion')} data-conversation-reviews>
-      {state.error && <p role="alert" className={css.error}>{error}
+      {state.inboxError && !selected && <p role="alert" className={css.error}>{t('reviewListFailed')}
+        <Button variant="ghost" size="sm" onClick={refreshReviews} disabled={state.busy}>{t('progressRefresh')}</Button>
+      </p>}
+      {state.followError && <p role="alert" className={css.error}>{t('followUnconfirmed')}
         <Button variant="ghost" size="sm" onClick={refreshReviews} disabled={state.busy}>{t('progressRefresh')}</Button>
       </p>}
       <div className={css.processes}>{processes.map(process => <ConversationProcessCard key={process.id}
@@ -64,9 +67,14 @@ export function ConversationReviews({ useSession, useWorkflowReviews, refreshRev
           <h3>{selected?.name}</h3><p className={css.caption}>{t('engineInstanceId')} · {selected?.processId}</p>
           {run && <Tag>{t(`process.${run.status}`)}</Tag>}
         </header>
-        {state.error && <div role="alert" className={css.error}>{error}<Button variant="ghost" onClick={refreshReviews}>{t('reviewRefresh')}</Button></div>}
+        {readError && <p role="alert" className={css.error}>{readError}
+          {!submissionError && <Button variant="ghost" onClick={refreshReviews} disabled={state.busy}>{t('progressRefresh')}</Button>}
+        </p>}
+        {submissionError && <p role="alert" className={css.error}>{submissionError}
+          <Button variant="ghost" onClick={refreshReviews} disabled={state.busy}>{t('progressRefresh')}</Button>
+        </p>}
         {decision && <p role="status" className={css.success}><IconCheckOutlineRegular />{t(decision === 'approved' ? 'reviewApproved' : 'reviewRejected')}</p>}
-        {!detail && !state.error && <p role="status">{t('reviewLoading')}</p>}
+        {!detail && !readError && <p role="status">{t('reviewLoading')}</p>}
         {detail && !item && !decision && <p role="status" className={css.notice}>{t('reviewResolved')}</p>}
         {item && <>
           <p className={css.notice}>{t('reviewWaiting')}</p>
