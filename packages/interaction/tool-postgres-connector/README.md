@@ -1,6 +1,6 @@
 ---
 description: "The read-only PostgreSQL data source other plugins and the built-in postgres_* tools read through, with credential-reference passwords, single-statement safety, and bounded results."
-kind: "package-reference"
+kind: "package-bundle"
 ---
 
 # @deepseek-ai/dsh-tool-postgres-connector

@@ -3,8 +3,8 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/interaction/tool-postgres-connector/README.md
 /:
-  en: 87a83cddb2b251be
-  zh: fb42a4b5d977e731
+  en: 03bb59275312d9b3
+  zh: ca3f361127754769
 /deepseek-ai-dsh-tool-postgres-connector:
   en: ecd88f426dc48795
   zh: 59d6d5eff94a2bec

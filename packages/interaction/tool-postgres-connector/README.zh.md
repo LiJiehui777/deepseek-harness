@@ -1,6 +1,6 @@
 ---
 description: "其他插件与内置 postgres_* 工具共用的只读 PostgreSQL 数据源：口令走凭据引用、只接受单条语句、结果有界。"
-kind: "package-reference"
+kind: "package-bundle"
 ---
 
 # @deepseek-ai/dsh-tool-postgres-connector
